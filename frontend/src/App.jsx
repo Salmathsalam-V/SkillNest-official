@@ -44,7 +44,7 @@ function App() {
             <Route path="/send-otp" element={<SendOTPForm/>} />
             <Route path="/verify-otp" element={<VerifyOTPForm/>} />
             <Route path="/profile" element={<Profile/>} />
-            <Route path="/creator-profile" element={<CreatorProfile/>} />
+            <Route path="/creator-profile/:id" element={<CreatorProfile/>} />
             <Route path="/learners-list" element={<LearnerList/>} />
             <Route path="/reset-password" element={<ResetPasswordForm />} />
             <Route path="/ceate-extradata" element={<CreateExtraDetails />} />

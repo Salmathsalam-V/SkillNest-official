@@ -85,18 +85,16 @@ class CreatorData(APIView):
             "success": True,
             "creator": serializer.data
         }, status=status.HTTP_200_OK)
+    
     def patch(self, request, id, *args, **kwargs):
         try:
             user = User.objects.select_related('creator_profile').get(id=id, user_type='creator')
-            creator = user.creator_profile
         except User.DoesNotExist:
             return Response({"success": False, "message": "Creator not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        approve_status = request.data.get("approve")
-        if approve_status not in ["accept", "reject"]:
-            return Response({"success": False, "message": "Invalid approval status"}, status=status.HTTP_400_BAD_REQUEST)
-
-        creator.approve = approve_status
-        creator.save()
-
-        return Response({"success": True, "message": f"Creator has been {approve_status}ed."}, status=status.HTTP_200_OK)
+        serializer = CombinedCreatorUserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"success": True, "message": "Creator updated successfully", "creator": serializer.data}, status=status.HTTP_200_OK)
+        
+        return Response({"success": False, "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

@@ -39,25 +39,25 @@ export const AppSidebar = () => {
             Dashboard
           </Button>
         </Link>
-        <Link to="/learners-list">
+        <Link to="">
           <Button variant="outline" className="w-full justify-start gap-2">
             <UsersRound className="h-5 w-5" />
             Learners
           </Button>
         </Link>
-        <Link to="/">
+        <Link to="">
           <Button variant="outline" className="w-full justify-start gap-2">
             <FileText className="h-5 w-5" />
             Posts
           </Button>
         </Link>
-        <Link to="/">
+        <Link to="">
           <Button variant="outline" className="w-full justify-start gap-2">
             <MessageSquareText className="h-5 w-5" />
             Chat
           </Button>
         </Link>
-        <Link to="/">
+        <Link to="">
           <Button variant="outline" className="w-full justify-start gap-2">
             <PencilLine className="h-5 w-5" />
             Feedback

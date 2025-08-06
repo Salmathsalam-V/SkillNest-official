@@ -17,6 +17,7 @@ const GoogleCallback = () => {
       (async () => {
         const res = await googleLogin(code);
         if (res.success) {
+          dispatch(setUser(userRes.data));
           const userRes = await get_user();
           if (userRes.success) {
             dispatch(setUser(userRes.data));
