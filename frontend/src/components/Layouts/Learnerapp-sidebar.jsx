@@ -47,7 +47,7 @@ export const AppSidebar = () => {
             Pages
           </Button>
         </Link>
-        <Link to="/posts">
+        <Link to="/">
           <Button variant="outline" className="w-full justify-start gap-2">
             <FileText className="h-5 w-5" />
             Posts

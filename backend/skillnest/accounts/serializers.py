@@ -14,8 +14,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'password', 'fullname', 'user_type','status','profile']
         extra_kwargs = {
-            'status': {'read_only': True} 
-        }        
+            'password': {'write_only': True},
+            'email': {'read_only': True}  # Make email read-only
+        }
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -27,6 +28,18 @@ class UserSerializer(serializers.ModelSerializer):
             status=False
         )
         return user
+    def update(self, instance, validated_data):
+        # Don't allow updates to read-only fields
+        validated_data.pop('email', None)
+        validated_data.pop('user_type', None)
+        validated_data.pop('password', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -98,12 +111,30 @@ class CreatorSerializer(serializers.ModelSerializer):
 
 
 class CombinedCreatorUserSerializer(serializers.ModelSerializer):
-    # Get data from Creator model via related_name
-    category = serializers.CharField(source='creator_profile.category', read_only=True)
-    description = serializers.CharField(source='creator_profile.description', read_only=True)
-    background = serializers.CharField(source='creator_profile.background', read_only=True)
-    approve = serializers.CharField(source='creator_profile.approve', read_only=True)
+    # Writable fields for Creator (via source)
+    category = serializers.CharField(source='creator_profile.category')
+    description = serializers.CharField(source='creator_profile.description')
+    background = serializers.CharField(source='creator_profile.background', allow_blank=True, allow_null=True)
+    approve = serializers.CharField(source='creator_profile.approve')
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email','fullname','profile', 'user_type','status','category', 'description', 'background', 'approve']
+        fields = ['id', 'username', 'email', 'fullname', 'profile', 'user_type', 'status',
+                  'category', 'description', 'background', 'approve']
+
+    def update(self, instance, validated_data):
+        # Extract nested creator_profile data
+        creator_data = validated_data.pop('creator_profile', {})
+
+        # Update User fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Update Creator fields
+        creator = instance.creator_profile
+        for attr, value in creator_data.items():
+            setattr(creator, attr, value)
+        creator.save()
+
+        return instance

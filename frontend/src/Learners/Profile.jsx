@@ -18,12 +18,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { setUser } from '../Redux/userSlice';
+import { toast } from 'sonner';
 
 
 const Profile = () => {
 //   const [userdata, setUser] = useState(null);
 //   const [loading, setLoading] = useState(true);
-  const [learners, setLearners] = useState([]);
+  const [learner, setLearner] = useState(null);
   const user = useSelector((state) => state.user.user);
   const [editingLearner, setEditingLearner] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -36,6 +37,21 @@ const Profile = () => {
     setEditingLearner({ ...learner }); // Clone to avoid direct state mutation
     setIsEditOpen(true);
   };
+  
+  useEffect(() => {
+  const fetchLearner = async () => {
+    try {
+      const res = await axios.get(`http://localhost:8000/api/admin/learners/${user.id}/`);
+      setLearner(res.data);
+    } catch (error) {
+      console.error("Failed to fetch learner data", error);
+    }
+  };
+
+  if (user?.id) {
+    fetchLearner();
+  }
+}, [user]);
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -45,19 +61,21 @@ const Profile = () => {
     }));
   };
 
-  const handleUpdateLearner = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.patch(`http://localhost:8000/api/admin/learners/${editingLearner.id}/`, editingLearner);
-      alert("Learner updated successfully");
-      setLearners(prev => prev.map(l => l.id === editingLearner.id ? editingLearner : l));
-      setIsEditOpen(false);
-      dispatch(setUser(learners));
-    } catch (err) {
-      console.error("Update error:", err);
-      alert("Failed to update learner");
-    }
-  };
+const handleUpdateLearner = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await axios.patch(`http://localhost:8000/api/admin/learners/${editingLearner.id}/`, editingLearner);
+    toast.success("Learner updated successfully");
+    setLearner(res.data); // update local state
+    setIsEditOpen(false);
+    dispatch(setUser(res.data)); // update redux
+  } catch (err) {
+    console.error("Update error:", err);
+    toast.error("Failed to update learner");
+    isEditOpen(false); // close modal on error
+  }
+};
+
 
   return (
     <>
@@ -80,7 +98,7 @@ const Profile = () => {
           <div className="text-sm text-gray-700">
             Name: {user.fullname}
           </div>
-            <Button onClick={() => handleEditClick(user)} variant='link'>Edit</Button>
+            <Button onClick={() => handleEditClick(learner)} variant='link'>Edit</Button>
           
         </CardContent>
       </Card>
@@ -90,9 +108,7 @@ const Profile = () => {
           <form onSubmit={handleUpdateLearner}>
             <DialogHeader>
               <DialogTitle>Edit Learner</DialogTitle>
-              <DialogDescription>
-                Make changes to learner info. Click save when you're done.
-              </DialogDescription>
+              <DialogDescription>Edit your learner profile below.</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
@@ -102,11 +118,18 @@ const Profile = () => {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" value={editingLearner?.email || ''} onChange={handleEditChange} />
+                <Input id="email" name="email" value={editingLearner?.email || ''} disabled />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="fullname">Full Name</Label>
                 <Input id="fullname" name="fullname" value={editingLearner?.fullname || ''} onChange={handleEditChange} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <select id="status" name="status" value={editingLearner?.status} onChange={handleEditChange} className="border rounded px-2 py-1">
+                  <option value={true}>Active</option>
+                  <option value={false}>Blocked</option>
+                </select>
               </div>
             </div>
 
@@ -117,6 +140,7 @@ const Profile = () => {
               <Button type="submit">Save changes</Button>
             </DialogFooter>
           </form>
+
         </DialogContent>
       </Dialog>
     </div>
