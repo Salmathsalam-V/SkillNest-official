@@ -10,13 +10,14 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'password', 'fullname', 'user_type','status','profile']
         extra_kwargs = {
             'password': {'write_only': True},
-            'email': {'read_only': True}  # Make email read-only
         }
+
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -28,8 +29,9 @@ class UserSerializer(serializers.ModelSerializer):
             status=False
         )
         return user
+
     def update(self, instance, validated_data):
-        # Don't allow updates to read-only fields
+        # prevent email, user_type, and password from being updated
         validated_data.pop('email', None)
         validated_data.pop('user_type', None)
         validated_data.pop('password', None)

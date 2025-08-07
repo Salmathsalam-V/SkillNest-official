@@ -11,7 +11,7 @@ from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
 from rest_framework import status
 
-# Create your views here.
+
 class LearnerListView(ListAPIView):
     permission_classes = [AllowAny] 
     serializer_class = UserSerializer
@@ -33,27 +33,13 @@ class LearnerDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [AllowAny] 
     lookup_field = 'id'
 
-# class CreatorListView(ListAPIView):
-#     permission_classes = [AllowAny] 
-#     serializer_class = UserSerializer
-
-#     def get_queryset(self):
-#         return User.objects.filter(user_type='creator')
-
-#     def list(self, request, *args, **kwargs):
-#         queryset = self.get_queryset()
-#         serializer = self.get_serializer(queryset, many=True)
-#         return Response({
-#             'success': True,
-#             'creators': serializer.data
-#         })
 
 class CreatorListView(ListAPIView):
     permission_classes = [AllowAny]
     serializer_class = CombinedCreatorUserSerializer
 
     def get_queryset(self):
-        # Return users with type 'creator' AND having a creator profile
+        # Fetch only creators with a profile
         return User.objects.filter(user_type='creator', creator_profile__isnull=False).select_related('creator_profile')
 
     def list(self, request, *args, **kwargs):
