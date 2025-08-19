@@ -159,7 +159,7 @@ class GoogleLoginAPIView(APIView):
         })
         
 
-        # 🔐 Secure cookies for tokens
+        # Secure cookies for tokens
         response.set_cookie(
             key='access_token',
             value=str(access),
@@ -188,12 +188,10 @@ def send_otp_view(request):
     email = request.data.get("email")
     otp = generate_otp()
 
-    # Store OTP in cache (or database)
-    cache.set(f"otp_{email}", otp, timeout=300)  # 5 minutes
+    # Store OTP in cache 
+    cache.set(f"otp_{email}", otp, timeout=300)  # Store OTP for 5 minutes
 
-    # Trigger Celery Task
-    send_otp_email_task.delay(email, otp)
-
+    send_otp_email_task.delay(email, otp) # celry task to send email
     return Response({"message": "OTP sent"})
 
 @api_view(['POST'])

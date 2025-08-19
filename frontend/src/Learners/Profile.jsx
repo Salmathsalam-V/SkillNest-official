@@ -91,8 +91,17 @@ const handleUpdateLearner = async (e) => {
         <CardContent className="flex flex-col items-center gap-4">
             <div className="text-sm text-gray-700">Username: {user.fullname}</div>
           <Avatar className="h-16 w-16">
-            <AvatarFallback>{user?.username?.[0].toUpperCase()}</AvatarFallback>
-          </Avatar>
+  {learner?.profile ? (
+    <img
+      src={learner.profile}
+      alt="Profile"
+      className="h-16 w-16 rounded-full object-cover"
+    />
+  ) : (
+    <AvatarFallback>{user?.username?.[0].toUpperCase()}</AvatarFallback>
+  )}
+</Avatar>
+
           <div className="text-sm text-gray-700">Username: {user.username}</div>
           <div className="text-sm text-gray-700">Email: {user.email}</div>
           <div className="text-sm text-gray-700">

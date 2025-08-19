@@ -110,15 +110,7 @@ const CreateExtraDetails = () => {
             <img src={background} alt="Background preview" className="w-24 h-24 rounded-full mt-2" />
           )}
 
-            <div>
-              <Label>Background URL</Label>
-              <Input
-                type="url"
-                placeholder="Link to your profile picture or page"
-                value={background}
-                onChange={(e) => setBackground(e.target.value)}
-              />
-            </div>
+            
 
             <Button type="submit" className="w-full">Submit</Button>
           </CardContent>
