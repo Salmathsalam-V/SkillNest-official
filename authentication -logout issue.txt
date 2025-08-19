@@ -1,5 +1,6 @@
 python -m celery -A skillnest worker --loglevel=info
 
+.\venv\Scripts\Activate
 
 venv\Scripts\python.exe -m pip install redis
 

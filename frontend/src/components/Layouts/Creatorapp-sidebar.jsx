@@ -45,10 +45,10 @@ export const AppSidebar = () => {
             Learners
           </Button>
         </Link>
-        <Link to="">
+        <Link to="/listcreator">
           <Button variant="outline" className="w-full justify-start gap-2">
             <FileText className="h-5 w-5" />
-            Posts
+            Creators
           </Button>
         </Link>
         <Link to="">

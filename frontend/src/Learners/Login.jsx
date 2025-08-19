@@ -1,35 +1,51 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { login, get_user } from '@/endpoints/axios';
+import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { login } from '@/endpoints/axios';
 import { setUser } from '../Redux/userSlice';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
 
-import { cn } from "@/lib/utils";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as Yup from "yup";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 
+const schema = Yup.object().shape({
+  email: Yup.string()
+    .email("Invalid email address")
+    .matches(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Email must include a valid domain (like .com, .in, .org)")
+    .required("Email is required"),
+  password: Yup.string()
+    .required("Password is required"),
+});
+
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user.user);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    mode: "onBlur", // validate on blur
+  });
+
+  // ✅ On submit
+  const onSubmit = async (data) => {
     try {
-      const res = await login(email, password);
+      const res = await login(data.email, data.password);
       if (res?.success) {
         dispatch(setUser(res.data.user));
         const userType = res.data.user.user_type;
         toast.success('Login successful!');
-        console.log("user_",userType)
         if (userType === 'learner') navigate('/learnerhome');
         else if (userType === 'creator') navigate('/creatorhome');
         else navigate('/adminhome');
@@ -37,7 +53,6 @@ const Login = () => {
         toast.error('Invalid credentials');
       }
     } catch (error) {
-      toast.error("login failed");
       toast.error("Login failed: " + (error.response?.data?.error || error.message));
     }
   };
@@ -46,7 +61,7 @@ const Login = () => {
     <div className="flex flex-col gap-6 min-h-screen justify-center items-center bg-muted px-4">
       <Card className="overflow-hidden p-0 w-full max-w-3xl">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8" onSubmit={handleLogin}>
+          <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-2xl font-bold">Welcome back</h1>
@@ -55,18 +70,19 @@ const Login = () => {
                 </p>
               </div>
 
+              {/* Email Field */}
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  {...register("email")}
                 />
+                {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
               </div>
 
+              {/* Password Field */}
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
@@ -74,38 +90,37 @@ const Login = () => {
                     to="/send-otp"
                     state={{ isForgotPassword: true }}
                     className="ml-auto text-sm underline-offset-2 hover:underline"
-                    >
-                      Forgot your password?
+                  >
+                    Forgot your password?
                   </Link>
                 </div>
                 <Input
                   id="password"
                   type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  {...register("password")}
                 />
+                {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
               </div>
 
               <Button type="submit" className="w-full" variant='custom'>
                 Login
               </Button>
 
+              {/* Divider */}
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
                   Or continue with
                 </span>
               </div>
 
+              {/* Google Login */}
               <div className="flex justify-center">
                 <GoogleLogin
                   onSuccess={async (credentialResponse) => {
                     const token = credentialResponse.credential;
-                    console.log("Google JWT token:", token);
-                    console.log("Token length:", token.length);
-
                     try {
-                      const res = await axios.post('http://localhost:8000/api/google-login/',
+                      const res = await axios.post(
+                        'http://localhost:8000/api/google-login/',
                         { token },
                         { withCredentials: true }
                       );
