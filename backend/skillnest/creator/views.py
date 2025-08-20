@@ -1,15 +1,16 @@
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .serializers import PostSerializer,CommentSerializer
-from .models import Post,Comment
+from .serializers import PostSerializer,CommentSerializer,CommunitySerializer
+from .models import Post,Comment,Community
 from accounts.authentication import CustomJWTAuthentication
 from rest_framework.exceptions import PermissionDenied
 
 
 # List all posts / Create a new post
 class PostView(ListCreateAPIView):
-    permission_classes = [IsAuthenticatedOrReadOnly]  # anyone can read, only logged in can create
-    authentication_classes = [CustomJWTAuthentication]
+    # permission_classes = [IsAuthenticatedOrReadOnly]  # anyone can read, only logged in can create
+    # authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [AllowAny]
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
 
@@ -20,8 +21,9 @@ class PostView(ListCreateAPIView):
 
 # Retrieve, Update, Delete a single post
 class PostDetailView(RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    authentication_classes = [CustomJWTAuthentication]
+    # permission_classes = [IsAuthenticatedOrReadOnly]
+    # authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [AllowAny]
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
@@ -40,8 +42,10 @@ class PostDetailView(RetrieveUpdateDestroyAPIView):
 # List all comments for a post / Create new comment
 class CommentListCreateView(ListCreateAPIView):
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    # permission_classes = [IsAuthenticatedOrReadOnly]
+    # authentication_classes = [CustomJWTAuthentication]
 
     def get_queryset(self):
         post_id = self.kwargs['post_id']   # post/<id>/comments/
@@ -54,8 +58,10 @@ class CommentListCreateView(ListCreateAPIView):
 # Retrieve, Update, Delete a comment
 class CommentDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    # permission_classes = [IsAuthenticatedOrReadOnly]
+    # authentication_classes = [CustomJWTAuthentication]
     queryset = Comment.objects.all()
 
     def perform_update(self, serializer):
@@ -67,3 +73,18 @@ class CommentDetailView(RetrieveUpdateDestroyAPIView):
         if instance.user != self.request.user:
             raise PermissionDenied("You cannot delete someone else’s comment")
         instance.delete()
+
+class CommunityListCreateView(ListCreateAPIView):
+    queryset = Community.objects.all()
+    serializer_class = CommunitySerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]
+
+    def perform_create(self, serializer):
+        serializer.save(creator=self.request.user)
+
+class CommunityDetailView(RetrieveUpdateDestroyAPIView):
+    queryset = Community.objects.all()
+    serializer_class = CommunitySerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CustomJWTAuthentication]

@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Post, Comment, Course, QA_Post
 from accounts.models import User, Creator
+from .models import Community
+from django.contrib.auth import get_user_model
 
 
 # --- User (simplified for nested usage) ---
@@ -62,3 +64,37 @@ class QASerializer(serializers.ModelSerializer):
     class Meta:
         model = QA_Post
         fields = ['id', 'course', 'user', 'question', 'answer', 'created_at']
+# community
+class CommunitySerializer(serializers.ModelSerializer):
+    creator = serializers.ReadOnlyField(source='creator.username')  # show creator’s name
+    members = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=User.objects.all(),
+        required=False
+    )
+
+    class Meta:
+        model = Community
+        fields = ['id', 'creator', 'name', 'description', 'members', 'created_at']
+        read_only_fields = ['id', 'creator', 'created_at']
+
+    def create(self, validated_data):
+        request = self.context['request']
+        user = request.user
+
+        # Ensure only creators can create communities
+        if user.user_type != 'creator':
+            raise serializers.ValidationError("Only creators can create a community.")
+
+        community = Community.objects.create(
+            creator=user,
+            name=validated_data['name'],
+            description=validated_data.get('description', "")
+        )
+
+        # Add members if provided
+        members = validated_data.get('members')
+        if members:
+            community.members.set(members)
+
+        return community

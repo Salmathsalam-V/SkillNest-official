@@ -37,4 +37,25 @@ class QA_Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Q&A for {self.post.caption}"
+        return f"Q&A for {self.course.post.caption} by {self.user.username}"
+
+
+# Community
+class Community(models.Model):
+    creator = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="created_communities",
+        limit_choices_to={'user_type': 'creator'} 
+    )
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    members = models.ManyToManyField(
+        User,
+        related_name="communities",
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
