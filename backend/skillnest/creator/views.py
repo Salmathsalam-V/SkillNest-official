@@ -1,9 +1,10 @@
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .serializers import PostSerializer,CommentSerializer,CommunitySerializer
-from .models import Post,Comment,Community
+from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer
+from .models import Post,Comment,Community,Course
 from accounts.authentication import CustomJWTAuthentication
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import ListAPIView
 
 
 # List all posts / Create a new post
@@ -39,6 +40,23 @@ class PostDetailView(RetrieveUpdateDestroyAPIView):
             raise PermissionDenied("You cannot delete someone else’s post")
         instance.delete()
 
+class CreatorPostsView(ListAPIView):
+    serializer_class = PostSerializer
+    permission_classes = [AllowAny]
+    def get_queryset(self):
+        creator_id = self.kwargs['creator_id']
+        return Post.objects.filter(user_id=creator_id).order_by('-created_at')
+        # return queryset
+    
+class CreatorCoursesView(ListAPIView):
+    serializer_class = PostSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        creator_id = self.kwargs['creator_id']
+        return Post.objects.filter(user_id=creator_id).order_by('-created_at')
+
+
 # List all comments for a post / Create new comment
 class CommentListCreateView(ListCreateAPIView):
     serializer_class = CommentSerializer
@@ -70,7 +88,9 @@ class CommentDetailView(RetrieveUpdateDestroyAPIView):
         serializer.save()
 
     def perform_destroy(self, instance):
-        if instance.user != self.request.user:
+        post_owner = instance.post.user  # this is a Creator
+        request_user = self.request.user
+        if instance.user != request_user and post_owner.user != request_user:
             raise PermissionDenied("You cannot delete someone else’s comment")
         instance.delete()
 

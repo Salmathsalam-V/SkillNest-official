@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { faL } from "@fortawesome/free-solid-svg-icons";
 
 // ✅ Validation schema
 const schema = Yup.object().shape({
@@ -67,8 +68,16 @@ export const Register = () => {
     try {
       const finalData = { ...data, profile };
       const res = await axios.post("http://localhost:8000/api/register/", finalData);
-      toast.success("Registered successfully");
-      navigate("/send-otp");
+      try {
+        await axios.post('http://localhost:8000/api/send_otp/', { email: data.email });
+        navigate("/verify-otp", {
+        state: { email: data.email ,isForgotPassword: false }, // Pass email forward
+        });
+        toast.success("OTP Send To Your Email Successfully");
+      } catch (error) {
+        toast.error("Failed to send OTP");
+        console.error('Failed to send OTP', error);
+      }
     } catch (err) {
       console.error("Registration error:", err);
       toast.error("Registration failed!");

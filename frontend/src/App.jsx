@@ -19,6 +19,7 @@ import ResetPasswordForm from './Learners/ResetPasswordHome';
 import CreateExtraDetails from './Creator/CreateExtraDetails';
 import { CreatorData } from './Admin/CreatorData';
 import { Toaster } from 'sonner';
+import MessagesTable from './Admin/UserMessage';
 
 // import { AuthProvider } from './contexts/useAuth';
 // import { PrivateRoutes } from './components/private_routes/PrivateRoutes'
@@ -49,6 +50,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordForm />} />
             <Route path="/ceate-extradata" element={<CreateExtraDetails />} />
             <Route path="/creators-view/:id" element={<CreatorData />} />
+            <Route path="/messages" element={<MessagesTable />} />
           </Routes>
         {/* <PrivateRoutes></PrivateRoutes> */}
         {/* </AuthProvider> */}

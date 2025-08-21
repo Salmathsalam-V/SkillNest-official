@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { logout } from "../endpoints/axios";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -6,9 +6,15 @@ import CreatorLayout from '@/components/Layouts/CreatorLayout';
 import LearnerBanner from '../assets/learner-banner.jpg';
 import LearnerLayout from '@/components/Layouts/LearnerLayout';
 import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import axios from "axios";
+import { useSelector } from 'react-redux';
+
 
 export const Home = () => {
   const navigate = useNavigate();
+  const [message, setMessage] = useState("");
+  const user = useSelector((state) => state.user.user);
 
   const handleLogout = async () => {
     const success = await logout();
@@ -17,7 +23,24 @@ export const Home = () => {
       toast.success("Logout successfully")
     }
   };
-
+  const handleContactUs = async () => {
+    if (!message.trim()) {
+      toast.error("Please write a message before sending.");
+      return;
+    }
+    try {
+      const res = await axios.post(
+        "http://localhost:8000/api/admin/contact-us/", 
+        { content: message, user: user.id },                 
+        { withCredentials: true }             
+      );
+      toast.success("Message sent to admin successfully");
+      setMessage(""); // clear after send
+    } catch (err) {
+      console.error("Error on sending:", err);
+      toast.error("Failed to send message.");
+    }
+  };
   const communities = [
     { name: "Batch Alpha - Fabindia", desc: "Active Learning Group", messages: 3 },
     { name: "Batch Beta - Zudio", desc: "Python Enthusiasts", messages: 1 },
@@ -94,6 +117,29 @@ export const Home = () => {
           </div>
         </div>
       </section>
+
+{/* Contact Us Section */}
+<section className="bg-white p-6 rounded shadow mb-8">
+  <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">📩 Contact Us</h2>
+  <p className="text-sm text-gray-600 text-center mb-6">
+    Have questions, feedback, or suggestions? We’d love to hear from you!
+  </p>
+  
+  <div className="max-w-lg mx-auto space-y-4">
+    <Textarea
+      placeholder="Write your message here..."
+      value={message}
+        onChange={(e) => setMessage(e.target.value)}   
+        className="min-h-[120px] resize-none"
+    />
+    <Button 
+      className="w-full bg-gradient-to-r from-pink-400 via-teal-400 to-sky-400 text-white font-semibold shadow hover:opacity-90"
+        onClick={handleContactUs}
+      >
+        Send to Admin
+    </Button>
+  </div>
+</section>
 
       {/* Team Section */}
       <section className="bg-white p-6 rounded shadow text-center">

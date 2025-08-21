@@ -3,13 +3,17 @@ from accounts.models import Creator, User
 import datetime
 
 class Post(models.Model):
-    user = models.ForeignKey(Creator, on_delete=models.CASCADE, related_name='posts')  
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')  
     image = models.URLField(blank=True, null=True,default=None)
     caption = models.TextField()
     created_at = models.DateTimeField(default=datetime.datetime.now)
     likes = models.ManyToManyField(User, blank=True, related_name='liked_posts')  
     is_cource = models.BooleanField(default=False)
 
+    def save(self, *args, **kwargs):
+        if self.user.user_type != "creator":
+            raise ValueError("Only creators can create posts.")
+        super().save(*args, **kwargs)
     def like_count(self):
         return self.likes.count()
 
@@ -26,8 +30,13 @@ class Comment(models.Model):
         return f"Comment by {self.user.username} on {self.post.caption}"
     
 class Course(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course',default=1)  
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='course')
     rating = models.FloatField(default=0.0)
+    def save(self, *args, **kwargs):
+        if self.user.user_type != "creator":
+            raise ValueError("Only creators can create posts.")
+        super().save(*args, **kwargs)
 
 class QA_Post(models.Model):
     course= models.ForeignKey(Course, on_delete=models.CASCADE, related_name='qa_course')

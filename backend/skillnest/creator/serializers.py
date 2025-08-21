@@ -23,7 +23,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
 # --- Post Serializer ---
 class PostSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()  # or use a CreatorSerializer if needed
+    user = serializers.StringRelatedField()  
     comments = CommentSerializer(many=True, read_only=True)
     like_count = serializers.SerializerMethodField()
     likes = UserSerializer(many=True, read_only=True)
