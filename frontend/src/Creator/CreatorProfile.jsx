@@ -24,7 +24,11 @@ export default function CreatorProfile() {
   const [openPost, setOpenPost] = useState(null);
   const [editData, setEditData] = useState({ username: '', category: '', description: '', fullname: '', profile: '', background: '' });
   const [commentText, setCommentText] = useState({});
-
+  const [openEditPost, setOpenEditPost] = useState(null);
+  const [openCommentsPost, setOpenCommentsPost] = useState(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newPost, setNewPost] = useState({ caption: "", image: "" });
+  const [image, setImage] = useState('');
   useEffect(() => {
     const fetchCreator = async () => {
       try {
@@ -142,6 +146,72 @@ const handleUpdatePost = async (post) => {
   }
 };
 
+   const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'skillnest_profile');
+
+    try {
+      const res = await axios.post(
+        'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
+        formData
+      );
+      setImage(res.data.secure_url);
+    } catch (err) {
+      console.error("Image upload failed:", err);
+      toast.error("Image upload failed");
+    }
+  };
+const handleCreatePost = async () => {
+  try {
+    const res = await axios.post(
+      `http://localhost:8000/api/creator/creators/${id}/posts/`,
+      {
+        ...newPost,
+        image,  
+      },
+      { withCredentials: true }
+    );
+
+    setPosts((prev) => [res.data, ...prev]); // add new post on top
+    toast.success("Post created successfully");
+    setIsCreateOpen(false);
+    setNewPost({ caption: "", image: "" });
+  } catch (err) {
+    console.error("Error creating post:", err);
+    toast.error("Failed to create post");
+  }
+};
+
+const handleCommentSubmit = async (postId) => {
+  const content = commentText[postId];
+  if (!content?.trim()) return;
+
+  try {
+    const res = await axios.post(
+      `http://localhost:8000/api/creator/posts/${postId}/comments/`,
+      { content },
+      { withCredentials: true }
+    );
+    
+    // Update the post with new comment
+    setPosts(prev => 
+      prev.map(post => 
+        post.id === postId 
+          ? { ...post, comments: [...(post.comments || []), res.data] }
+          : post
+      )
+    );
+    
+    // Clear comment input
+    setCommentText(prev => ({ ...prev, [postId]: '' }));
+    toast.success("Comment added successfully");
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    toast.error("Failed to add comment");
+  }
+};
   if (loading) return <p className="text-center py-10">Loading...</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
@@ -264,19 +334,19 @@ const handleUpdatePost = async (post) => {
             </div>
           </div>
         </Card>
-<Dialog open={!!(openPost?.editMode)} onOpenChange={() => setOpenPost(null)}>
+<Dialog open={!!openEditPost} onOpenChange={() => setOpenEditPost(null)}>
   <DialogContent>
     <DialogHeader>
       <DialogTitle>Edit Post</DialogTitle>
     </DialogHeader>
-    {openPost && (
+    {openEditPost && (
       <div className="flex flex-col gap-3">
         {/* Caption */}
         <Textarea
           placeholder="Update caption..."
-          value={openPost.caption}
+          value={openEditPost.caption}
           onChange={(e) =>
-            setOpenPost((prev) => ({ ...prev, caption: e.target.value }))
+            setOpenEditPost((prev) => ({ ...prev, caption: e.target.value }))
           }
         />
 
@@ -284,17 +354,18 @@ const handleUpdatePost = async (post) => {
         <Input
           type="text"
           placeholder="Image URL"
-          value={openPost.image || ""}
+          value={openEditPost.image || ""}
           onChange={(e) =>
-            setOpenPost((prev) => ({ ...prev, image: e.target.value }))
+            setOpenEditPost((prev) => ({ ...prev, image: e.target.value }))
           }
         />
 
-        <Button onClick={() => handleUpdatePost(openPost)}>Save</Button>
+        <Button onClick={() => handleUpdatePost(openEditPost)}>Save</Button>
       </div>
     )}
   </DialogContent>
 </Dialog>
+
 
         {/* Tabs Section */}
         <Tabs defaultValue="posts" className="mt-8">
@@ -334,7 +405,7 @@ const handleUpdatePost = async (post) => {
     Edit
   </Button>
   <Button
-    variant="destructive"
+    variant="outline"
     size="sm"
     onClick={() => handleDeletePost(post.id)}
   >
@@ -350,6 +421,7 @@ const handleUpdatePost = async (post) => {
                         >
                           <MessageCircle className="w-5 h-5" />
                         </Button>
+
                       </div>
 
                       {/* First Comment */}
@@ -375,7 +447,7 @@ const handleUpdatePost = async (post) => {
                           <p className="text-xs text-gray-400">No comments yet.</p>
                         )}
                       </div>
-
+                              
                       {/* Course Rating (if applicable) */}
                       {post.is_course && (
                         <div className="flex gap-1 mt-2">
@@ -390,12 +462,61 @@ const handleUpdatePost = async (post) => {
                         </div>
                       )}
                     </div>
+               
                   </Card>
+                  
                 ))}
+   
               </div>
             ) : (
               <p className="text-muted-foreground text-center mt-6">No posts available.</p>
             )}
+                         {/* PLUS BUTTON CENTERED */}
+<div className="flex justify-center mt-8">
+  <Button
+    size="lg"
+    className="rounded-full w-12 h-12 flex items-center justify-center text-3xl"
+    onClick={() => setIsCreateOpen(true)}
+  >
+    +
+  </Button>
+</div>
+
+{/* CREATE POST DIALOG */}
+<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Create New Post</DialogTitle>
+    </DialogHeader>
+
+    <div className="flex flex-col gap-4">
+      {/* Caption */}
+      <Textarea
+        placeholder="Write a caption..."
+        value={newPost.caption}
+        onChange={(e) =>
+          setNewPost((prev) => ({ ...prev, caption: e.target.value }))
+        }
+      />
+
+      {/* Image URL (you’ll replace with upload logic) */}
+            <div>
+                          <Label>Image</Label>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            required
+                          />
+                        </div>
+                {image && (
+                  <img src={image} alt="Background preview" className="w-24 h-24 rounded-full mt-2" />
+                )}
+
+      <Button onClick={handleCreatePost}>Post</Button>
+    </div>
+  </DialogContent>
+</Dialog>
 
             {/* Popup for comments (reuse same as PostsPage) */}
             <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>

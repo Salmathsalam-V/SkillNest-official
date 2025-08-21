@@ -40,13 +40,17 @@ class PostDetailView(RetrieveUpdateDestroyAPIView):
             raise PermissionDenied("You cannot delete someone else’s post")
         instance.delete()
 
-class CreatorPostsView(ListAPIView):
+class CreatorPostsView(ListCreateAPIView):
     serializer_class = PostSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]   # or AllowAny if you want open
+
     def get_queryset(self):
         creator_id = self.kwargs['creator_id']
         return Post.objects.filter(user_id=creator_id).order_by('-created_at')
-        # return queryset
+
+    def perform_create(self, serializer):
+        creator_id = self.kwargs['creator_id']
+        serializer.save(user_id=creator_id)  
     
 class CreatorCoursesView(ListAPIView):
     serializer_class = PostSerializer
