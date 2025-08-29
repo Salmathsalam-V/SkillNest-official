@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
-from accounts.views import LoginView, RegisterView,ProtectedView, TokenRefreshCookieView,LogoutView,GoogleLoginAPIView,send_otp_view,verify_otp_view,reset_password_view,ProfileView,CreatorCreateView
-from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
+from accounts.views import LoginView, RegisterView,ProtectedView, RefreshTokenView,LogoutView,GoogleLoginAPIView,send_otp_view,verify_otp_view,reset_password_view,ProfileView,CreatorCreateView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from creator.views import PostView
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -11,7 +11,7 @@ urlpatterns = [
     path('api/admin/', include('Admin.urls')), 
     path('api/register/', RegisterView.as_view(), name='register'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshCookieView.as_view(), name='token_refresh'),
+    path('api/token/refresh/', RefreshTokenView.as_view(), name='token_refresh'),
     path('api/login/', LoginView.as_view(), name='login'),
     path('api/protected/', ProtectedView.as_view(), name='protected_view'),
     path('api/post/', PostView.as_view(),name='post'),

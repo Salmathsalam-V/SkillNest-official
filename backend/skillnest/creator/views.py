@@ -2,15 +2,13 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer
 from .models import Post,Comment,Community,Course
-from accounts.authentication import CustomJWTAuthentication
+
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
+from accounts.authentication import JWTCookieAuthentication
 
 
-# List all posts / Create a new post
 class PostView(ListCreateAPIView):
-    # permission_classes = [IsAuthenticatedOrReadOnly]  # anyone can read, only logged in can create
-    # authentication_classes = [CustomJWTAuthentication]
     permission_classes = [AllowAny]
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
@@ -22,27 +20,26 @@ class PostView(ListCreateAPIView):
 
 # Retrieve, Update, Delete a single post
 class PostDetailView(RetrieveUpdateDestroyAPIView):
-    # permission_classes = [IsAuthenticatedOrReadOnly]
-    # authentication_classes = [CustomJWTAuthentication]
     permission_classes = [AllowAny]
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
     def perform_update(self, serializer):
-        # only allow owner to update
-        if self.get_object().user != self.request.user.creator:
-            raise PermissionDenied("You cannot edit someone else’s post")
+        # post = self.get_object()
+        # user = getattr(self.request.user, "creator", None)
+        # if not user or post.user != user:
+        #     raise PermissionDenied("You cannot edit someone else’s post")
         serializer.save()
 
     def perform_destroy(self, instance):
-        # only allow owner to delete
-        if instance.user != self.request.user.creator:
-            raise PermissionDenied("You cannot delete someone else’s post")
+        # user = getattr(self.request.user, "creator", None)
+        # if not user or instance.user != user:
+        #     raise PermissionDenied("You cannot delete someone else’s post")
         instance.delete()
 
 class CreatorPostsView(ListCreateAPIView):
     serializer_class = PostSerializer
-    permission_classes = [AllowAny]   # or AllowAny if you want open
+    permission_classes = [AllowAny]   
 
     def get_queryset(self):
         creator_id = self.kwargs['creator_id']
@@ -65,10 +62,6 @@ class CreatorCoursesView(ListAPIView):
 class CommentListCreateView(ListCreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = [AllowAny]
-
-    # permission_classes = [IsAuthenticatedOrReadOnly]
-    # authentication_classes = [CustomJWTAuthentication]
-
     def get_queryset(self):
         post_id = self.kwargs['post_id']   # post/<id>/comments/
         return Comment.objects.filter(post_id=post_id).order_by('-created_at')
@@ -81,9 +74,6 @@ class CommentListCreateView(ListCreateAPIView):
 class CommentDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
     permission_classes = [AllowAny]
-
-    # permission_classes = [IsAuthenticatedOrReadOnly]
-    # authentication_classes = [CustomJWTAuthentication]
     queryset = Comment.objects.all()
 
     def perform_update(self, serializer):
@@ -102,7 +92,7 @@ class CommunityListCreateView(ListCreateAPIView):
     queryset = Community.objects.all()
     serializer_class = CommunitySerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [CustomJWTAuthentication]
+    authentication_classes = [JWTCookieAuthentication]
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
@@ -111,4 +101,4 @@ class CommunityDetailView(RetrieveUpdateDestroyAPIView):
     queryset = Community.objects.all()
     serializer_class = CommunitySerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [CustomJWTAuthentication]
+    authentication_classes = [JWTCookieAuthentication]

@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated,IsAdminUser
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from accounts.authentication import CustomJWTAuthentication
+from accounts.authentication import JWTCookieAuthentication
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
 from rest_framework import status
@@ -88,7 +88,6 @@ class CreatorData(APIView):
     
 class ContactUsView(APIView):
     permission_classes = [AllowAny]
-
     def post(self, request):
         serializer = ContactUsSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():

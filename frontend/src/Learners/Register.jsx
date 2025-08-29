@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { faL } from "@fortawesome/free-solid-svg-icons";
 
-// ✅ Validation schema
+//validation
 const schema = Yup.object().shape({
   username: Yup.string().required("Username is required"),
   fullname: Yup.string().required("Full name is required"),
@@ -33,7 +33,7 @@ export const Register = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState("");
 
-  // ✅ Hook Form setup
+  // Hook Form setup
   const {
     register,
     handleSubmit,
@@ -42,9 +42,43 @@ export const Register = () => {
     resolver: yupResolver(schema),
     mode: "onBlur",
   });
+const handleBackendErrors = (errorData) => {
+    // Clear any existing backend errors first
+    clearErrors(['username', 'email']);
 
-  // ✅ Image upload to Cloudinary
-  const handleImageUpload = async (e) => {
+    // Handle different types of error responses
+    if (typeof errorData === 'object' && errorData !== null) {
+      // Handle field-specific errors
+      Object.keys(errorData).forEach((field) => {
+        const fieldErrors = errorData[field];
+        
+        if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+          // Set form error for the specific field
+          setError(field, {
+            type: "server",
+            message: fieldErrors[0], // Use the first error message
+          });
+
+          // Also show toast for critical errors like duplicates
+          if (field === 'username' && fieldErrors[0].includes('already exists')) {
+            toast.error("Username already taken. Please choose a different one.");
+          } else if (field === 'email' && fieldErrors[0].includes('already exists')) {
+            toast.error("Email already registered. Please use a different email or try logging in.");
+          } else {
+            toast.error(`${field}: ${fieldErrors[0]}`);
+          }
+        }
+      });
+    } else if (typeof errorData === 'string') {
+      // Handle general error messages
+      toast.error(errorData);
+    } else {
+      // Fallback for unknown error formats
+      toast.error("Registration failed. Please check your information and try again.");
+    }
+  };
+  //image upload handler
+    const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append("file", file);
@@ -63,7 +97,6 @@ export const Register = () => {
     }
   };
 
-  // ✅ Submit handler
   const onSubmit = async (data) => {
     try {
       const finalData = { ...data, profile };
@@ -80,7 +113,27 @@ export const Register = () => {
       }
     } catch (err) {
       console.error("Registration error:", err);
-      toast.error("Registration failed!");
+      if (err.response?.status === 400) {
+        // Bad request - validation errors from backend
+        const errorData = err.response.data;
+        handleBackendErrors(errorData);
+        
+      } else if (err.response?.status === 409) {
+        // Conflict - duplicate data
+        toast.error("User already exists with this information");
+        
+      } else if (err.response?.status === 500) {
+        // Server error
+        toast.error("Server error. Please try again later.");
+        
+      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+        // Network error
+        toast.error("Network error. Please check your connection and try again.");
+        
+      } else {
+        // Other errors
+        toast.error("Registration failed. Please try again.");
+      }
     }
   };
 

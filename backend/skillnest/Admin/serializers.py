@@ -10,7 +10,7 @@ class ContactUsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContactUs
         fields = ['id', 'user', 'username', 'email', 'profile_name', 'content', 'replay', 'created_at']
-        read_only_fields = ['created_at', 'user']
+        read_only_fields = ['created_at']
 
     def create(self, validated_data):
         # If user is in request context and is authenticated → override

@@ -29,13 +29,14 @@ export const Home = () => {
       return;
     }
     try {
+      console.log(user.id);
       const res = await axios.post(
         "http://localhost:8000/api/admin/contact-us/", 
         { content: message, user: user.id },                 
         { withCredentials: true }             
       );
       toast.success("Message sent to admin successfully");
-      setMessage(""); // clear after send
+      setMessage(""); 
     } catch (err) {
       console.error("Error on sending:", err);
       toast.error("Failed to send message.");

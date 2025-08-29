@@ -29,6 +29,89 @@ export default function CreatorProfile() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newPost, setNewPost] = useState({ caption: "", image: "" });
   const [image, setImage] = useState('');
+  
+  // merging create and edit post modal
+  const [postModal, setPostModal] = useState({
+      open: false,
+      mode: 'create', // 'create' | 'edit'
+      data: { id: null, caption: '', image: '' },
+    });
+    const openCreateModal = () =>
+  setPostModal({ open: true, mode: 'create', data: { id: null, caption: '', image: '' } });
+
+const openEditModal = (post) =>
+  setPostModal({
+    open: true,
+    mode: 'edit',
+    data: { id: post.id, caption: post.caption || '', image: post.image || '' },
+  });
+
+const closePostModal = () =>
+  setPostModal((prev) => ({ ...prev, open: false }));
+
+const handlePostImageUpload = async (e) => {
+  const file = e.target.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'skillnest_profile');
+
+  try {
+    const res = await axios.post(
+      'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
+      formData
+    );
+    const url = res.data.secure_url;
+
+    setPostModal((prev) => ({
+      ...prev,
+      data: { ...prev.data, image: url },
+    }));
+    toast.success("Image uploaded");
+  } catch (err) {
+    console.error("Image upload failed:", err);
+    toast.error("Image upload failed");
+  }
+};
+const submitPost = async () => {
+  const { mode, data } = postModal;
+  const payload = { caption: data.caption, image: data.image };
+
+  if (!payload.caption?.trim()) {
+    toast.error("Caption is required");
+    return;
+  }
+
+  try {
+    let res;
+    if (mode === 'create') {
+      res = await axios.post(
+        `http://localhost:8000/api/creator/creators/${id}/posts/`,
+        payload,
+        { withCredentials: true }
+      );
+      setPosts((prev) => [res.data, ...prev]);
+      toast.success("Post created successfully");
+    } else {
+      // mode === 'edit'
+      res = await axios.patch(
+        `http://localhost:8000/api/creator/creators/posts/${data.id}/`,
+        payload,
+        { withCredentials: true }
+      );
+      setPosts((prev) =>
+        prev.map((p) => (p.id === data.id ? { ...p, ...res.data } : p))
+      );
+      toast.success("Post updated successfully");
+    }
+    closePostModal();
+  } catch (err) {
+    console.error("Error submitting post:", err);
+    toast.error(`Failed to ${postModal.mode === 'create' ? 'create' : 'update'} post`);
+  }
+};
+
+//end for merging create and edit post modal
+
   useEffect(() => {
     const fetchCreator = async () => {
       try {
@@ -388,6 +471,7 @@ const handleCommentSubmit = async (postId) => {
                         className="w-full h-48 object-cover"
                       />
                     )}
+                    <strong   className="p-3 text-lg font-semibold"> {post.caption}</strong>  
 
                     <div className="p-3 space-y-2">
                       {/* Like & Comment Buttons */}
@@ -398,12 +482,13 @@ const handleCommentSubmit = async (postId) => {
                           </Button>
                           <span className="text-sm">{post.like_count} likes</span>
   <Button
-    variant="outline"
-    size="sm"
-    onClick={() => setOpenPost({ ...post, editMode: true })}
-  >
-    Edit
-  </Button>
+  variant="outline"
+  size="sm"
+  onClick={() => openEditModal(post)}
+>
+  Edit
+</Button>
+
   <Button
     variant="outline"
     size="sm"
@@ -476,11 +561,74 @@ const handleCommentSubmit = async (postId) => {
   <Button
     size="lg"
     className="rounded-full w-12 h-12 flex items-center justify-center text-3xl"
-    onClick={() => setIsCreateOpen(true)}
+    // onClick={() => setIsCreateOpen(true)}
+    onClick={openCreateModal}
   >
     +
   </Button>
 </div>
+
+{/* merging create and edit post modal */}
+
+<Dialog open={postModal.open} onOpenChange={(v) => (v ? null : closePostModal())}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>
+        {postModal.mode === 'create' ? 'Create New Post' : 'Edit Post'}
+      </DialogTitle>
+    </DialogHeader>
+
+    <div className="flex flex-col gap-4">
+      {/* Caption */}
+      <Textarea
+        placeholder="Write a caption..."
+        value={postModal.data.caption}
+        onChange={(e) =>
+          setPostModal((prev) => ({
+            ...prev,
+            data: { ...prev.data, caption: e.target.value },
+          }))
+        }
+      />
+
+      {/* Image upload */}
+      <div className="space-y-2">
+        <Label>Image</Label>
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={handlePostImageUpload}
+        />
+        <div className="text-sm text-muted-foreground">or paste an image URL</div>
+        <Input
+          type="text"
+          placeholder="https://..."
+          value={postModal.data.image}
+          onChange={(e) =>
+            setPostModal((prev) => ({
+              ...prev,
+              data: { ...prev.data, image: e.target.value },
+            }))
+          }
+        />
+        {postModal.data.image && (
+          <img
+            src={postModal.data.image}
+            alt="Preview"
+            className="w-full h-40 object-cover rounded-md border mt-2"
+          />
+        )}
+      </div>
+
+      <div className="flex gap-2 justify-end">
+        <Button variant="ghost" onClick={closePostModal}>Cancel</Button>
+        <Button onClick={submitPost}>
+          {postModal.mode === 'create' ? 'Post' : 'Save'}
+        </Button>
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
 
 {/* CREATE POST DIALOG */}
 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

@@ -89,19 +89,25 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 REST_FRAMEWORK = {
-     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'accounts.authentication.CustomJWTAuthentication',
-    ], 
+     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'accounts.authentication.JWTCookieAuthentication',
+    ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=50),  # Access token valid for 10 minutes
-    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=120),     #  Refresh token valid for 1 day
-    'ROTATE_REFRESH_TOKENS': True,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=20),
+    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=60),
     'BLACKLIST_AFTER_ROTATION': True,
+    'ROTATE_REFRESH_TOKENS': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_COOKIE_ACCESS': 'access_token',         # Custom
+    'AUTH_COOKIE_REFRESH': 'refresh_token',       # Custom
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_SECURE': True,          
+    'AUTH_COOKIE_SAMESITE': 'None',
 }
 
 AUTHENTICATION_BACKENDS = ['accounts.authentication.EmailBackend', 

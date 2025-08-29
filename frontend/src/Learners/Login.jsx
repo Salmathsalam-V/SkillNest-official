@@ -35,10 +35,9 @@ const Login = () => {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
-    mode: "onBlur", // validate on blur
+    mode: "onBlur", 
   });
 
-  // ✅ On submit
   const onSubmit = async (data) => {
     try {
       const res = await login(data.email, data.password);
