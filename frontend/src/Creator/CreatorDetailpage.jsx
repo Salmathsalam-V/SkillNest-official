@@ -1,0 +1,264 @@
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import CreatorLayout from '@/components/Layouts/CreatorLayout';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,DialogDescription } from "@/components/ui/dialog";
+import { Heart, MessageCircle } from "lucide-react";
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+
+export function CreatorDetailpage() {
+  const { id } = useParams();
+  const [creator, setCreator] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [openPost, setOpenPost] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [commentText, setCommentText] = useState({});
+
+  useEffect(() => {
+    const fetchCreator = async () => {
+      try {
+        const response = await axios.get(`http://localhost:8000/api/admin/creators-view/${id}/`);
+        console.log("Fetched creator:", response.data);
+        if (response.data.success) {
+          setCreator(response.data.creator);
+        } else {
+          setError("Creator not found");
+        }
+      } catch (err) {
+        console.error("Failed to fetch creator:", err);
+        setError("Something went wrong while loading data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCreator();
+  }, [id]);
+
+    useEffect(() => {
+  const fetchCreatorData = async () => {
+    try {
+
+      const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
+      console.log("Posts fetched:",{id}, res.data);
+      const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
+      console.log("Posts fetched:", resPosts.data);
+      setPosts(resPosts.data);
+    //   const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
+    //   setCourses(resCourses.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching creator posts/courses:", err);
+    }
+  };
+  fetchCreatorData();
+}, [id]);
+
+
+
+
+  if (loading) return <p className="text-center py-10">Loading...</p>;
+  if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
+
+  return (
+    <CreatorLayout>
+    <div className="max-w-6xl mx-auto p-6">
+      {/* Banner */}
+     <div
+        className="relative p-6 rounded-xl shadow-md text-center text-white overflow-hidden"
+        style={{
+          backgroundImage: `url(${creator.background})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+  {/* Optional overlay for better contrast */}
+  <div className="absolute inset-0 bg-gradient-to-r from-green-200 to-blue-100 opacity-80 z-0"></div>
+
+      {/* Content over image */}
+      <div className="relative z-10">
+        <h1 className="text-3xl font-bold text-sky-700">SkillNest</h1>
+        <p className="text-md text-gray-700 mt-2">
+          {creator.category} Creator - {creator.username}
+        </p>
+      </div>
+    </div>
+
+
+      {/* Creator Card */}
+      <Card className="mt-6 p-6 flex gap-6 items-center">
+        <img
+          src={creator.profile}
+          alt="creator"
+          className="w-24 h-24 rounded-full object-cover border-4 border-white shadow"
+        />
+        <div className="flex-1">
+          <h2 className="text-xl font-semibold">@{creator.username}</h2>
+          <p className="text-gray-600 text-sm mb-1">Category: {creator.category}</p>
+          <p className="text-gray-700">{creator.description}</p>
+
+        </div>
+      </Card>
+
+      {/* Tabs Section */}
+      <Tabs defaultValue="posts" className="mt-8">
+        <TabsList className="mb-4 bg-muted p-1 rounded-md w-fit">
+          <TabsTrigger value="posts">Posts</TabsTrigger>
+          <TabsTrigger value="courses">Courses</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="posts">
+            {posts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                {posts.map((post) => (
+                  <Card key={post.id} className="shadow-lg rounded-2xl overflow-hidden">
+                    {/* Post Image */}
+                    {post.image && (
+                      <img
+                        src={post.image}
+                        alt="Post"
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
+
+                    <div className="p-3 space-y-2">
+                      {/* Like & Comment Buttons */}
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="sm" className="p-0">
+                            <Heart className="w-5 h-5 text-red-500" />
+                          </Button>
+                          <span className="text-sm">{post.like_count} likes</span>
+
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0"
+                          onClick={() => setOpenPost(post)}
+                        >
+                          <MessageCircle className="w-5 h-5" />
+                        </Button>
+                      </div>
+
+                      {/* First Comment */}
+                      <div>
+                        {post.comments?.length > 0 ? (
+                          <>
+                            <p className="text-sm">
+                              <span className="font-semibold">
+                                {post.comments[0].user.username}:
+                              </span>{" "}
+                              {post.comments[0].content}
+                            </p>
+                            {post.comments.length > 1 && (
+                              <button
+                                onClick={() => setOpenPost(post)}
+                                className="text-xs text-gray-500 hover:underline"
+                              >
+                                View more comments
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs text-gray-400">No comments yet.</p>
+                        )}
+                      </div>
+
+                      {/* Course Rating (if applicable) */}
+                      {post.is_course && (
+                        <div className="flex gap-1 mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className="cursor-pointer text-yellow-400 text-lg"
+                            >
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center mt-6">No posts available.</p>
+            )}
+
+            {/* Popup for comments (reuse same as PostsPage) */}
+            <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Comments</DialogTitle>
+                </DialogHeader>
+                {openPost && (
+                  <div className="space-y-3">
+                    {openPost.image && (
+                      <img
+                        src={openPost.image}
+                        alt="Post"
+                        className="rounded-lg w-full mb-2"
+                      />
+                    )}
+                    <p className="text-gray-700">{openPost.caption}</p>
+
+                    {/* All comments */}
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {openPost.comments?.length > 0 ? (
+                        openPost.comments.map((comment) => (
+                          <div key={comment.id} className="border-b pb-1">
+                            <p className="text-sm font-semibold">
+                              {comment.user?.username}
+                            </p>
+                            <p className="text-sm text-gray-600">{comment.content}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400">No comments yet.</p>
+                      )}
+                    </div>
+
+                    {/* Add Comment */}
+                    <div className="flex items-center gap-2 mt-3">
+                      <Textarea
+                        placeholder="Write a comment..."
+                        value={commentText[openPost.id] || ""}
+                        onChange={(e) =>
+                          setCommentText({
+                            ...commentText,
+                            [openPost.id]: e.target.value,
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      <Button onClick={() => handleCommentSubmit(openPost.id)}>
+                        Post
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
+
+        <TabsContent value="courses">
+          <p className="text-muted-foreground text-center mt-6">No courses yet.</p>
+        </TabsContent>
+
+        <TabsContent value="reviews">
+          <p className="text-muted-foreground text-center mt-6">No reviews yet.</p>
+        </TabsContent>
+      </Tabs>
+    </div>
+    </CreatorLayout>
+  );
+}
+

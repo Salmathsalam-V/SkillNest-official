@@ -6,7 +6,9 @@ import {
   FileText,
   MessageSquareText,
   PencilLine,
-  LogOut
+  LogOut,
+  UserCog,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/endpoints/axios";
@@ -39,6 +41,12 @@ export const AppSidebar = () => {
           <Button variant="outline" className="w-full justify-start gap-2">
             <LayoutDashboard className="h-5 w-5" />
             Dashboard
+          </Button>
+        </Link>
+        <Link to="/creators-list">
+          <Button variant="outline" className="w-full justify-start gap-2">
+          <UserCog className="h-5 w-5" />
+            Creators
           </Button>
         </Link>
         <Link to="">

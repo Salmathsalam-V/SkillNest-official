@@ -6,12 +6,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated,IsAdminUser
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from accounts.authentication import CustomJWTAuthentication
+from accounts.authentication import JWTCookieAuthentication
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
 from rest_framework import status
+from .serializers import ContactUsSerializer
+from .models import ContactUs
 
-# Create your views here.
 class LearnerListView(ListAPIView):
     permission_classes = [AllowAny] 
     serializer_class = UserSerializer
@@ -33,27 +34,13 @@ class LearnerDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [AllowAny] 
     lookup_field = 'id'
 
-# class CreatorListView(ListAPIView):
-#     permission_classes = [AllowAny] 
-#     serializer_class = UserSerializer
-
-#     def get_queryset(self):
-#         return User.objects.filter(user_type='creator')
-
-#     def list(self, request, *args, **kwargs):
-#         queryset = self.get_queryset()
-#         serializer = self.get_serializer(queryset, many=True)
-#         return Response({
-#             'success': True,
-#             'creators': serializer.data
-#         })
 
 class CreatorListView(ListAPIView):
     permission_classes = [AllowAny]
     serializer_class = CombinedCreatorUserSerializer
 
     def get_queryset(self):
-        # Return users with type 'creator' AND having a creator profile
+        # Fetch only creators with a profile
         return User.objects.filter(user_type='creator', creator_profile__isnull=False).select_related('creator_profile')
 
     def list(self, request, *args, **kwargs):
@@ -98,3 +85,17 @@ class CreatorData(APIView):
             return Response({"success": True, "message": "Creator updated successfully", "creator": serializer.data}, status=status.HTTP_200_OK)
         
         return Response({"success": False, "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+class ContactUsView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        serializer = ContactUsSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Message sent successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request):
+        messages = ContactUs.objects.select_related("user").order_by("-created_at")
+        serializer = ContactUsSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
