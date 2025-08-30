@@ -10,9 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { faL } from "@fortawesome/free-solid-svg-icons";
 
-//validation
+// ✅ validation schema
 const schema = Yup.object().shape({
   username: Yup.string().required("Username is required"),
   fullname: Yup.string().required("Full name is required"),
@@ -26,59 +25,57 @@ const schema = Yup.object().shape({
   password: Yup.string()
     .required("Password is required")
     .min(6, "Password must be at least 6 characters"),
-  user_type: Yup.string().oneOf(["learner", "creator"], "Select a valid account type"),
+  user_type: Yup.string().oneOf(
+    ["learner", "creator"],
+    "Select a valid account type"
+  ),
 });
 
 export const Register = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState("");
 
-  // Hook Form setup
+  // ✅ include setError from useForm
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: yupResolver(schema),
     mode: "onBlur",
   });
-const handleBackendErrors = (errorData) => {
-    // Clear any existing backend errors first
-    clearErrors(['username', 'email']);
 
-    // Handle different types of error responses
-    if (typeof errorData === 'object' && errorData !== null) {
-      // Handle field-specific errors
+  // ✅ handle backend errors
+  const handleBackendErrors = (errorData) => {
+    if (typeof errorData === "object" && errorData !== null) {
       Object.keys(errorData).forEach((field) => {
         const fieldErrors = errorData[field];
-        
         if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-          // Set form error for the specific field
           setError(field, {
             type: "server",
-            message: fieldErrors[0], // Use the first error message
+            message: fieldErrors[0],
           });
 
-          // Also show toast for critical errors like duplicates
-          if (field === 'username' && fieldErrors[0].includes('already exists')) {
+          // Extra toast messages for duplicates
+          if (field === "username" && fieldErrors[0].includes("already exists")) {
             toast.error("Username already taken. Please choose a different one.");
-          } else if (field === 'email' && fieldErrors[0].includes('already exists')) {
+          } else if (field === "email" && fieldErrors[0].includes("already exists")) {
             toast.error("Email already registered. Please use a different email or try logging in.");
           } else {
             toast.error(`${field}: ${fieldErrors[0]}`);
           }
         }
       });
-    } else if (typeof errorData === 'string') {
-      // Handle general error messages
+    } else if (typeof errorData === "string") {
       toast.error(errorData);
     } else {
-      // Fallback for unknown error formats
       toast.error("Registration failed. Please check your information and try again.");
     }
   };
-  //image upload handler
-    const handleImageUpload = async (e) => {
+
+  // ✅ image upload
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append("file", file);
@@ -97,45 +94,43 @@ const handleBackendErrors = (errorData) => {
     }
   };
 
+  // ✅ form submit
   const onSubmit = async (data) => {
     try {
       const finalData = { ...data, profile };
-      const res = await axios.post("http://localhost:8000/api/register/", finalData);
+      const res = await axios.post(
+        "http://localhost:8000/api/register/",
+        finalData
+      );
+
       try {
-        await axios.post('http://localhost:8000/api/send_otp/', { email: data.email });
-        navigate("/verify-otp", {
-        state: { email: data.email ,isForgotPassword: false }, // Pass email forward
+        await axios.post("http://localhost:8000/api/send_otp/", {
+          email: data.email,
         });
-        toast.success("OTP Send To Your Email Successfully");
+        navigate("/verify-otp", {
+          state: { email: data.email, isForgotPassword: false },
+        });
+        toast.success("OTP sent to your email successfully");
       } catch (error) {
         toast.error("Failed to send OTP");
-        console.error('Failed to send OTP', error);
+        console.error("Failed to send OTP", error);
       }
     } catch (err) {
       console.error("Registration error:", err);
       if (err.response?.status === 400) {
-        // Bad request - validation errors from backend
-        const errorData = err.response.data;
-        handleBackendErrors(errorData);
-        
+        handleBackendErrors(err.response.data);
       } else if (err.response?.status === 409) {
-        // Conflict - duplicate data
         toast.error("User already exists with this information");
-        
       } else if (err.response?.status === 500) {
-        // Server error
         toast.error("Server error. Please try again later.");
-        
-      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
-        // Network error
+      } else if (err.code === "NETWORK_ERROR" || !err.response) {
         toast.error("Network error. Please check your connection and try again.");
-        
       } else {
-        // Other errors
         toast.error("Registration failed. Please try again.");
       }
     }
   };
+
 
   return (
     <div className="flex flex-col gap-6 min-h-screen justify-center items-center bg-muted px-4">

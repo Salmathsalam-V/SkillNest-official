@@ -8,13 +8,24 @@ import { toast } from 'sonner';
 
 const ResetPasswordForm = () => {
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
 
   const handleReset = async (e) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match ❌");
+      return;
+    }
+
+    setError('');
+
     try {
       await axios.post('http://localhost:8000/api/reset_password/', {
         email,
@@ -45,8 +56,16 @@ const ResetPasswordForm = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <Input
+              type="password"
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            {success && <p className="text-green-600 text-sm">Password reset successfully ✅</p>}
             <Button type="submit" className="w-full">Reset Password</Button>
-            {success && <p className="text-green-600">Password reset successfully ✅</p>}
           </CardContent>
         </form>
       </Card>
