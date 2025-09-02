@@ -80,43 +80,78 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
-    authentication_classes = [JWTCookieAuthentication]
+    authentication_classes = []
+    permission_classes = [AllowAny]  # don't require access token
     def post(self, request):
-        response = Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
-        response.delete_cookie('access_token', path='/', samesite='None')
-        response.delete_cookie('refresh_token', path='/', samesite='None')
-        return response
+        refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+        if not refresh_token:
+            return Response({"detail": "No refresh token"}, status=status.HTTP_400_BAD_REQUEST)
 
+        response = Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+        response.delete_cookie(
+            settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'], 
+            path='/', 
+            samesite='None',
+        )
+        response.delete_cookie(
+            settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'], 
+            path='/', 
+            samesite='None',
+        )
+        return response
 
 class RefreshTokenView(APIView):
     """ Generate new access token with refresh token if access token is expired."""
     permission_classes = [AllowAny]
 
-    def post(self,request):
+    def post(self, request):
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-
-        if refresh_token is None:
-            return Response({"detail":"Session expired. Please log in again."},status=status.HTTP_401_UNAUTHORIZED)
+        print(f"Refresh token from cookies: {refresh_token}")
+        print(f"All cookies: {request.COOKIES}")
+        print(f"Cookie key being used: {settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']}")
         
+        if refresh_token is None:
+            print("No refresh token found in cookies")
+            return Response(
+                {"detail": "Session expired. Please log in again from refresh."}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         try:
+            # Validate the token
             token = RefreshToken(refresh_token)
+            print(f"Token validated successfully")
+            
+            # Generate new access token
             access_token = str(token.access_token)
+            print(f"New access token generated")
 
-            response = Response({"message":"New access token esthablished."},status=status.HTTP_200_OK)
+            response = Response(
+                {"message": "New access token established."}, 
+                status=status.HTTP_200_OK
+            )
 
-            # Set access token in cookie 
+            # Set access token in cookie
             response.set_cookie(
                 key=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'],
                 value=access_token,
                 httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
-                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
                 samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
-                max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+                max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
+                path='/'
             )
 
-            return response 
+            print("Access token cookie set successfully")
+            return response
+
         except TokenError as e:
-            return Response({"detail":"Session expired. Please log in again."},status=status.HTTP_401_UNAUTHORIZED)
+            print(f"Token error: {e}")
+            print(f"Token error type: {type(e)}")
+            return Response(
+                {"detail": f"Session expired. Please log in again. Error: {str(e)}"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
 class ProtectedView(APIView):
     authentication_classes = [JWTCookieAuthentication]
     permission_classes = [IsAuthenticated]
