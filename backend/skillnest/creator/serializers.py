@@ -15,18 +15,19 @@ class UserSerializer(serializers.ModelSerializer):
 # --- Comment Serializer ---
 
 class CommentSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True)  # show username instead of ID
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = Comment
-        fields = ['id', 'post', 'user', 'content', 'created_at']
-        read_only_fields = ['user', 'created_at']
+        fields = ['id', 'user', 'content', 'created_at']
+        read_only_fields = ['user', 'created_at', 'post']
 
 # --- Post Serializer ---
 class PostSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()  
+    user = serializers.StringRelatedField()
     comments = CommentSerializer(many=True, read_only=True)
     like_count = serializers.SerializerMethodField()
-    likes = UserSerializer(many=True, read_only=True)
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -40,12 +41,18 @@ class PostSerializer(serializers.ModelSerializer):
             'like_count',
             'is_cource',
             'comments',
+            'is_liked',
         ]
-        read_only_fields = ['like_count', 'created_at', 'comments']
+        read_only_fields = ['like_count', 'created_at', 'comments', 'is_liked']
 
     def get_like_count(self, obj):
         return obj.likes.count()
 
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
 
 # --- Course Serializer ---
 class CourseSerializer(serializers.ModelSerializer):

@@ -1,5 +1,6 @@
 import React, { useEffect, useState,useMemo } from 'react';
 import axios from 'axios';
+import { get_learners } from '@/endpoints/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -35,16 +36,15 @@ const LearnerList = () => {
   useEffect(() => {
     const fetchLearners = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/admin/learners/');
-        if (response.data.success) {
-          setLearners(response.data.learners);
-        }
+        const learners = await get_learners();  // returns array
+        setLearners(learners);
       } catch (error) {
         console.error('Failed to fetch learners:', error);
       }
     };
     fetchLearners();
   }, []);
+
 
   const handleDelete = async (id) => {
     try {

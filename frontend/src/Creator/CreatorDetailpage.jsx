@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,DialogD
 import { Heart, MessageCircle } from "lucide-react";
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { toggleFollow,toggleLike,createComment } from '../endpoints/axios';
 
 export function CreatorDetailpage() {
   const { id } = useParams();
@@ -24,7 +25,7 @@ export function CreatorDetailpage() {
     const fetchCreator = async () => {
       try {
         const response = await axios.get(`http://localhost:8000/api/admin/creators-view/${id}/`);
-        console.log("Fetched creator:", response.data);
+        console.log("Fetched creator: from cr view", response.data);
         if (response.data.success) {
           setCreator(response.data.creator);
         } else {
@@ -60,8 +61,63 @@ export function CreatorDetailpage() {
   fetchCreatorData();
 }, [id]);
 
+ 
+const handleFollowToggle = async () => {
+  try {
+    const data = await toggleFollow(creator.id);
+    if (data.success) {
+      setCreator((prev) => ({
+        ...prev,
+        is_following: data.following,
+        follower_count: data.follower_count,
+      }));
+    }
+  } catch (err) {
+    console.error("Follow/unfollow failed:", err);
+    toast.error("Something went wrong. Try again.");
+  }
+};
 
+const handleLikeToggle = async (postId) => {
+  try {
+    const data = await toggleLike(postId);
+    if (data.success) {
+      setPosts((prevPosts) =>
+        prevPosts.map((p) =>
+          p.id === postId ? { ...p, is_liked: data.liked, like_count: data.like_count } : p
+        )
+      );
+    }
+  } catch (err) {
+    console.error("Like/unlike failed:", err);
+    toast.error("Something went wrong. Try again.");
+  }
+};
 
+const handleCommentSubmit = async (postId) => {
+  console.log("Submitting comment for post_id :", postId);
+  const text = commentText[postId];
+  if (!text?.trim()) {
+    toast.error("Comment cannot be empty");
+    return;
+  }
+
+  const res = await createComment(postId, text);
+  if (res.success) {
+    // update UI immediately
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, comments: [res.data, ...p.comments] } // prepend new comment
+          : p
+      )
+    );
+    // clear text input
+    setCommentText((prev) => ({ ...prev, [postId]: "" }));
+  } else {
+    toast.error("Failed to post comment");
+  }
+};
 
   if (loading) return <p className="text-center py-10">Loading...</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
@@ -99,11 +155,19 @@ export function CreatorDetailpage() {
           className="w-24 h-24 rounded-full object-cover border-4 border-white shadow"
         />
         <div className="flex-1">
+          {creator.id}
           <h2 className="text-xl font-semibold">@{creator.username}</h2>
           <p className="text-gray-600 text-sm mb-1">Category: {creator.category}</p>
           <p className="text-gray-700">{creator.description}</p>
-
+          <p className="text-sm mt-1">{creator.follower_count} followers</p>
         </div>
+
+        <Button
+          variant={creator.is_following ? "secondary" : "default"}
+          onClick={handleFollowToggle}
+        >
+          {creator.is_following ? "Unfollow" : "Follow"}
+        </Button>
       </Card>
 
       {/* Tabs Section */}
@@ -131,13 +195,20 @@ export function CreatorDetailpage() {
                     <div className="p-3 space-y-2">
                       {/* Like & Comment Buttons */}
                       <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" className="p-0">
-                            <Heart className="w-5 h-5 text-red-500" />
-                          </Button>
-                          <span className="text-sm">{post.like_count} likes</span>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0"
+                            onClick={() => handleLikeToggle(post.id)}
+                        >
+                            {post.is_liked ? (
+                              <Heart className="w-5 h-5 text-red-500 fill-red-500" /> // filled
+                            ) : (
+                              <Heart className="w-5 h-5 text-gray-500" /> // outline
+                            )}
+                        </Button>
+                        <span className="text-sm">{post.like_count} likes</span>
 
-                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -208,7 +279,7 @@ export function CreatorDetailpage() {
                         className="rounded-lg w-full mb-2"
                       />
                     )}
-                    <p className="text-gray-700">{openPost.caption}</p>
+                    <p className="text-gray-700">{openPost.caption}{openPost.id}</p>
 
                     {/* All comments */}
                     <div className="space-y-2 max-h-60 overflow-y-auto">

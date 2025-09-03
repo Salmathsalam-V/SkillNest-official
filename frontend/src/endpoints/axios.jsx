@@ -22,7 +22,6 @@ const refreshClient = axios.create({
 });
 
 // Auto refresh access token request logic 
-// Auto refresh access token request logic 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -101,9 +100,8 @@ export const get_post = async ()=>{
   return response.data
   }
   catch (error) {
-    return call_refresh(error, axios.get(POST_URL,
-      {withCredentials : true }
-    ))
+    console.error("Fetching posts failed", error);
+    return error
   }
 }
 
@@ -134,7 +132,7 @@ export const logout = async () => {
 
 export const get_learners = async () => {
   try {
-    const response = await axios.get(LEARNERS_URL, { withCredentials: true });
+    const response = await apiClient.get(LEARNERS_URL, { withCredentials: true });
     return response.data.learners;
   } catch (error) {
     console.error("Fetching learners failed:", error.response?.data || error.message);
@@ -167,5 +165,30 @@ export const get_user = async () => {
   } catch (error) {
     console.error("Get user error", error.response?.data || error.message);
     return { success: false };
+  }
+};
+
+export const toggleFollow = async (id) => {
+  const res = await apiClient.post(`creator/creators/${id}/follow/`);
+  return res.data;
+};
+
+export const toggleLike = async (postId) => {
+  const res = await apiClient.post(`creator/creators/posts/${postId}/like/`);
+  return res.data;
+};
+
+export const createComment = async (postId, content) => {
+  try {
+    console.log(`Creating comment on post ${postId}:`, content);
+    const response = await apiClient.post(
+      `creator/posts/${postId}/comments/`,
+      { content },
+      { withCredentials: true }
+    );
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Create comment failed:", error.response?.data || error.message);
+    return { success: false, error };
   }
 };

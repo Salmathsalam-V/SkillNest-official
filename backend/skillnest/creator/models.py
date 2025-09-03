@@ -26,9 +26,25 @@ class Comment(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    likes = models.ManyToManyField(User, blank=True, related_name="liked_comments")
+
+    # New: replies
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="replies"
+    )
+
+    def is_reply(self):
+        return self.parent is not None
+
     def __str__(self):
+        if self.parent:
+            return f"Reply by {self.user.username} to comment {self.parent.id}"
         return f"Comment by {self.user.username} on {self.post.caption}"
-    
+ 
 class Course(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course',default=1)  
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='course')

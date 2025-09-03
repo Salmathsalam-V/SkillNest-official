@@ -41,7 +41,7 @@ export const AppSidebar = () => {
             Dashboard
           </Button>
         </Link>
-        <Link to="">
+        <Link to="/listlearner">
           <Button variant="outline" className="w-full justify-start gap-2">
             <UsersRound className="h-5 w-5" />
             Learners

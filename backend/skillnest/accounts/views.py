@@ -275,7 +275,7 @@ def reset_password_view(request):
         return Response({'error': 'User not found'}, status=404)
 
 class ProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [JWTCookieAuthentication]
     def get(self, request):
         try:
             user = request.user
@@ -293,4 +293,3 @@ class CreatorCreateView(generics.CreateAPIView):
     serializer_class = CreatorSerializer
 
 
-    
