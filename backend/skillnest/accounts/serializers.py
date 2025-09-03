@@ -119,10 +119,21 @@ class CombinedCreatorUserSerializer(serializers.ModelSerializer):
     background = serializers.CharField(source='creator_profile.background', allow_blank=True, allow_null=True)
     approve = serializers.CharField(source='creator_profile.approve')
 
+    # Extra read-only fields
+    follower_count = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'fullname', 'profile', 'user_type', 'status',
-                  'category', 'description', 'background', 'approve']
+        fields = [
+            'id', 'username', 'email', 'fullname', 'profile', 'user_type', 'status',
+            'category', 'description', 'background', 'approve', 'follower_count'
+        ]
+
+    def get_follower_count(self, obj):
+        if hasattr(obj, "creator_profile"):
+            return obj.creator_profile.followers.count()
+        return 0
+
 
     def update(self, instance, validated_data):
         # Extract nested creator_profile data
@@ -140,3 +151,21 @@ class CombinedCreatorUserSerializer(serializers.ModelSerializer):
         creator.save()
 
         return instance
+
+class CreatorDetailSerializer(serializers.ModelSerializer):
+    follower_count = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Creator
+        fields = ['id', 'category', 'description', 'background', 'approve',
+                  'follower_count', 'is_following']
+
+    def get_follower_count(self, obj):
+        return obj.followers.count()
+
+    def get_is_following(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.followers.filter(id=request.user.id).exists()
+        return False

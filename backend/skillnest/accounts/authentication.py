@@ -9,7 +9,8 @@ User = get_user_model()
 class JWTCookieAuthentication(JWTAuthentication):
     def authenticate(self, request):
         raw_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'])
-        print("Access token from cookie:", raw_token)
+        refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+        print("Access token from cookie:", raw_token, "Refresh token from cookie:", refresh_token)
         if raw_token is None:
             return None
         validated_token = self.get_validated_token(raw_token)

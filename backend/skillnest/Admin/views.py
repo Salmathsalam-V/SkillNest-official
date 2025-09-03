@@ -14,7 +14,8 @@ from .serializers import ContactUsSerializer
 from .models import ContactUs
 
 class LearnerListView(ListAPIView):
-    permission_classes = [AllowAny] 
+    authentication_classes = [JWTCookieAuthentication]  
+    permission_classes = [IsAuthenticated] 
     serializer_class = UserSerializer
 
     def get_queryset(self):

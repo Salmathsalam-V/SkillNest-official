@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const BASE_URL = 'http://127.0.0.1:8000/api/';
 const LOGIN_URL = `${BASE_URL}login/`;
-const REFRESH_URL = `${BASE_URL}token/refresh/`;
+const REFRESH_URL  = `${BASE_URL}token/refresh/`;
 const POST_URL = `${BASE_URL}post/`;
 const LOGOUT_URL = `${BASE_URL}logout/`;
 const LEARNERS_URL = `${BASE_URL}admin/learners/`;
@@ -23,26 +23,42 @@ const refreshClient = axios.create({
 
 // Auto refresh access token request logic 
 apiClient.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-            try {
-                await refreshClient.post('token/refresh/');
-                return apiClient(originalRequest);
-            } catch (refreshError) {
-                if (!isSessionExpiredHandle) {
-                    isSessionExpiredHandle = true;
-                    console.error('Token refresh failed', refreshError);
-                    alert("Session expired. Please log in again.");
-                    window.location.href = '/';
-                }
-                return Promise.reject(refreshError);
-            }
+  (response) => response,
+  async (error) => {
+    console.log('API Error:', error.response?.status, error.response?.data);
+    
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      console.log('Attempting token refresh...');
+      
+      try {
+        // Check if we have cookies before attempting refresh
+        console.log('Document cookies:', document.cookie);
+        
+        const refreshResponse = await refreshClient.post(REFRESH_URL, {}, { 
+          withCredentials: true 
+        });
+        
+        console.log("Token refreshed successfully", refreshResponse.data);
+
+        // Retry the original request
+        return apiClient(originalRequest);
+        
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError.response?.data);
+        
+        if (!isSessionExpiredHandle) {
+          isSessionExpiredHandle = true;
+          alert("Session expired. Please log in again");
+          window.location.href = '/login';
         }
-        return Promise.reject(error);
+        return Promise.reject(refreshError);
+      }
     }
+    return Promise.reject(error);
+  }
 );
 
 export const login = async (email, password) => {
@@ -84,16 +100,16 @@ export const get_post = async ()=>{
   return response.data
   }
   catch (error) {
-    return call_refresh(error, axios.get(POST_URL,
-      {withCredentials : true }
-    ))
+    console.error("Fetching posts failed", error);
+    return error
   }
 }
 
 const call_refresh=async (error, func ) =>{
   if (error.response && error.response.status === 401){
+    console.log("Calling refresh")
     const tokenRefreshed = await refresh_token();
-
+    console.log("Token refreshed:", tokenRefreshed)
     if (tokenRefreshed){
       const retryResponse = await func();
       return retryResponse.data
@@ -103,18 +119,20 @@ const call_refresh=async (error, func ) =>{
 }
 export const logout = async () => {
   try {
-    await axios.post(LOGOUT_URL, {}, {
-  withCredentials: true
-    });
+    // Use axios directly instead of apiClient to bypass interceptors
+    await axios.post(LOGOUT_URL, {}, { withCredentials: true });
+    console.log("Logout successful");
     return true;
   } catch (error) {
-    console.error("Logout failed", error.response?.data || error.message);
-    return false;
+    console.error("Logout failed, but proceeding with client-side logout:", error.response?.data || error.message);
+    // Always return true for logout - even if server-side fails, client should log out
+    return true;
   }
 };
+
 export const get_learners = async () => {
   try {
-    const response = await axios.get(LEARNERS_URL, { withCredentials: true });
+    const response = await apiClient.get(LEARNERS_URL, { withCredentials: true });
     return response.data.learners;
   } catch (error) {
     console.error("Fetching learners failed:", error.response?.data || error.message);
@@ -150,12 +168,27 @@ export const get_user = async () => {
   }
 };
 
-// export const is_Authenticated = async() =>{
-//   try{
-//     await axios.post(AUTH_URL, {}, { withCredentials: true } )
-//     return true
-//    }
-//    catch(error){
-//     return false
-//    }
-// }
+export const toggleFollow = async (id) => {
+  const res = await apiClient.post(`creator/creators/${id}/follow/`);
+  return res.data;
+};
+
+export const toggleLike = async (postId) => {
+  const res = await apiClient.post(`creator/creators/posts/${postId}/like/`);
+  return res.data;
+};
+
+export const createComment = async (postId, content) => {
+  try {
+    console.log(`Creating comment on post ${postId}:`, content);
+    const response = await apiClient.post(
+      `creator/posts/${postId}/comments/`,
+      { content },
+      { withCredentials: true }
+    );
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Create comment failed:", error.response?.data || error.message);
+    return { success: false, error };
+  }
+};
