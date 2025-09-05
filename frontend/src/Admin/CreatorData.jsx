@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AdminLayout from '@/components/Layouts/AdminLayout';
+import { toggleLike,createComment,toggleCommentLike,get_course } from '../endpoints/axios';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Heart, MessageCircle } from 'lucide-react';
+import { toast } from 'sonner'; 
 
 export function CreatorData() {
   const { id } = useParams();
@@ -12,14 +17,18 @@ export function CreatorData() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const [openPost, setOpenPost] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [commentText, setCommentText] = useState({});
   useEffect(() => {
     const fetchCreator = async () => {
       try {
         const response = await axios.get(`http://localhost:8000/api/admin/creators-view/${id}/`);
+        console.log("Fetched creator: from cr view", response.data);
         if (response.data.success) {
-          setCreator(response.data.creator);
-          setStatus(response.data.creator.approve);
+            setCreator(response.data.creator);
+            setStatus(response.data.creator.approve);
         } else {
           setError("Creator not found");
         }
@@ -33,6 +42,33 @@ export function CreatorData() {
 
     fetchCreator();
   }, [id]);
+
+    useEffect(() => {
+  const fetchCreatorData = async () => {
+    try {
+
+      const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
+      console.log("Posts fetched:",{id}, res.data);
+      const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
+      console.log("Posts fetched:", resPosts.data);
+      setPosts(resPosts.data);
+      console.log("creatoriid : ", id);
+      try{
+        const resCourses = await get_course(id);
+        setCourses(resCourses);
+        console.log("Courses fetched:", courses,resCourses[0]);
+
+      }
+      catch(err){
+        console.error("Error fetching courses:", err);
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching creator posts/courses:", err);
+    }
+  };
+  fetchCreatorData();
+}, [id]);
 
 const handleApprove = async () => {
   try {
@@ -60,6 +96,87 @@ const handleReject = async () => {
   }
 };
 
+const handleLikeToggle = async (postId) => {
+  try {
+    const data = await toggleLike(postId);
+    if (data.success) {
+      setPosts((prevPosts) =>
+        prevPosts.map((p) =>
+          p.id === postId ? { ...p, is_liked: data.liked, like_count: data.like_count } : p
+        )
+      );
+    }
+  } catch (err) {
+    console.error("Like/unlike failed:", err);
+    toast.error("Something went wrong. Try again.");
+  }
+};
+
+const handleCommentSubmit = async (postId) => {
+  console.log("Submitting comment for post id:", postId);
+  const text = commentText[postId];
+  if (!text?.trim()) {
+    toast.error("Comment cannot be empty");
+    return;
+  }
+
+  const res = await createComment(postId, text);
+  if (res.success) {
+    // update UI immediately
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, comments: [res.data, ...p.comments] } // prepend new comment
+          : p
+      )
+    );
+    toast.success("Comment posted");
+    // clear text input
+    setCommentText((prev) => ({ ...prev, [postId]: "" }));
+  } else {
+    toast.error("Failed to post comment");
+  }
+};
+
+const handleCommentLikeToggle = async (postId, commentId) => {
+  console.log("Toggling like for comment:", commentId, "on post:", postId);
+  try {
+    const data = await toggleCommentLike(postId, commentId);
+    console.log("Comment like toggle response:", data);
+    if (data.success) {
+      // Update state for that comment
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                comments: p.comments.map((c) =>
+                  c.id === commentId
+                    ? { ...c, is_liked: data.liked, like_count: data.like_count }
+                    : c
+                ),
+              }
+            : p
+        )
+      );
+
+      // Also update openPost if the dialog is open
+      if (openPost?.id === postId) {
+        setOpenPost((prev) => ({
+          ...prev,
+          comments: prev.comments.map((c) =>
+            c.id === commentId
+              ? { ...c, is_liked: data.liked, like_count: data.like_count }
+              : c
+          ),
+        }));
+      }
+    }
+  } catch (err) {
+    console.log("Comment like toggle error:", err);
+    toast.error("Failed to like comment");
+  }
+};
 
   if (loading) return <p className="text-center py-10">Loading...</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
@@ -131,11 +248,233 @@ const handleReject = async () => {
         </TabsList>
 
         <TabsContent value="posts">
-          <p className="text-muted-foreground text-center mt-6">No posts available.</p>
-        </TabsContent>
+            {posts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                {posts.map((post) => (
+                  <Card key={post.id} className="shadow-lg rounded-2xl overflow-hidden">
+                    {/* Post Image */}
+                    {post.image && (
+                      <img
+                        src={post.image}
+                        alt="Post"
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
+
+                    <div className="p-3 space-y-2">
+                      {/* Like & Comment Buttons */}
+                      <div className="flex items-center justify-between w-full">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0"
+                            onClick={() => handleLikeToggle(post.id)}
+                        >
+                            {post.is_liked ? (
+                              <Heart className="w-5 h-5 text-red-500 fill-red-500" /> // filled
+                            ) : (
+                              <Heart className="w-5 h-5 text-gray-500" /> // outline
+                            )}
+                        </Button>
+                        <span className="text-sm">{post.like_count} likes</span>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0"
+                          onClick={() => setOpenPost(post)}
+                        >
+                          <MessageCircle className="w-5 h-5" />
+                        </Button>
+                      </div>
+
+                      {/* First Comment */}
+                      <div>
+                        {post.comments?.length > 0 ? (
+                          <>
+                            <p className="text-sm">
+                              <span className="font-semibold">
+                                {post.comments[0].user.username}:
+                              </span>{" "}
+                              {post.comments[0].content}
+                            </p>
+                            {post.comments.length > 1 && (
+                              <button
+                                onClick={() => setOpenPost(post)}
+                                className="text-xs text-gray-500 hover:underline"
+                              >
+                                View more comments
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs text-gray-400">No comments yet.</p>
+                        )}
+                      </div>
+
+                      {/* Course Rating (if applicable) */}
+                      {post.is_course && (
+                        <div className="flex gap-1 mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className="cursor-pointer text-yellow-400 text-lg"
+                            >
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center mt-6">No posts available.</p>
+            )}
+
+            {/* Popup for comments (reuse same as PostsPage) */}
+            <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Comments</DialogTitle>
+                </DialogHeader>
+                {openPost && (
+                  <div className="space-y-3">
+                    {openPost.image && (
+                      <img
+                        src={openPost.image}
+                        alt="Post"
+                        className="rounded-lg w-full mb-2"
+                      />
+                    )}
+                    <p className="text-gray-700">{openPost.caption}{openPost.id}</p>
+
+                    {/* All comments */}
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {openPost.comments?.length > 0 ? (
+                        openPost.comments.map((comment) => (
+                          <div key={comment.id} className="border-b pb-1 flex justify-between items-center">
+                            <div>
+                              <p className="text-sm font-semibold">{comment.user?.username}</p>
+                              <p className="text-sm text-gray-600">{comment.content}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="p-0"
+                                onClick={() => handleCommentLikeToggle(openPost.id, comment.id)}
+                              >
+                                {comment.is_liked ? (
+                                  <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                                ) : (
+                                  <Heart className="w-4 h-4 text-gray-500" />
+                                )}
+                              </Button>
+                              <span className="text-xs">{comment.like_count}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400">No comments yet.</p>
+                      )}
+
+                    </div>
+
+                    {/* Add Comment */}
+                    <div className="flex items-center gap-2 mt-3">
+                      <Textarea
+                        placeholder="Write a comment..."
+                        value={commentText[openPost.id] || ""}
+                        onChange={(e) =>
+                          setCommentText({
+                            ...commentText,
+                            [openPost.id]: e.target.value,
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      <Button onClick={() => handleCommentSubmit(openPost.id)}>
+                        Post
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
 
         <TabsContent value="courses">
-          <p className="text-muted-foreground text-center mt-6">No courses yet.</p>
+          {Array.isArray(courses) && courses.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+              {courses.map((course) => (
+                <Card
+                  key={course.id}
+                  className="shadow-lg rounded-2xl overflow-hidden"
+                >
+                  {/* Course Thumbnail */}
+                  {course.post.image && (
+                    <img
+                      src={course.post.image}
+                      alt="Course"
+                      className="w-full h-48 object-cover"
+                    />
+                  )}
+
+                  <div className="p-3 space-y-2">
+                    {/* Course Title & Caption */}
+                    <h3 className="text-lg font-semibold">{course.post.caption}</h3>
+                    
+
+                    {/* Rating stars */}
+                    <div className="flex gap-1 mt-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span
+                          key={star}
+                          className={`text-lg ${
+                            star <= course.rating ? "text-yellow-400" : "text-gray-300"
+                          }`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Like & Comment Buttons */}
+                    <div className="flex items-center justify-between w-full mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-0"
+                        onClick={() => handleLikeToggle(course.id)}
+                      >
+                        {course.is_liked ? (
+                          <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                        ) : (
+                          <Heart className="w-5 h-5 text-gray-500" />
+                        )}
+                      </Button>
+                      <span className="text-sm">{course.like_count} likes</span>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-0"
+                        onClick={() => setOpenPost(course)}
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+          <p className="text-muted-foreground text-center mt-6">
+              No courses yet.
+            </p>
+          )}
         </TabsContent>
 
         <TabsContent value="reviews">

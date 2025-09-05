@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,DialogD
 import { Heart, MessageCircle } from "lucide-react";
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { toggleFollow,toggleLike,createComment } from '../endpoints/axios';
+import { toggleFollow,toggleLike,createComment,toggleCommentLike,get_course } from '../endpoints/axios';
 
 export function CreatorDetailpage() {
   const { id } = useParams();
@@ -51,8 +51,16 @@ export function CreatorDetailpage() {
       const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
       console.log("Posts fetched:", resPosts.data);
       setPosts(resPosts.data);
-    //   const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
-    //   setCourses(resCourses.data);
+      console.log("creatoriid : ", id);
+      try{
+        const resCourses = await get_course(id);
+        setCourses(resCourses);
+        console.log("Courses fetched:", courses,resCourses[0]);
+
+      }
+      catch(err){
+        console.error("Error fetching courses:", err);
+      }
       setLoading(false);
     } catch (err) {
       console.error("Error fetching creator posts/courses:", err);
@@ -95,7 +103,7 @@ const handleLikeToggle = async (postId) => {
 };
 
 const handleCommentSubmit = async (postId) => {
-  console.log("Submitting comment for post_id :", postId);
+  console.log("Submitting comment for post id:", postId);
   const text = commentText[postId];
   if (!text?.trim()) {
     toast.error("Comment cannot be empty");
@@ -112,10 +120,51 @@ const handleCommentSubmit = async (postId) => {
           : p
       )
     );
+    toast.success("Comment posted");
     // clear text input
     setCommentText((prev) => ({ ...prev, [postId]: "" }));
   } else {
     toast.error("Failed to post comment");
+  }
+};
+
+const handleCommentLikeToggle = async (postId, commentId) => {
+  console.log("Toggling like for comment:", commentId, "on post:", postId);
+  try {
+    const data = await toggleCommentLike(postId, commentId);
+    console.log("Comment like toggle response:", data);
+    if (data.success) {
+      // Update state for that comment
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                comments: p.comments.map((c) =>
+                  c.id === commentId
+                    ? { ...c, is_liked: data.liked, like_count: data.like_count }
+                    : c
+                ),
+              }
+            : p
+        )
+      );
+
+      // Also update openPost if the dialog is open
+      if (openPost?.id === postId) {
+        setOpenPost((prev) => ({
+          ...prev,
+          comments: prev.comments.map((c) =>
+            c.id === commentId
+              ? { ...c, is_liked: data.liked, like_count: data.like_count }
+              : c
+          ),
+        }));
+      }
+    }
+  } catch (err) {
+    console.log("Comment like toggle error:", err);
+    toast.error("Failed to like comment");
   }
 };
 
@@ -163,11 +212,12 @@ const handleCommentSubmit = async (postId) => {
         </div>
 
         <Button
-          variant={creator.is_following ? "secondary" : "default"}
-          onClick={handleFollowToggle}
+          variant={creator.is_following ? "secondary" : "custom"}
+          onClick={handleFollowToggle} 
         >
           {creator.is_following ? "Unfollow" : "Follow"}
         </Button>
+        <Button variant="custom">Connect</Button>
       </Card>
 
       {/* Tabs Section */}
@@ -285,16 +335,32 @@ const handleCommentSubmit = async (postId) => {
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {openPost.comments?.length > 0 ? (
                         openPost.comments.map((comment) => (
-                          <div key={comment.id} className="border-b pb-1">
-                            <p className="text-sm font-semibold">
-                              {comment.user?.username}
-                            </p>
-                            <p className="text-sm text-gray-600">{comment.content}</p>
+                          <div key={comment.id} className="border-b pb-1 flex justify-between items-center">
+                            <div>
+                              <p className="text-sm font-semibold">{comment.user?.username}</p>
+                              <p className="text-sm text-gray-600">{comment.content}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="p-0"
+                                onClick={() => handleCommentLikeToggle(openPost.id, comment.id)}
+                              >
+                                {comment.is_liked ? (
+                                  <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                                ) : (
+                                  <Heart className="w-4 h-4 text-gray-500" />
+                                )}
+                              </Button>
+                              <span className="text-xs">{comment.like_count}</span>
+                            </div>
                           </div>
                         ))
                       ) : (
                         <p className="text-sm text-gray-400">No comments yet.</p>
                       )}
+
                     </div>
 
                     {/* Add Comment */}
@@ -321,8 +387,77 @@ const handleCommentSubmit = async (postId) => {
           </TabsContent>
 
         <TabsContent value="courses">
-          <p className="text-muted-foreground text-center mt-6">No courses yet.</p>
+          {Array.isArray(courses) && courses.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+              {courses.map((course) => (
+                <Card
+                  key={course.id}
+                  className="shadow-lg rounded-2xl overflow-hidden"
+                >
+                  {/* Course Thumbnail */}
+                  {course.post.image && (
+                    <img
+                      src={course.post.image}
+                      alt="Course"
+                      className="w-full h-48 object-cover"
+                    />
+                  )}
+
+                  <div className="p-3 space-y-2">
+                    {/* Course Title & Caption */}
+                    <h3 className="text-lg font-semibold">{course.post.caption}</h3>
+                    
+
+                    {/* Rating stars */}
+                    <div className="flex gap-1 mt-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span
+                          key={star}
+                          className={`text-lg ${
+                            star <= course.rating ? "text-yellow-400" : "text-gray-300"
+                          }`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Like & Comment Buttons */}
+                    <div className="flex items-center justify-between w-full mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-0"
+                        onClick={() => handleLikeToggle(course.id)}
+                      >
+                        {course.is_liked ? (
+                          <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                        ) : (
+                          <Heart className="w-5 h-5 text-gray-500" />
+                        )}
+                      </Button>
+                      <span className="text-sm">{course.like_count} likes</span>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-0"
+                        onClick={() => setOpenPost(course)}
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+          <p className="text-muted-foreground text-center mt-6">
+              No courses yet.
+            </p>
+          )}
         </TabsContent>
+
 
         <TabsContent value="reviews">
           <p className="text-muted-foreground text-center mt-6">No reviews yet.</p>

@@ -8,7 +8,7 @@ class Post(models.Model):
     caption = models.TextField()
     created_at = models.DateTimeField(default=datetime.datetime.now)
     likes = models.ManyToManyField(User, blank=True, related_name='liked_posts')  
-    is_cource = models.BooleanField(default=False)
+    is_course = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.user.user_type != "creator":
@@ -25,9 +25,27 @@ class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    likes = models.ManyToManyField(User, blank=True, related_name="liked_comments")
+
+    def like_count(self):
+        return self.likes.count()
+    # # New: replies
+    # parent = models.ForeignKey(
+    #     "self",
+    #     null=True,
+    #     blank=True,
+    #     on_delete=models.CASCADE,
+    #     related_name="replies"
+    # )
+
+    # def is_reply(self):
+    #     return self.parent is not None
 
     def __str__(self):
+        # if self.parent:
+        #     return f"Reply by {self.user.username} to comment {self.parent.id}"
         return f"Comment by {self.user.username} on {self.post.caption}"
+
     
 class Course(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course',default=1)  

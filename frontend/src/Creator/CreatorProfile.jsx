@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Heart, MessageCircle } from "lucide-react";
+import { createComment } from '../endpoints/axios';
 
 export default function CreatorProfile() {
   const { id } = useParams();
@@ -268,31 +269,28 @@ const handleCreatePost = async () => {
 };
 
 const handleCommentSubmit = async (postId) => {
-  const content = commentText[postId];
-  if (!content?.trim()) return;
+  console.log("Submitting comment for post id:", postId);
+  const text = commentText[postId];
+  if (!text?.trim()) {
+    toast.error("Comment cannot be empty");
+    return;
+  }
 
-  try {
-    const res = await axios.post(
-      `http://localhost:8000/api/creator/posts/${postId}/comments/`,
-      { content },
-      { withCredentials: true }
-    );
-    
-    // Update the post with new comment
-    setPosts(prev => 
-      prev.map(post => 
-        post.id === postId 
-          ? { ...post, comments: [...(post.comments || []), res.data] }
-          : post
+  const res = await createComment(postId, text);
+  if (res.success) {
+    // update UI immediately
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, comments: [res.data, ...p.comments] } // prepend new comment
+          : p
       )
     );
-    
-    // Clear comment input
-    setCommentText(prev => ({ ...prev, [postId]: '' }));
-    toast.success("Comment added successfully");
-  } catch (error) {
-    console.error("Error adding comment:", error);
-    toast.error("Failed to add comment");
+    toast.success("Comment posted");
+    // clear text input
+    setCommentText((prev) => ({ ...prev, [postId]: "" }));
+  } else {
+    toast.error("Failed to post comment");
   }
 };
   if (loading) return <p className="text-center py-10">Loading...</p>;
@@ -723,27 +721,77 @@ const handleCommentSubmit = async (postId) => {
           </TabsContent>
 
 
-          {/* <TabsContent value="courses">
-            {courses.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                {courses.map((course) => (
-                  <Card key={course.id} className="p-4 shadow-md rounded-xl">
-                    {course.post.image && (
-                      <img
-                        src={course.course.image}
-                        alt="Course"
-                        className="w-full h-48 object-cover rounded-md mb-3"
-                      />
-                    )}
-                    <h3 className="font-semibold text-lg mb-2">{course.post.caption}</h3>
-                    <p className="text-sm text-gray-600">Rating: {course.rating || "No ratings yet"}</p>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-center mt-6">No courses yet.</p>
-            )}
-          </TabsContent> */}
+           <TabsContent value="courses">
+              {Array.isArray(courses) && courses.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                  {courses.map((course) => (
+                    <Card
+                      key={course.id}
+                      className="shadow-lg rounded-2xl overflow-hidden"
+                    >
+                      {/* Course Thumbnail */}
+                      {course.post.image && (
+                        <img
+                          src={course.post.image}
+                          alt="Course"
+                          className="w-full h-48 object-cover"
+                        />
+                      )}
+    
+                      <div className="p-3 space-y-2">
+                        {/* Course Title & Caption */}
+                        <h3 className="text-lg font-semibold">{course.post.caption}</h3>
+                        
+    
+                        {/* Rating stars */}
+                        <div className="flex gap-1 mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className={`text-lg ${
+                                star <= course.rating ? "text-yellow-400" : "text-gray-300"
+                              }`}
+                            >
+                              ★
+                            </span>
+                          ))}
+                        </div>
+    
+                        {/* Like & Comment Buttons */}
+                        <div className="flex items-center justify-between w-full mt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0"
+                            onClick={() => handleLikeToggle(course.id)}
+                          >
+                            {course.is_liked ? (
+                              <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                            ) : (
+                              <Heart className="w-5 h-5 text-gray-500" />
+                            )}
+                          </Button>
+                          <span className="text-sm">{course.like_count} likes</span>
+    
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0"
+                            onClick={() => setOpenPost(course)}
+                          >
+                            <MessageCircle className="w-5 h-5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+              <p className="text-muted-foreground text-center mt-6">
+                  No courses yet.
+                </p>
+              )}
+          </TabsContent>
 
           <TabsContent value="reviews">
             <p className="text-muted-foreground text-center mt-6">No reviews yet.</p>

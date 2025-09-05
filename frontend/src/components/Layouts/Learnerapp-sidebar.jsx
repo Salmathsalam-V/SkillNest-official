@@ -8,6 +8,7 @@ import {
   PencilLine,
   LogOut,
   UserCog,
+  Users,
 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,13 @@ export const AppSidebar = () => {
             Creators
           </Button>
         </Link>
-        <Link to="">
+        <Link to="/learners-list">
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <Users className="h-5 w-5" />
+                  Learners
+                </Button>
+        </Link>
+        <Link to="/">
           <Button variant="outline" className="w-full justify-start gap-2">
             <BookOpen className="h-5 w-5" />
             Pages

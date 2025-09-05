@@ -9,19 +9,30 @@ from django.contrib.auth import get_user_model
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'fullname', 'profile']
+        fields = ['id', 'username', 'fullname', 'profile', 'user_type','email']
 
 
 # --- Comment Serializer ---
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-
+    like_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
     class Meta:
         model = Comment
-        fields = ['id', 'user', 'content', 'created_at']
-        read_only_fields = ['user', 'created_at', 'post']
+        fields = ['id', 'user', 'content', 'created_at','likes',
+                'like_count', 'is_liked']
+        read_only_fields = ['user', 'created_at', 'post', 'like_count', 'is_liked']
+        
+    def get_like_count(self, obj):
+        return obj.likes.count()
 
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
+    
 # --- Post Serializer ---
 class PostSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
@@ -39,7 +50,7 @@ class PostSerializer(serializers.ModelSerializer):
             'created_at',
             'likes',
             'like_count',
-            'is_cource',
+            'is_course',
             'comments',
             'is_liked',
         ]

@@ -35,7 +35,7 @@ apiClient.interceptors.response.use(
       
       try {
         // Check if we have cookies before attempting refresh
-        console.log('Document cookies:', document.cookie);
+        alert('Document cookies:', document.cookie);
         
         const refreshResponse = await refreshClient.post(REFRESH_URL, {}, { 
           withCredentials: true 
@@ -51,12 +51,13 @@ apiClient.interceptors.response.use(
         
         if (!isSessionExpiredHandle) {
           isSessionExpiredHandle = true;
-          alert("Session expired. Please log in again");
+          alert("Session expired. Please log in again in session expiry",refreshError);
           window.location.href = '/login';
         }
         return Promise.reject(refreshError);
       }
     }
+    console.log('Non-auth error or already retried:', error);
     return Promise.reject(error);
   }
 );
@@ -190,5 +191,67 @@ export const createComment = async (postId, content) => {
   } catch (error) {
     console.error("Create comment failed:", error.response?.data || error.message);
     return { success: false, error };
+  }
+};
+
+// Toggle like for a comment
+export const toggleCommentLike = async (postId, commentId) => {
+  try {
+    const res = await apiClient.post(
+      `creator/posts/${postId}/comments/${commentId}/like/`,
+      {},
+      { withCredentials: true }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error toggling comment like:", err.response?.data || err.message);
+    return { success: false };
+  }
+};
+  //  creators/<int:creator_id>/courses/
+
+
+export const get_course = async (userId)=>{
+  try{
+    console.log("Fetching courses for user from axios:", userId);
+    const response = await axios.get(`http://localhost:8000/api/creator/creators/${userId}/courses/`,
+    { withCredentials : true }
+    )
+  return response.data
+  }
+  catch (error) {
+    console.error("Fetching course failed", error);
+    return error
+  }
+}
+
+export const fetchCommunities = async () => {
+  try {
+    const res = await apiClient.get("creator/communities/");
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching communities:", err);
+  }
+};
+
+export const createCommunity  = async (name, description, members) => {
+  try {
+    const res = await apiClient.post("creator/communities/" , {
+      name,
+      description,
+      members,
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Error creating communities:", err);
+  }
+};
+
+export const fetchUsers = async () => {
+  try {
+    const res = await apiClient.get("creator/users/"); 
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching users:", err);
   }
 };

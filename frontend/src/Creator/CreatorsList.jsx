@@ -1,19 +1,25 @@
-import LearnerLayout from '@/components/Layouts/LearnerLayout';
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+import LearnerLayout from "@/components/Layouts/LearnerLayout";
+import CreatorLayout from "@/components/Layouts/CreatorLayout";
 
 export const CreatorsListPublic = () => {
   const [creators, setCreators] = useState([]);
   const [filteredCreators, setFilteredCreators] = useState([]);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+
+  // 🔑 get user_type from redux
+  const user = useSelector((state) => state.user.user);
+  const userType = user?.user_type;
 
   useEffect(() => {
     const fetchCreators = async () => {
@@ -37,17 +43,21 @@ export const CreatorsListPublic = () => {
       setFilteredCreators(creators);
     } else {
       setFilteredCreators(
-        creators.filter(c =>
-          c.username.toLowerCase().includes(search.toLowerCase()) ||
-          c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-          c.creator_profile?.category?.toLowerCase().includes(search.toLowerCase())
+        creators.filter(
+          (c) =>
+            c.username.toLowerCase().includes(search.toLowerCase()) ||
+            c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+            c.creator_profile?.category?.toLowerCase().includes(search.toLowerCase())
         )
       );
     }
   }, [search, creators]);
 
+  // ✅ pick layout dynamically
+  const Layout = userType === "creator" ? CreatorLayout : LearnerLayout;
+
   return (
-    <LearnerLayout>
+    <Layout>
       <div className="flex flex-col items-center p-6">
         {/* Search bar */}
         <Input
@@ -69,16 +79,19 @@ export const CreatorsListPublic = () => {
               </CardHeader>
               <CardContent className="flex flex-col items-center">
                 <Avatar className="h-16 w-16">
-                            {creator?.profile ? (
-                              <img
-                                src={creator.profile}
-                                alt="Profile"
-                                className="h-16 w-16 rounded-full object-cover"
-                              />
-                            ) : (
-                              <AvatarFallback>{creator?.username?.[0].toUpperCase()}</AvatarFallback>
-                            )}
-                          </Avatar>
+                  {creator?.profile ? (
+                    <img
+                      src={creator.profile}
+                      alt="Profile"
+                      className="h-16 w-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <AvatarFallback>
+                      {creator?.username?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+
                 <p className="text-sm text-gray-600">
                   <strong>Username:</strong> {creator.username}
                 </p>
@@ -86,11 +99,11 @@ export const CreatorsListPublic = () => {
                   <strong>Category:</strong> {creator.category || "N/A"}
                 </p>
                 <p className="text-sm text-gray-600 mb-3">
-                  {" "}
                   {creator.description || "No description"}
                 </p>
                 <Button
-                  className="w-full " variant="custom"
+                  className="w-full"
+                  variant="custom"
                   onClick={() => navigate(`/creators/${creator.id}`)}
                 >
                   View Profile
@@ -100,6 +113,6 @@ export const CreatorsListPublic = () => {
           ))}
         </div>
       </div>
-    </LearnerLayout>
+    </Layout>
   );
 };

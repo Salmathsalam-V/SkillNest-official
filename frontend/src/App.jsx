@@ -22,6 +22,9 @@ import { Toaster } from 'sonner';
 import MessagesTable from './Admin/UserMessage';
 import { CreatorsListPublic } from './Creator/CreatorsList';
 import { CreatorDetailpage } from './Creator/CreatorDetailpage';
+import { CommunityList } from './Creator/CommunityList';
+import { ChatPage } from './Creator/CommunityPage';
+import { LearnerListPublic } from './Learners/LearnerListPublic';
 
 // import { AuthProvider } from './contexts/useAuth';
 // import { PrivateRoutes } from './components/private_routes/PrivateRoutes'
@@ -48,13 +51,16 @@ function App() {
             <Route path="/verify-otp" element={<VerifyOTPForm/>} />
             <Route path="/profile" element={<Profile/>} />
             <Route path="/creator-profile/:id" element={<CreatorProfile/>} />
-            <Route path="/learners-list" element={<LearnerList/>} />
             <Route path="/reset-password" element={<ResetPasswordForm />} />
             <Route path="/ceate-extradata" element={<CreateExtraDetails />} />
             <Route path="/creators-view/:id" element={<CreatorData />} />
             <Route path="/messages" element={<MessagesTable />} />
             <Route path="/creators-list" element={<CreatorsListPublic />}/>
             <Route path="/creators/:id" element={<CreatorDetailpage />}/>
+            <Route path="/creator/:id/communities" element={<CommunityList />} />
+            {/* <Route path="/creator/:id/community" element={<CommunityList />} /> */}
+            <Route path="/creator/community" element={<ChatPage />} />
+            <Route path="learners-list" element={<LearnerListPublic />} />
           </Routes>
         {/* <PrivateRoutes></PrivateRoutes> */}
         {/* </AuthProvider> */}

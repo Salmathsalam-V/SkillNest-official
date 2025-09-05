@@ -1,22 +1,32 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, MessageCircle } from "lucide-react";
+import { toggleLike,createComment,toggleCommentLike } from '../endpoints/axios';
+
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
+import CreatorLayout from "@/components/Layouts/CreatorLayout";
+import AdminLayout from "@/components/Layouts/AdminLayout";
 
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
   const [commentText, setCommentText] = useState({});
   const [loading, setLoading] = useState(true);
-  const [openPost, setOpenPost] = useState(null); // for popup
+  const [openPost, setOpenPost] = useState(null);
+
+  const user = useSelector((state) => state.user.user); // get user from redux
+  const userType = user?.user_type;
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
+        const res = await axios.get("http://localhost:8000/api/creator/posts/", {
+          withCredentials: true,
+        });
         setPosts(res.data);
       } catch (err) {
         console.error("Error fetching posts:", err);
@@ -27,32 +37,102 @@ export default function PostsPage() {
     fetchPosts();
   }, []);
 
-  const handleCommentSubmit = async (postId) => {
-    if (!commentText[postId]) return;
-    try {
-      const res = await axios.post(
-        `http://localhost:8000/api/creator/posts/${postId}/comments/`,
-        { content: commentText[postId] },
-        { withCredentials: true }
-      );
-
+  const handleLikeToggle = async (postId) => {
+  try {
+    const data = await toggleLike(postId);
+    if (data.success) {
       setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post.id === postId
-            ? { ...post, comments: [res.data, ...(post.comments || [])] }
-            : post
+        prevPosts.map((p) =>
+          p.id === postId ? { ...p, is_liked: data.liked, like_count: data.like_count } : p
         )
       );
-      setCommentText({ ...commentText, [postId]: "" });
-    } catch (err) {
-      console.error("Error adding comment:", err);
     }
-  };
+  } catch (err) {
+    console.error("Like/unlike failed:", err);
+    toast.error("Something went wrong. Try again.");
+  }
+};
+
+const handleCommentSubmit = async (postId) => {
+  console.log("Submitting comment for post id:", postId);
+  const text = commentText[postId];
+  if (!text?.trim()) {
+    toast.error("Comment cannot be empty");
+    return;
+  }
+
+  const res = await createComment(postId, text);
+  if (res.success) {
+    // update UI immediately
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, comments: [res.data, ...p.comments] } // prepend new comment
+          : p
+      )
+    );
+    toast.success("Comment posted");
+    // clear text input
+    setCommentText((prev) => ({ ...prev, [postId]: "" }));
+  } else {
+    toast.error("Failed to post comment");
+  }
+};
+
+const handleCommentLikeToggle = async (postId, commentId) => {
+  console.log("Toggling like for comment:", commentId, "on post:", postId);
+  try {
+    const data = await toggleCommentLike(postId, commentId);
+    console.log("Comment like toggle response:", data);
+    if (data.success) {
+      // Update state for that comment
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                comments: p.comments.map((c) =>
+                  c.id === commentId
+                    ? { ...c, is_liked: data.liked, like_count: data.like_count }
+                    : c
+                ),
+              }
+            : p
+        )
+      );
+
+      // Also update openPost if the dialog is open
+      if (openPost?.id === postId) {
+        setOpenPost((prev) => ({
+          ...prev,
+          comments: prev.comments.map((c) =>
+            c.id === commentId
+              ? { ...c, is_liked: data.liked, like_count: data.like_count }
+              : c
+          ),
+        }));
+      }
+    }
+  } catch (err) {
+    console.log("Comment like toggle error:", err);
+    toast.error("Failed to like comment");
+  }
+};
 
   if (loading) return <p className="text-center mt-10">Loading posts...</p>;
 
+  // ✅ Decide layout
+  let Layout;
+  if (userType === "learner") {
+    Layout = LearnerLayout;
+  } else if (userType === "creator") {
+    Layout = CreatorLayout;
+  } else {
+    Layout = AdminLayout; // default
+  }
+
   return (
-    <LearnerLayout>
+    <Layout>
       <div className="max-w-6xl mx-auto mt-10">
         {/* Grid 4 in row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -68,14 +148,23 @@ export default function PostsPage() {
                 )}
               </CardContent>
               <CardFooter className="flex flex-col items-start w-full space-y-2 p-3">
+                <span className="text-sm">{post.caption}</span>
                 {/* Like & comment buttons */}
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" className="p-0">
-                      <Heart className="w-5 h-5 text-red-500" />
-                    </Button>
-                    <span className="text-sm">{post.like_count} likes</span>
-                  </div>
+                  <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-0"
+                      onClick={() => handleLikeToggle(post.id)}
+                  >
+                      {post.is_liked ? (
+                        <Heart className="w-5 h-5 text-red-500 fill-red-500" /> // filled
+                      ) : (
+                        <Heart className="w-5 h-5 text-gray-500" /> // outline
+                      )}
+                  </Button>
+                  <span className="text-sm">{post.like_count} likes</span>
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -141,14 +230,32 @@ export default function PostsPage() {
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {openPost.comments?.length > 0 ? (
                   openPost.comments.map((comment) => (
-                    <div key={comment.id} className="border-b pb-1">
-                      <p className="text-sm font-semibold">{comment.user?.username}</p>
-                      <p className="text-sm text-gray-600">{comment.content}</p>
+                    <div key={comment.id} className="border-b pb-1 flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-semibold">{comment.user?.username}</p>
+                        <p className="text-sm text-gray-600">{comment.content}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0"
+                          onClick={() => handleCommentLikeToggle(openPost.id, comment.id)}
+                        >
+                          {comment.is_liked ? (
+                            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                          ) : (
+                            <Heart className="w-4 h-4 text-gray-500" />
+                          )}
+                        </Button>
+                        <span className="text-xs">{comment.like_count}</span>
+                      </div>
                     </div>
                   ))
                 ) : (
                   <p className="text-sm text-gray-400">No comments yet.</p>
                 )}
+
               </div>
 
               {/* Add Comment */}
@@ -167,6 +274,6 @@ export default function PostsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </LearnerLayout>
+    </Layout>
   );
 }
