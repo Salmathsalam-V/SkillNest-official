@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,10 +15,20 @@ const VerifyOTPForm = () => {
   const [otp, setOtp] = useState('');
   const [verified, setVerified] = useState(null);
   const [resendStatus, setResendStatus] = useState('');
+  const [cooldown, setCooldown] = useState(60); // ⏳ 60 seconds timer
   const navigate = useNavigate();
   const location = useLocation();
 
   const email = location.state?.email;
+
+  // 🔁 Countdown effect
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setTimeout(() => setCooldown((prev) => prev - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -29,25 +39,23 @@ const VerifyOTPForm = () => {
       });
       if (response.data.verified) {
         setVerified(true);
-        toast.success("OTP verified")
+        toast.success("OTP verified");
         const user_type = response.data.user_type;
-        console.log("usertype",user_type)
         setTimeout(() => {
           if (location.state?.isForgotPassword) {
             navigate('/reset-password', { state: { email } });
           } else {
             if (user_type === 'creator') {
-            navigate('/ceate-extradata', { state: { email } });
-            }
-            else{
+              navigate('/ceate-extradata', { state: { email } });
+            } else {
               navigate('/login');
             }
-        }
+          }
         }, 1000);
       }
     } catch (error) {
       setVerified(false);
-      toast.error("OTP verification failed")
+      toast.error("OTP verification failed");
     }
   };
 
@@ -55,17 +63,25 @@ const VerifyOTPForm = () => {
     try {
       await axios.post('http://localhost:8000/api/send_otp/', { email });
       setResendStatus('OTP resent successfully ✅');
-      toast.success("OTP resend successfully")
+      toast.success("OTP resent successfully");
+
+      // 🔁 Restart cooldown
+      setCooldown(60);
+
       setTimeout(() => setResendStatus(''), 3000);
     } catch (err) {
       setResendStatus('Failed to resend OTP ❌');
-      toast.error("Failed to resend OTP ")
+      toast.error("Failed to resend OTP ");
       setTimeout(() => setResendStatus(''), 3000);
     }
   };
 
   if (!email) {
-    return <p className="text-center text-red-500 mt-10">Email not provided. Please go back and enter your email.</p>;
+    return (
+      <p className="text-center text-red-500 mt-10">
+        Email not provided. Please go back and enter your email.
+      </p>
+    );
   }
 
   return (
@@ -94,13 +110,15 @@ const VerifyOTPForm = () => {
             </InputOTP>
 
             <Button type="submit" className="w-full">Verify OTP</Button>
+
             <Button
               type="button"
               variant="outline"
               onClick={handleResend}
               className="w-full"
+              disabled={cooldown > 0} 
             >
-              Resend OTP
+              {cooldown > 0 ? `Resend OTP in ${cooldown}s` : "Resend OTP"}
             </Button>
 
             {verified === true && <p className="text-green-600 text-center">Email verified successfully ✅</p>}

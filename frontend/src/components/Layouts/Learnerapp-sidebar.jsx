@@ -6,7 +6,10 @@ import {
   FileText,
   MessageSquareText,
   PencilLine,
-  LogOut
+  LogOut,
+  UserCog,
+  Users,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/endpoints/axios";
@@ -41,13 +44,25 @@ export const AppSidebar = () => {
             Dashboard
           </Button>
         </Link>
-        <Link to="">
+        <Link to="/creators-list">
+          <Button variant="outline" className="w-full justify-start gap-2">
+          <UserCog className="h-5 w-5" />
+            Creators
+          </Button>
+        </Link>
+        <Link to="/learners-list">
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <Users className="h-5 w-5" />
+                  Learners
+                </Button>
+        </Link>
+        <Link to="/">
           <Button variant="outline" className="w-full justify-start gap-2">
             <BookOpen className="h-5 w-5" />
             Pages
           </Button>
         </Link>
-        <Link to="/posts">
+        <Link to="/">
           <Button variant="outline" className="w-full justify-start gap-2">
             <FileText className="h-5 w-5" />
             Posts

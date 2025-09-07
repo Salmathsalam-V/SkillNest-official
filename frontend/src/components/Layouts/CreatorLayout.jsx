@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppSidebar } from '@/components/Layouts/Learnerapp-sidebar';
+import { AppSidebar } from '@/components/Layouts/Creatorapp-sidebar';
 import { Button } from '@/components/ui/button';
 import {
   Menubar,
@@ -18,10 +18,13 @@ import {
 } from "@/components/ui/menubar"
 import { useNavigate } from 'react-router-dom';
 import Footer from './Footer';
+import { useSelector } from "react-redux";
 
 const CreatorLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate=useNavigate()
+  const user = useSelector((state) => state.user.user);
+  const userId = user?.id;
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
@@ -45,7 +48,7 @@ const CreatorLayout = ({ children }) => {
                   <MenubarTrigger>Notification</MenubarTrigger>
                 </MenubarMenu>
                 <MenubarMenu>
-                  <MenubarTrigger onClick={() => navigate('/profile')}>Profiles</MenubarTrigger>
+                  <MenubarTrigger onClick={() => navigate(`/creator-profile/${userId}`)}>Profiles</MenubarTrigger>
                 </MenubarMenu>
             </Menubar>
         </div>

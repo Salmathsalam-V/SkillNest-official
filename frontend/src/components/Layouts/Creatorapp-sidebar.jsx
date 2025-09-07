@@ -6,10 +6,15 @@ import {
   FileText,
   MessageSquareText,
   PencilLine,
-  LogOut
+  LogOut,
+  UserCog,
+  Users,
+  BookOpen
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/endpoints/axios";
+import { useSelector } from 'react-redux';
 
 export const AppSidebar = () => {
   const navigate = useNavigate();
@@ -20,7 +25,8 @@ export const AppSidebar = () => {
       navigate('/login');
     }
   };
-
+  const creator=useSelector((state) => state.user.user)
+  console.log(creator)
   return (
     <aside className="w-64 bg-[#f3f4f6] p-6 shadow-md">
       {/* Logo and Title */}
@@ -40,27 +46,33 @@ export const AppSidebar = () => {
           </Button>
         </Link>
         <Link to="/learners-list">
+        <Button variant="outline" className="w-full justify-start gap-2">
+          <Users className="h-5 w-5" />
+          Learners
+        </Button>
+      </Link>
+        <Link to="/creators-list">
           <Button variant="outline" className="w-full justify-start gap-2">
-            <UsersRound className="h-5 w-5" />
-            Learners
+          <UserCog className="h-5 w-5" />
+            Creators
           </Button>
         </Link>
         <Link to="/">
           <Button variant="outline" className="w-full justify-start gap-2">
-            <FileText className="h-5 w-5" />
-            Posts
+            <BookOpen className="h-5 w-5" />
+            Pages
           </Button>
         </Link>
-        <Link to="/">
+        <Link to="">
           <Button variant="outline" className="w-full justify-start gap-2">
             <MessageSquareText className="h-5 w-5" />
             Chat
           </Button>
         </Link>
-        <Link to="/">
+        <Link to="/creator/{creator.id}}/communities">
           <Button variant="outline" className="w-full justify-start gap-2">
             <PencilLine className="h-5 w-5" />
-            Feedback
+            Communities
           </Button>
         </Link>
 

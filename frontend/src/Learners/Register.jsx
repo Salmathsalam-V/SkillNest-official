@@ -1,62 +1,142 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as Yup from "yup";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
-export const  Register = () => {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    fullname: "",
-    user_type: "learner",
+// ✅ validation schema
+const schema = Yup.object().shape({
+  username: Yup.string().required("Username is required"),
+  fullname: Yup.string().required("Full name is required"),
+  email: Yup.string()
+    .email("Invalid email format")
+    .matches(
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      "Email must include a valid domain (like .com, .in)"
+    )
+    .required("Email is required"),
+  password: Yup.string()
+    .required("Password is required")
+    .min(6, "Password must be at least 6 characters"),
+  user_type: Yup.string().oneOf(
+    ["learner", "creator"],
+    "Select a valid account type"
+  ),
+});
+
+export const Register = () => {
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState("");
+
+  // ✅ include setError from useForm
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: yupResolver(schema),
+    mode: "onBlur",
   });
 
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState('');
+  // ✅ handle backend errors
+  const handleBackendErrors = (errorData) => {
+    if (typeof errorData === "object" && errorData !== null) {
+      Object.keys(errorData).forEach((field) => {
+        const fieldErrors = errorData[field];
+        if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+          setError(field, {
+            type: "server",
+            message: fieldErrors[0],
+          });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post("http://localhost:8000/api/register/", formData);
-      toast.success("Registred successfully");
-      navigate("/send-otp");
-    } catch (err) {
-      console.error("Registration error:", err);
-      toast.error("Registration failed!")
+          // Extra toast messages for duplicates
+          if (field === "username" && fieldErrors[0].includes("already exists")) {
+            toast.error("Username already taken. Please choose a different one.");
+          } else if (field === "email" && fieldErrors[0].includes("already exists")) {
+            toast.error("Email already registered. Please use a different email or try logging in.");
+          } else {
+            toast.error(`${field}: ${fieldErrors[0]}`);
+          }
+        }
+      });
+    } else if (typeof errorData === "string") {
+      toast.error(errorData);
+    } else {
+      toast.error("Registration failed. Please check your information and try again.");
     }
   };
 
-   const handleImageUpload = async (e) => {
+  // ✅ image upload
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'skillnest_profile'); // from Cloudinary dashboard
+    formData.append("file", file);
+    formData.append("upload_preset", "skillnest_profile");
 
     try {
       const res = await axios.post(
-        'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
+        "https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload",
         formData
       );
-      setProfile(res.data.secure_url);  // Set the uploaded image URL
+      setProfile(res.data.secure_url);
+      toast.success("Image uploaded successfully");
     } catch (err) {
       toast.error("Image upload failed");
       console.error("Image upload failed:", err);
     }
   };
+
+  // ✅ form submit
+  const onSubmit = async (data) => {
+    try {
+      const finalData = { ...data, profile };
+      const res = await axios.post(
+        "http://localhost:8000/api/register/",
+        finalData
+      );
+
+      try {
+        await axios.post("http://localhost:8000/api/send_otp/", {
+          email: data.email,
+        });
+        navigate("/verify-otp", {
+          state: { email: data.email, isForgotPassword: false },
+        });
+        toast.success("OTP sent to your email successfully");
+      } catch (error) {
+        toast.error("Failed to send OTP");
+        console.error("Failed to send OTP", error);
+      }
+    } catch (err) {
+      console.error("Registration error:", err);
+      if (err.response?.status === 400) {
+        handleBackendErrors(err.response.data);
+      } else if (err.response?.status === 409) {
+        toast.error("User already exists with this information");
+      } else if (err.response?.status === 500) {
+        toast.error("Server error. Please try again later.");
+      } else if (err.code === "NETWORK_ERROR" || !err.response) {
+        toast.error("Network error. Please check your connection and try again.");
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
+    }
+  };
+
+
   return (
     <div className="flex flex-col gap-6 min-h-screen justify-center items-center bg-muted px-4">
       <Card className="overflow-hidden p-0 w-full max-w-3xl">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8" onSubmit={handleSubmit}>
+          <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-2xl font-bold">Create your account</h1>
@@ -65,88 +145,88 @@ export const  Register = () => {
                 </p>
               </div>
 
+              {/* Username */}
               <div className="grid gap-3">
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
-                  name="username"
                   placeholder="yourusername"
-                  required
-                  onChange={handleChange}
+                  {...register("username")}
                 />
+                {errors.username && (
+                  <p className="text-red-500 text-sm">{errors.username.message}</p>
+                )}
               </div>
 
+              {/* Full Name */}
               <div className="grid gap-3">
                 <Label htmlFor="fullname">Full Name</Label>
-                <Input
-                  id="fullname"
-                  name="fullname"
-                  placeholder="John Doe"
-                  required
-                  onChange={handleChange}
-                />
+                <Input id="fullname" placeholder="John Doe" {...register("fullname")} />
+                {errors.fullname && (
+                  <p className="text-red-500 text-sm">{errors.fullname.message}</p>
+                )}
               </div>
 
+              {/* Email */}
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
                   placeholder="m@example.com"
-                  required
-                  onChange={handleChange}
+                  {...register("email")}
                 />
+                {errors.email && (
+                  <p className="text-red-500 text-sm">{errors.email.message}</p>
+                )}
               </div>
 
+              {/* Password */}
               <div className="grid gap-3">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  onChange={handleChange}
-                />
+                <Input id="password" type="password" {...register("password")} />
+                {errors.password && (
+                  <p className="text-red-500 text-sm">{errors.password.message}</p>
+                )}
               </div>
 
+              {/* User Type */}
               <div className="grid gap-3">
                 <Label htmlFor="user_type">Account Type</Label>
                 <select
                   id="user_type"
-                  name="user_type"
-                  value={formData.user_type}
-                  onChange={handleChange}
+                  {...register("user_type")}
                   className="border border-input rounded-md px-3 py-2 text-sm"
                 >
                   <option value="learner">Learner</option>
                   <option value="creator">Creator</option>
                 </select>
+                {errors.user_type && (
+                  <p className="text-red-500 text-sm">{errors.user_type.message}</p>
+                )}
               </div>
-<div>
-              <Label>Profile Image</Label>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                required
-              />
-            </div>
-          {profile && (
-            <img src={profile} alt="Profile preview" className="w-24 h-24 rounded-full mt-2" />
-          )}
 
-            <div>
-              <Label>Profile URL</Label>
-              <Input
-                type="url"
-                placeholder="Link to your profile picture or page"
-                value={profile}
-                onChange={(e) => setProfile(e.target.value)}
-              />
-            </div>
-              <Button type="submit" className="w-full" variant="custom">
-                Sign Up
+              {/* Profile Image */}
+              <div>
+                <Label>Profile Image</Label>
+                <Input type="file" accept="image/*" onChange={handleImageUpload} />
+              </div>
+              {profile && (
+                <img
+                  src={profile}
+                  alt="Profile preview"
+                  className="w-24 h-24 rounded-full mt-2"
+                />
+              )}
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                className="w-full"
+                variant="custom"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Signing up..." : "Sign Up"}
               </Button>
 
               <div className="text-center text-sm">
@@ -176,4 +256,3 @@ export const  Register = () => {
     </div>
   );
 };
-

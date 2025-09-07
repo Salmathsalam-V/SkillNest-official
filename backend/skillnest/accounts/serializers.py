@@ -10,12 +10,14 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'password', 'fullname', 'user_type','status','profile']
         extra_kwargs = {
-            'status': {'read_only': True} 
-        }        
+            'password': {'write_only': True},
+        }
+
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -27,6 +29,19 @@ class UserSerializer(serializers.ModelSerializer):
             status=False
         )
         return user
+
+    def update(self, instance, validated_data):
+        # prevent email, user_type, and password from being updated
+        validated_data.pop('email', None)
+        validated_data.pop('user_type', None)
+        validated_data.pop('password', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -98,12 +113,59 @@ class CreatorSerializer(serializers.ModelSerializer):
 
 
 class CombinedCreatorUserSerializer(serializers.ModelSerializer):
-    # Get data from Creator model via related_name
-    category = serializers.CharField(source='creator_profile.category', read_only=True)
-    description = serializers.CharField(source='creator_profile.description', read_only=True)
-    background = serializers.CharField(source='creator_profile.background', read_only=True)
-    approve = serializers.CharField(source='creator_profile.approve', read_only=True)
+    # Writable fields for Creator (via source)
+    category = serializers.CharField(source='creator_profile.category')
+    description = serializers.CharField(source='creator_profile.description')
+    background = serializers.CharField(source='creator_profile.background', allow_blank=True, allow_null=True)
+    approve = serializers.CharField(source='creator_profile.approve')
+
+    # Extra read-only fields
+    follower_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email','fullname','profile', 'user_type','status','category', 'description', 'background', 'approve']
+        fields = [
+            'id', 'username', 'email', 'fullname', 'profile', 'user_type', 'status',
+            'category', 'description', 'background', 'approve', 'follower_count'
+        ]
+
+    def get_follower_count(self, obj):
+        if hasattr(obj, "creator_profile"):
+            return obj.creator_profile.followers.count()
+        return 0
+
+
+    def update(self, instance, validated_data):
+        # Extract nested creator_profile data
+        creator_data = validated_data.pop('creator_profile', {})
+
+        # Update User fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Update Creator fields
+        creator = instance.creator_profile
+        for attr, value in creator_data.items():
+            setattr(creator, attr, value)
+        creator.save()
+
+        return instance
+
+class CreatorDetailSerializer(serializers.ModelSerializer):
+    follower_count = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Creator
+        fields = ['id', 'category', 'description', 'background', 'approve',
+                  'follower_count', 'is_following']
+
+    def get_follower_count(self, obj):
+        return obj.followers.count()
+
+    def get_is_following(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.followers.filter(id=request.user.id).exists()
+        return False
