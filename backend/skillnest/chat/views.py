@@ -3,7 +3,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import ChatRoom, Message, OnlineUser
+# from .models import ChatRoom, Message, OnlineUser
 from django.db.models import Count
 
 @login_required
@@ -58,3 +58,114 @@ def create_room(request):
             messages.error(request, 'Room name is required!')
     
     return render(request, 'chat/create_room.html')
+
+from rest_framework import generics, status, permissions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from .models import ChatRoom, Message, UserPresence
+from .serializers import ChatRoomSerializer, MessageSerializer, UserPresenceSerializer
+
+class MessagePagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class ChatRoomListCreateView(generics.ListCreateAPIView):
+    serializer_class = ChatRoomSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        return ChatRoom.objects.filter(
+            Q(room_type='public') | Q(members=user)
+        ).distinct()
+    
+    def perform_create(self, serializer):
+        room = serializer.save(created_by=self.request.user)
+        # Add creator as member
+        room.members.add(self.request.user)
+
+class ChatRoomDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ChatRoomSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'slug'
+    
+    def get_queryset(self):
+        user = self.request.user
+        return ChatRoom.objects.filter(
+            Q(room_type='public') | Q(members=user)
+        ).distinct()
+
+class RoomMessagesView(generics.ListAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = MessagePagination
+    
+    def get_queryset(self):
+        room_slug = self.kwargs['room_slug']
+        room = get_object_or_404(ChatRoom, slug=room_slug)
+        
+        # Check if user has access to this room
+        user = self.request.user
+        if room.room_type != 'public' and not room.members.filter(id=user.id).exists():
+            return Message.objects.none()
+        
+        return Message.objects.filter(room=room).select_related('sender', 'reply_to__sender')
+
+class RoomMembersView(generics.ListAPIView):
+    serializer_class = UserPresenceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        room_slug = self.kwargs['room_slug']
+        room = get_object_or_404(ChatRoom, slug=room_slug)
+        
+        # Check access
+        user = self.request.user
+        if room.room_type != 'public' and not room.members.filter(id=user.id).exists():
+            return UserPresence.objects.none()
+        
+        return UserPresence.objects.filter(
+            user__in=room.members.all()
+        ).select_related('user')
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def join_room(request, room_slug):
+    room = get_object_or_404(ChatRoom, slug=room_slug)
+    
+    if room.room_type == 'private':
+        return Response(
+            {'error': 'Cannot join private room without invitation'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    room.members.add(request.user)
+    return Response({'message': 'Successfully joined the room'})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def leave_room(request, room_slug):
+    room = get_object_or_404(ChatRoom, slug=room_slug)
+    room.members.remove(request.user)
+    return Response({'message': 'Successfully left the room'})
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def online_users(request, room_slug):
+    room = get_object_or_404(ChatRoom, slug=room_slug)
+    
+    # Check access
+    if room.room_type != 'public' and not room.members.filter(id=request.user.id).exists():
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+    
+    online_users = UserPresence.objects.filter(
+        user__in=room.members.all(),
+        is_online=True
+    ).select_related('user')
+    
+    serializer = UserPresenceSerializer(online_users, many=True)
+    return Response(serializer.data)
