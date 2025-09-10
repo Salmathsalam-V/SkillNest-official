@@ -255,3 +255,21 @@ export const fetchUsers = async () => {
     console.error("Error fetching users:", err);
   }
 };
+
+
+
+
+export const fetchChatRoom = (communityId) =>
+  apiClient.get(`/chat/communities/${communityId}/chat-room/`);
+
+export const fetchMessages = (communityId, page = 1) =>
+  apiClient.get(`/chat/communities/${communityId}/messages/`, {
+    params: { page },
+  });
+
+export const sendMessage = (communityId, content) =>
+  apiClient.post(`/chat/communities/${communityId}/messages/send/`, { content });
+
+export const fetchMembers = (communityId) =>
+  apiClient.get(`/chat/communities/${communityId}/members/`);
+

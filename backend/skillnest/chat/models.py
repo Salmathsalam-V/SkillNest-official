@@ -1,104 +1,105 @@
-# chat/models.py
-
 from django.db import models
 from accounts.models import User
+from creator.models import Community  
 from django.utils import timezone
 import uuid
 
 
-class ChatRoom(models.Model):
-    ROOM_TYPES = (
-        ('public', 'Public'),
-        ('private', 'Private'),
-        ('group', 'Group'),
+class CommunityChatRoom(models.Model):
+    """
+    A chat room that belongs to a Community
+    """
+    id = models.BigAutoField(primary_key=True)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    community = models.OneToOneField(
+        Community,
+        on_delete=models.CASCADE,
+        related_name="chat_room"
     )
-    
-    id = models.BigAutoField(primary_key=True)           # ✅ keep integer PK
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False) 
-    name = models.CharField(max_length=100)
-    slug = models.SlugField(unique=True, blank=True)    
+    name = models.CharField(max_length=150)  # can default to community.name
     description = models.TextField(blank=True, null=True)
-    room_type = models.CharField(max_length=10, choices=ROOM_TYPES, default='public')
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_rooms')
-    members = models.ManyToManyField(User, related_name='chat_rooms', blank=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="community_chat_rooms"
+    )
+    members = models.ManyToManyField(
+        User,
+        related_name="community_chats",
+        blank=True
+    )
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
-    
+
     class Meta:
         ordering = ['-updated_at']
-    
+
     def __str__(self):
-        return self.name
-    
+        return f"ChatRoom for {self.community.name}"
+
     @property
     def member_count(self):
         return self.members.count()
-    
+
     @property
     def last_message(self):
         return self.messages.first()
 
-class Message(models.Model):
+
+class CommunityMessage(models.Model):
+    """
+    Messages inside a CommunityChatRoom
+    """
     MESSAGE_TYPES = (
         ('text', 'Text'),
         ('image', 'Image'),
         ('file', 'File'),
         ('system', 'System'),
     )
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages', default=None)
+    room = models.ForeignKey(
+        CommunityChatRoom,
+        on_delete=models.CASCADE,
+        related_name="messages"
+    )
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="community_messages"
+    )
     content = models.TextField()
     message_type = models.CharField(max_length=10, choices=MESSAGE_TYPES, default='text')
     timestamp = models.DateTimeField(default=timezone.now)
     edited_at = models.DateTimeField(null=True, blank=True)
     is_edited = models.BooleanField(default=False)
-    reply_to = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
-    
+    reply_to = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='replies'
+    )
+
     class Meta:
         ordering = ['-timestamp']
-    
-    def __str__(self):
-        return f'{self.sender.username}: {self.content[:50]}'
 
-class UserPresence(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='presence')
-    is_online = models.BooleanField(default=False)
-    last_seen = models.DateTimeField(default=timezone.now)
-    current_room = models.ForeignKey(ChatRoom, on_delete=models.SET_NULL, null=True, blank=True)
-    
     def __str__(self):
-        status = "Online" if self.is_online else "Offline"
-        return f'{self.user.username} - {status}'
+        return f"[{self.room.community.name}] {self.sender.username}: {self.content[:40]}"
 
-class MessageRead(models.Model):
-    """Track which messages have been read by which users"""
+
+class CommunityMessageRead(models.Model):
+    """
+    Track who has read which message in a CommunityChatRoom
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='read_by')
+    message = models.ForeignKey(
+        CommunityMessage,
+        on_delete=models.CASCADE,
+        related_name='read_by'
+    )
     read_at = models.DateTimeField(default=timezone.now)
-    
+
     class Meta:
         unique_together = ['user', 'message']
-
-
-# class Message(models.Model):
-#     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     content = models.TextField()
-#     timestamp = models.DateTimeField(default=timezone.now)
-    
-#     def __str__(self):
-#         return f'{self.user.username}: {self.content[:50]}'
-    
-#     class Meta:
-#         ordering = ['timestamp']
-
-# class OnlineUser(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE)
-#     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
-#     last_seen = models.DateTimeField(default=timezone.now)
-    
-#     def __str__(self):
-#         return f'{self.user.username} in {self.room.name}'

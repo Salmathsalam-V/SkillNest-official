@@ -1,171 +1,125 @@
-# chat/views.py
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-# from .models import ChatRoom, Message, OnlineUser
-from django.db.models import Count
-
-@login_required
-def index(request):
-    rooms = ChatRoom.objects.annotate(
-        message_count=Count('messages'),
-        online_users=Count('onlineuser')
-    ).order_by('-created_at')
-    
-    context = {
-        'rooms': rooms
-    }
-    return render(request, 'chat/index.html', context)
-
-@login_required
-def room(request, room_name):
-    room = get_object_or_404(ChatRoom, name=room_name)
-    
-    # Get recent messages
-    recent_messages = Message.objects.filter(room=room).select_related('user').order_by('-timestamp')[:50]
-    recent_messages = reversed(recent_messages)
-    
-    # Get online users
-    online_users = OnlineUser.objects.filter(room=room).select_related('user')
-    
-    context = {
-        'room': room,
-        'room_name_json': room_name,
-        'recent_messages': recent_messages,
-        'online_users': online_users,
-    }
-    return render(request, 'chat/room.html', context)
-
-@login_required
-def create_room(request):
-    if request.method == 'POST':
-        room_name = request.POST.get('room_name', '').strip()
-        room_description = request.POST.get('room_description', '').strip()
-        
-        if room_name:
-            if not ChatRoom.objects.filter(name=room_name).exists():
-                ChatRoom.objects.create(
-                    name=room_name,
-                    description=room_description,
-                    created_by=request.user
-                )
-                messages.success(request, f'Room "{room_name}" created successfully!')
-                return redirect('chat:room', room_name=room_name)
-            else:
-                messages.error(request, 'Room name already exists!')
-        else:
-            messages.error(request, 'Room name is required!')
-    
-    return render(request, 'chat/create_room.html')
-
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from .models import ChatRoom, Message, UserPresence
-from .serializers import ChatRoomSerializer, MessageSerializer, UserPresenceSerializer
+from accounts.models import User
+from creator.models import Community
+from .models import CommunityChatRoom, CommunityMessage, CommunityMessageRead
+from .serializers import (
+    CommunityChatRoomSerializer,
+    CommunityMessageSerializer,
+    UserSerializer,
+)
+
+def get_or_create_chat_room(community, user):
+    try:
+        return community.chat_room
+    except Community.chat_room.RelatedObjectDoesNotExist:
+        return CommunityChatRoom.objects.create(
+            community=community,
+            name=community.name,
+            created_by=community.creator or user  # fallback
+        )
+
 
 class MessagePagination(PageNumberPagination):
     page_size = 50
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 100
 
-class ChatRoomListCreateView(generics.ListCreateAPIView):
-    serializer_class = ChatRoomSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        user = self.request.user
-        return ChatRoom.objects.filter(
-            Q(room_type='public') | Q(members=user)
-        ).distinct()
-    
-    def perform_create(self, serializer):
-        room = serializer.save(created_by=self.request.user)
-        # Add creator as member
-        room.members.add(self.request.user)
 
-class ChatRoomDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = ChatRoomSerializer
+# ✅ 1. Fetch community chat room details
+class CommunityChatRoomDetailView(generics.RetrieveAPIView):
+    serializer_class = CommunityChatRoomSerializer
     permission_classes = [permissions.IsAuthenticated]
-    lookup_field = 'slug'
-    
-    def get_queryset(self):
-        user = self.request.user
-        return ChatRoom.objects.filter(
-            Q(room_type='public') | Q(members=user)
-        ).distinct()
 
-class RoomMessagesView(generics.ListAPIView):
-    serializer_class = MessageSerializer
+    def get_object(self):
+        community_id = self.kwargs["community_id"]
+        community = get_object_or_404(Community, id=community_id)
+
+        user = self.request.user
+        if not (community.creator == user or community.members.filter(id=user.id).exists()):
+            self.permission_denied(self.request, message="Not a member of this community")
+
+        return get_or_create_chat_room(community, user)
+
+
+
+# ✅ 2. List messages in a community chat
+class CommunityMessagesView(generics.ListAPIView):
+    serializer_class = CommunityMessageSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = MessagePagination
-    
-    def get_queryset(self):
-        room_slug = self.kwargs['room_slug']
-        room = get_object_or_404(ChatRoom, slug=room_slug)
-        
-        # Check if user has access to this room
-        user = self.request.user
-        if room.room_type != 'public' and not room.members.filter(id=user.id).exists():
-            return Message.objects.none()
-        
-        return Message.objects.filter(room=room).select_related('sender', 'reply_to__sender')
 
-class RoomMembersView(generics.ListAPIView):
-    serializer_class = UserPresenceSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
     def get_queryset(self):
-        room_slug = self.kwargs['room_slug']
-        room = get_object_or_404(ChatRoom, slug=room_slug)
-        
-        # Check access
+        community_id = self.kwargs["community_id"]
+        community = get_object_or_404(Community, id=community_id)
         user = self.request.user
-        if room.room_type != 'public' and not room.members.filter(id=user.id).exists():
-            return UserPresence.objects.none()
-        
-        return UserPresence.objects.filter(
-            user__in=room.members.all()
-        ).select_related('user')
 
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def join_room(request, room_slug):
-    room = get_object_or_404(ChatRoom, slug=room_slug)
-    
-    if room.room_type == 'private':
-        return Response(
-            {'error': 'Cannot join private room without invitation'}, 
-            status=status.HTTP_403_FORBIDDEN
+        room = get_or_create_chat_room(community, user)
+
+        if not (community.creator == user or community.members.filter(id=user.id).exists()):
+            return CommunityMessage.objects.none()
+
+        return (
+            CommunityMessage.objects.filter(room=room)
+            .select_related("sender", "reply_to__sender")
+            .order_by("-timestamp")
         )
-    
-    room.members.add(request.user)
-    return Response({'message': 'Successfully joined the room'})
 
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def leave_room(request, room_slug):
-    room = get_object_or_404(ChatRoom, slug=room_slug)
-    room.members.remove(request.user)
-    return Response({'message': 'Successfully left the room'})
 
-@api_view(['GET'])
+# ✅ 3. Send a message to a community chat
+@api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
-def online_users(request, room_slug):
-    room = get_object_or_404(ChatRoom, slug=room_slug)
-    
-    # Check access
-    if room.room_type != 'public' and not room.members.filter(id=request.user.id).exists():
-        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-    
-    online_users = UserPresence.objects.filter(
-        user__in=room.members.all(),
-        is_online=True
-    ).select_related('user')
-    
-    serializer = UserPresenceSerializer(online_users, many=True)
-    return Response(serializer.data)
+def send_community_message(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+    room = community.chat_room
+
+    user = request.user
+    if not (community.creator == user or community.members.filter(id=user.id).exists()):
+        return Response(
+            {"error": "Not a member of this community"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    content = request.data.get("content", "").strip()
+    if not content:
+        return Response(
+            {"error": "Message cannot be empty"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    message = CommunityMessage.objects.create(room=room, sender=user, content=content)
+    serializer = CommunityMessageSerializer(message)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# ✅ 4. Mark message as read
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def mark_message_read(request, community_id, message_id):
+    community = get_object_or_404(Community, id=community_id)
+    message = get_object_or_404(CommunityMessage, id=message_id, room=community.chat_room)
+
+    CommunityMessageRead.objects.get_or_create(user=request.user, message=message)
+    return Response({"message": "Message marked as read"})
+
+
+# ✅ 5. List community chat members
+class CommunityChatMembersView(generics.ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        community_id = self.kwargs["community_id"]
+        community = get_object_or_404(Community, id=community_id)
+
+        user = self.request.user
+        if not (community.creator == user or community.members.filter(id=user.id).exists()):
+            return User.objects.none()
+
+        return User.objects.filter(
+            Q(id=community.creator.id) | Q(id__in=community.members.all())
+        ).distinct()

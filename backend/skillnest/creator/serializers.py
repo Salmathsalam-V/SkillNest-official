@@ -116,3 +116,4 @@ class CommunitySerializer(serializers.ModelSerializer):
             community.members.set(members)
 
         return community
+

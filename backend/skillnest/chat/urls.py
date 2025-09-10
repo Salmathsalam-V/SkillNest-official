@@ -1,20 +1,12 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from . import views
+from django.urls import path
+from . views import CommunityChatRoomDetailView, CommunityMessagesView, send_community_message, mark_message_read, CommunityChatMembersView     
 
-app_name = 'chat'
+app_name = "chat"
 
 urlpatterns = [
-    # Chat rooms
-    path('rooms/', views.ChatRoomListCreateView.as_view(), name='room-list-create'),
-    path('rooms/<slug:slug>/', views.ChatRoomDetailView.as_view(), name='room-detail'),
-    
-    # Room messages and members
-    path('rooms/<slug:room_slug>/messages/', views.RoomMessagesView.as_view(), name='room-messages'),
-    path('rooms/<slug:room_slug>/members/', views.RoomMembersView.as_view(), name='room-members'),
-    path('rooms/<slug:room_slug>/online-users/', views.online_users, name='online-users'),
-    
-    # Room actions
-    path('rooms/<slug:room_slug>/join/', views.join_room, name='join-room'),
-    path('rooms/<slug:room_slug>/leave/', views.leave_room, name='leave-room'),
+    path("communities/<int:community_id>/chat-room/", CommunityChatRoomDetailView.as_view(), name="community-chat-room"),
+    path("communities/<int:community_id>/messages/", CommunityMessagesView.as_view(), name="community-messages"),
+    path("communities/<int:community_id>/messages/send/", send_community_message, name="send-community-message"),
+    path("communities/<int:community_id>/messages/<int:message_id>/read/", mark_message_read, name="mark-community-message-read"),
+    path("communities/<int:community_id>/members/", CommunityChatMembersView.as_view(), name="community-chat-members"),
 ]
