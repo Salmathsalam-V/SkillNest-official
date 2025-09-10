@@ -70,7 +70,7 @@ class CommunityMessagesView(generics.ListAPIView):
         )
 
 
-# ✅ 3. Send a message to a community chat
+#  3. Send a message to a community chat
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
 def send_community_message(request, community_id):
@@ -85,13 +85,23 @@ def send_community_message(request, community_id):
         )
 
     content = request.data.get("content", "").strip()
-    if not content:
+    media_url = request.data.get("media_url")  #  Cloudinary URL
+    message_type = request.data.get("message_type", "text")
+
+    if not content and not media_url:
         return Response(
             {"error": "Message cannot be empty"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    message = CommunityMessage.objects.create(room=room, sender=user, content=content)
+    message = CommunityMessage.objects.create(
+        room=room,
+        sender=user,
+        content=content,
+        media_url=media_url,
+        message_type=message_type,
+    )
+
     serializer = CommunityMessageSerializer(message)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 

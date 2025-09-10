@@ -41,8 +41,15 @@ class CommunityChatRoomSerializer(serializers.ModelSerializer):
 
 
 class CommunityMessageSerializer(serializers.ModelSerializer):
+    
     sender = UserSerializer(read_only=True)
-
+    
     class Meta:
-        model = CommunityMessage
-        fields = ["id", "sender", "content", "message_type", "timestamp", "is_edited", "reply_to"]
+            model = CommunityMessage
+            fields = ["id", "sender", "content", "media_url", "message_type", "timestamp"]
+
+    def get_sender(self, obj):
+        return {
+            "id": obj.sender.id,
+            "username": obj.sender.username,
+    }

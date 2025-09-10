@@ -54,6 +54,7 @@ class CommunityMessage(models.Model):
     MESSAGE_TYPES = (
         ('text', 'Text'),
         ('image', 'Image'),
+        ('video', 'Video'),
         ('file', 'File'),
         ('system', 'System'),
     )
@@ -69,25 +70,19 @@ class CommunityMessage(models.Model):
         on_delete=models.CASCADE,
         related_name="community_messages"
     )
-    content = models.TextField()
+    content = models.TextField(blank=True)  # optional for media-only messages
+    media_url = models.URLField(blank=True, null=True)  # Cloudinary URL
     message_type = models.CharField(max_length=10, choices=MESSAGE_TYPES, default='text')
     timestamp = models.DateTimeField(default=timezone.now)
     edited_at = models.DateTimeField(null=True, blank=True)
     is_edited = models.BooleanField(default=False)
-    reply_to = models.ForeignKey(
-        'self',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='replies'
-    )
+
 
     class Meta:
         ordering = ['-timestamp']
 
     def __str__(self):
         return f"[{self.room.community.name}] {self.sender.username}: {self.content[:40]}"
-
 
 class CommunityMessageRead(models.Model):
     """
