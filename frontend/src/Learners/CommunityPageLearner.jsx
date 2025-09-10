@@ -8,8 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { fetchMessages, sendMessage, fetchChatRoom } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
+import LearnerLayout from "@/components/Layouts/LearnerLayout";
 
-export const CommunityPage = () => {
+export const CommunityPageLearner = () => {
   const { communityId } = useParams(); 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -69,7 +70,7 @@ const loadMessages = async () => {
   if (!community) return <p>Loading community...</p>;
 
   return (   
-    <CreatorLayout>
+    <LearnerLayout>
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       <Card className="rounded-none shadow-md">
@@ -131,7 +132,7 @@ const loadMessages = async () => {
         <Button onClick={handleSend}>Send</Button>
       </div>
     </div>
-    </CreatorLayout>   
+    </LearnerLayout>   
   );
 };
 

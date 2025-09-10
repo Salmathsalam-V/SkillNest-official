@@ -25,6 +25,8 @@ import { CreatorDetailpage } from './Creator/CreatorDetailpage';
 import { CommunityList } from './Creator/CommunityList';
 import { CommunityPage } from './Creator/CommunityPage';
 import { LearnerListPublic } from './Learners/LearnerListPublic';
+import { CommunityListLearner } from './Learners/CommunityListLearner';
+import { CommunityPageLearner } from './Learners/CommunityPageLearner';
 
 // import { AuthProvider } from './contexts/useAuth';
 // import { PrivateRoutes } from './components/private_routes/PrivateRoutes'
@@ -59,7 +61,10 @@ function App() {
             <Route path="/creators/:id" element={<CreatorDetailpage />}/>
             <Route path="/creator/communities" element={<CommunityList />} />
             <Route path="/creator/communities/:communityId" element={<CommunityPage />} />
-            <Route path="learners-list" element={<LearnerListPublic />} />
+            <Route path="/learners-list" element={<LearnerListPublic />} />
+            <Route path="/learner/communities" element={<CommunityListLearner />} />
+            <Route path="/learner/communities/:communityId" element={<CommunityPageLearner />} />
+
           </Routes>
         {/* <PrivateRoutes></PrivateRoutes> */}
         {/* </AuthProvider> */}
