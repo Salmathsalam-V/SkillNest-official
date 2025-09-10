@@ -65,7 +65,7 @@ class CommunityMessagesView(generics.ListAPIView):
 
         return (
             CommunityMessage.objects.filter(room=room)
-            .select_related("sender", "reply_to__sender")
+            .select_related("sender")
             .order_by("-timestamp")
         )
 

@@ -41,19 +41,16 @@ export const CommunityPage = () => {
   };
 
   // ✅ Send Text Message
-  const handleSend = async () => {
-    if (!newMessage.trim()) return;
-    try {
-      const { data } = await sendMessage(communityId, {
-        content: newMessage,
-        message_type: "text",
-      });
-      setMessages([...messages, data]);
-      setNewMessage("");
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    const handleSend = async () => {
+      if (!newMessage.trim()) return;
+      try {
+        const { data } = await sendMessage(communityId, newMessage);
+        setMessages([...messages, data]);
+        setNewMessage("");
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
   // ✅ Upload & Send Media (image/video/file)
   const handleUploadMedia = async (e) => {
