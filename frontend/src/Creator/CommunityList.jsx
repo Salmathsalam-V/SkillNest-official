@@ -14,7 +14,8 @@ export const CommunityList = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedMembers, setSelectedMembers] = useState([]);
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+
   // Fetch communities and users
   useEffect(() => {
     const loadData = async () => {
@@ -48,7 +49,6 @@ export const CommunityList = () => {
     }
   };
 
-  // Filter users based on search query
   const filteredUsers = users.filter((user) =>
     `${user.username} ${user.email} ${user.full_name}`
       .toLowerCase()
@@ -57,75 +57,82 @@ export const CommunityList = () => {
 
   return (
     <CreatorLayout>
-        <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6">
         <h1 className="text-2xl font-bold">My Communities</h1>
 
         {/* Community List */}
         {communities.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {communities.map((community) => (
-                <Card key={community.id} className="shadow-lg rounded-2xl">
+              <Card key={community.id} className="shadow-lg rounded-2xl">
                 <CardContent className="p-4">
-                    <h2 className="text-lg font-semibold">{community.name}</h2>
-                    <p className="text-sm text-gray-600">{community.description}</p>
-                    <p className="text-xs text-gray-400">
-                    Members: {community.members?.length || 0}
-                    </p>
+                  <h2 className="text-lg font-semibold">{community.name}</h2>
+                  <p className="text-sm text-gray-600">{community.description}</p>
+                  <p className="text-xs text-gray-400">
+                    Members: {community.members?.length || 0} {community.id}
+                  </p>
                 </CardContent>
-                <Button onClick={()=>navigate('creator/community')} variant="custom">View</Button>
-                </Card>
+                {/* Navigate to community page with ID */}
+               <Button
+                  onClick={() => navigate(`/creator/communities/${community.id}`)}
+                  variant="custom"
+                >
+                  View
+                </Button>
+
+              </Card>
             ))}
-            </div>
+          </div>
         ) : (
-            <p>No communities created yet.</p>
+          <p>No communities created yet.</p>
         )}
 
         {/* Create Form */}
         <div className="p-4 border rounded-xl space-y-3">
-            <h2 className="text-lg font-semibold">Create New Community</h2>
-            <Input
+          <h2 className="text-lg font-semibold">Create New Community</h2>
+          <Input
             placeholder="Community Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            />
-            <Textarea
+          />
+          <Textarea
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            />
+          />
 
-            {/* Members Selection with Search */}
-            <div className="space-y-2">
+          {/* Members Selection with Search */}
+          <div className="space-y-2">
             <h3 className="text-md font-semibold">Add Members</h3>
             <Input
-                placeholder="Search members..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search members..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
             <div className="max-h-40 overflow-y-auto border rounded p-2">
-                {filteredUsers.length > 0 ? (
+              {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
-                    <label key={user.id} className="flex items-center space-x-2 py-1">
+                  <label key={user.id} className="flex items-center space-x-2 py-1">
                     <input
-                        type="checkbox"
-                        checked={selectedMembers.includes(user.id)}
-                        onChange={() => handleMemberToggle(user.id)}
+                      type="checkbox"
+                      checked={selectedMembers.includes(user.id)}
+                      onChange={() => handleMemberToggle(user.id)}
                     />
                     <span>
-                        <span className="font-semibold">{user.username}</span> (
-                        {user.email}) - {user.full_name}
+                      <span className="font-semibold">{user.username}</span> (
+                      {user.email}) - {user.full_name}
                     </span>
-                    </label>
+                  </label>
                 ))
-                ) : (
+              ) : (
                 <p className="text-sm text-gray-500">No users found.</p>
-                )}
+              )}
             </div>
-            </div>
+          </div>
 
-            <Button onClick={handleCreate}>Create</Button>
+          <Button onClick={handleCreate}>Create</Button>
         </div>
-        </div>
+      </div>
     </CreatorLayout>
   );
 };

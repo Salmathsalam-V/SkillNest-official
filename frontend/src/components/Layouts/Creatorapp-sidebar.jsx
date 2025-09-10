@@ -69,7 +69,7 @@ export const AppSidebar = () => {
             Chat
           </Button>
         </Link>
-        <Link to="/creator/{creator.id}}/communities">
+        <Link to={`/creator/communities`}>
           <Button variant="outline" className="w-full justify-start gap-2">
             <PencilLine className="h-5 w-5" />
             Communities

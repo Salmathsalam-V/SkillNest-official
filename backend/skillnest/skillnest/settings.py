@@ -47,16 +47,20 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'cloudinary',
-
+ 
     'dj_rest_auth',
     'dj_rest_auth.registration',
     'rest_framework.authtoken',
+
+    'channels',  
 
     #apps
     'api',
     'accounts',
     'creator',
     'Admin',
+    'learner',
+    'chat', 
 ]
 
 MIDDLEWARE = [
@@ -150,6 +154,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'skillnest.wsgi.application'
 
+# ASGI Configuration
+ASGI_APPLICATION = 'skillnest.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -233,3 +239,28 @@ cloudinary.config(
   api_key = os.getenv('API_KEY'), 
   api_secret =os.getenv('API_SECRET')
 )
+
+# Channel Layers Configuration for Memurai
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],  # Memurai default
+        },
+    },
+}
+
+# Redis Configuration for other uses
+REDIS_HOST = '127.0.0.1'
+REDIS_PORT = 6379
+REDIS_DB = 0
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
