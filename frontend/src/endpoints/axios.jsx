@@ -267,16 +267,18 @@ export const fetchMessages = (communityId, page = 1) =>
     params: { page },
   });
 
-export const sendMessage = (communityId, content) =>
-  apiClient.post(`/chat/communities/${communityId}/messages/send/`, { content });
+// api/axios.js (example sendMessage)
+export const sendMessage = async (communityId, messageData) => {
+  // messageData should be like { content, media_url, message_type }
+  return await apiClient.post(`/chat/communities/${communityId}/messages/send/`, messageData);
+};
 
 export const fetchMembers = (communityId) =>
   apiClient.get(`/chat/communities/${communityId}/members/`);
 
-
 export const fetchLearnerCommunities = async () => {
   try {
-    const res = await apiClient.get("/learner/communities/");
+    const res = await apiClient.get("/learner/communities/"); // make sure leading slash
     return res.data;
   } catch (err) {
     if (err.response) {

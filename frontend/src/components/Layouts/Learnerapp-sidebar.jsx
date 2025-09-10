@@ -71,7 +71,7 @@ export const AppSidebar = () => {
         <Link to="/learner/communities">
           <Button variant="outline" className="w-full justify-start gap-2">
             <MessageSquareText className="h-5 w-5" />
-            Communities
+            Community
           </Button>
         </Link>
         <Link to="">

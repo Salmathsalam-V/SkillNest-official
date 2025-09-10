@@ -58,8 +58,8 @@ INSTALLED_APPS = [
     'api',
     'accounts',
     'creator',
-    'Admin',
     'learner',
+    'Admin',
     'chat', 
 ]
 
