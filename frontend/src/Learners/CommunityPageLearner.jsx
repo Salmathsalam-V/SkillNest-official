@@ -43,16 +43,42 @@ const loadMessages = async () => {
 };
 
 
-  const handleSend = async () => {
-    if (!newMessage.trim()) return;
-    try {
-      const { data } = await sendMessage(communityId, newMessage);
-      setMessages([...messages, data]);
-      setNewMessage("");
-    } catch (error) {
-      console.error(error);
-    }
-  };
+const handleSend = async (mediaUrl = null) => {
+  if (!newMessage.trim() && !mediaUrl) return; // prevent empty send
+
+  try {
+    const { data } = await sendMessage(communityId, {
+      content: newMessage,
+      media_url: mediaUrl,
+    });
+    setMessages([...messages, data]);
+    setNewMessage("");
+  } catch (error) {
+    console.error("Send Error:", error);
+  }
+};
+
+const handleFileUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", "skillnest_profile");
+
+  try {
+    const res = await axios.post(
+      "https://api.cloudinary.com/v1_1/dg8kseeqo/auto/upload", // auto supports img/video
+      formData
+    );
+    const url = res.data.secure_url;
+
+    // send message with media_url
+    await handleSend(url);
+  } catch (err) {
+    console.error("Upload failed:", err);
+  }
+};
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

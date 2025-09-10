@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { fetchMessages, sendMessage, fetchChatRoom } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
+import { toast } from 'sonner';
+
 
 export const CommunityPage = () => {
   const { communityId } = useParams();
@@ -40,20 +42,25 @@ export const CommunityPage = () => {
     }
   };
 
-  // ✅ Send Text Message
-    const handleSend = async () => {
-      if (!newMessage.trim()) return;
-      try {
-        const { data } = await sendMessage(communityId, newMessage);
-        setMessages([...messages, data]);
-        setNewMessage("");
-      } catch (error) {
-        console.error(error);
-      }
-    };
+const handleSend = async (mediaUrl = null) => {
+  if (!newMessage.trim() && !mediaUrl) return; // prevent empty send
+
+  try {
+    const { data } = await sendMessage(communityId, {
+    content: newMessage,
+    media_url: null,
+    message_type: "text",
+  });
+
+    setMessages([...messages, data]);
+    setNewMessage("");
+  } catch (error) {
+    console.error("Send Error:", error);
+  }
+};
 
   // ✅ Upload & Send Media (image/video/file)
-  const handleUploadMedia = async (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
@@ -78,9 +85,11 @@ export const CommunityPage = () => {
 
       // Send media message
       const { data } = await sendMessage(communityId, {
-        content: url,
+        content: "",              // empty since it’s media
+        media_url: url,           // ✅ correct field
         message_type: messageType,
       });
+
 
       setMessages([...messages, data]);
       toast.success("Media uploaded");
@@ -148,39 +157,26 @@ export const CommunityPage = () => {
                 </span>
 
                 <div
-                  className={`max-w-xs px-4 py-2 rounded-2xl shadow ${
-                    isMine
-                      ? "bg-blue-600 text-white rounded-br-none"
-                      : "bg-gray-200 text-gray-900 rounded-bl-none"
-                  }`}
-                >
-                  {/* Render message based on type */}
-                  {msg.message_type === "text" && msg.content}
-                  {msg.message_type === "image" && (
-                    <img
-                      src={msg.content}
-                      alt="chat-img"
-                      className="rounded-lg max-h-60"
-                    />
-                  )}
-                  {msg.message_type === "video" && (
-                    <video
-                      src={msg.content}
-                      controls
-                      className="rounded-lg max-h-60"
-                    />
-                  )}
-                  {msg.message_type === "file" && (
-                    <a
-                      href={msg.content}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline text-sm"
-                    >
-                      Download File
-                    </a>
-                  )}
-                </div>
+  className={`max-w-xs px-4 py-2 rounded-2xl shadow ${
+    isMine
+      ? "bg-blue-600 text-white rounded-br-none"
+      : "bg-gray-200 text-gray-900 rounded-bl-none"
+  }`}
+>
+  {msg.content && <p>{msg.content}</p>}
+ {msg.media_url && (
+  <>
+    {msg.message_type === "video" ? (
+      <video src={msg.media_url} controls className="mt-2 rounded-md max-w-full" />
+    ) : (
+      <img src={msg.media_url} alt="uploaded" className="mt-2 rounded-md max-w-full" />
+    )}
+  </>
+)}
+
+</div>
+
+                
               </div>
             );
           })}
@@ -189,14 +185,34 @@ export const CommunityPage = () => {
 
       {/* Input area */}
       <div className="p-4 border-t bg-white flex items-center space-x-2">
-        <Input
-          placeholder="Type a message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-        />
-        <Button onClick={handleSend}>Send</Button>
-      </div>
+      <Input
+        placeholder="Type a message..."
+        value={newMessage}
+        onChange={(e) => setNewMessage(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleSend()}
+      />
+     <input
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            id="chat-upload"
+            onChange={handleFileUpload}
+          />
+          <label
+  htmlFor="chat-upload"
+  className={`cursor-pointer px-3 py-2 rounded-xl ${
+    uploading ? "bg-gray-400 cursor-not-allowed" : "bg-gray-200 hover:bg-gray-300"
+  }`}
+>
+  {uploading ? "⏳ Uploading..." : "📎"}
+</label>
+
+
+
+
+      <Button onClick={() => handleSend()}>Send</Button>
+    </div>
+
     </div>
     </CreatorLayout>   
   );

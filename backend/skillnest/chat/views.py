@@ -84,11 +84,16 @@ def send_community_message(request, community_id):
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    content = request.data.get("content", "").strip()
-    media_url = request.data.get("media_url")  #  Cloudinary URL
+    content = request.data.get("content", "")
+    if isinstance(content, str):
+        content = content.strip()
+    else:
+        content = ""  # fallback if content is dict or None
+    media_url = request.data.get("media_url",None)  #  Cloudinary URL
     message_type = request.data.get("message_type", "text")
 
     if not content and not media_url:
+        print("DEBUG SEND MESSAGE DATA:", request.data)
         return Response(
             {"error": "Message cannot be empty"},
             status=status.HTTP_400_BAD_REQUEST,
