@@ -74,11 +74,11 @@ export const CommunityList = () => {
                 </CardContent>
                 {/* Navigate to community page with ID */}
                <Button
-                  onClick={() => navigate(`/creator/communities/${community.id}`)}
-                  variant="custom"
-                >
-                  View
-                </Button>
+  onClick={() => navigate(`/creator/communities/${community.id}`)}
+  variant="custom"
+>
+  View
+</Button>
 
               </Card>
             ))}

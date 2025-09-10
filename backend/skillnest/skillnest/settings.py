@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'accounts',
     'creator',
     'Admin',
-    'learner',
     'chat', 
 ]
 

@@ -273,22 +273,3 @@ export const sendMessage = (communityId, content) =>
 export const fetchMembers = (communityId) =>
   apiClient.get(`/chat/communities/${communityId}/members/`);
 
-
-export const fetchLearnerCommunities = async () => {
-  try {
-    const res = await apiClient.get("/learner/communities/");
-    return res.data;
-  } catch (err) {
-    if (err.response) {
-      // Server responded with a status outside 2xx
-      console.error("Server error:", err.response.status, err.response.data);
-    } else if (err.request) {
-      // Request was made but no response received
-      console.error("No response received:", err.request);
-    } else {
-      // Something else happened
-      console.error("Axios error:", err.message);
-    }
-    return [];
-  }
-};
