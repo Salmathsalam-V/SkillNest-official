@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from accounts.views import LoginView, RegisterView,ProtectedView, RefreshTokenView,LogoutView,GoogleLoginAPIView,send_otp_view,verify_otp_view,reset_password_view,ProfileView,CreatorCreateView
+from accounts.views import LoginView, RegisterView,ProtectedView, RefreshTokenView,LogoutView,GoogleLoginAPIView,send_otp_view,verify_otp_view,reset_password_view,ProfileView,CreatorCreateView,search_users
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from creator.views import PostView
 
@@ -18,4 +18,5 @@ urlpatterns = [
     path('profile/', ProfileView.as_view(), name='profile'),
     path('reset_password/', reset_password_view, name='reset_password'),
     path('create-creator/', CreatorCreateView.as_view(), name='create-creator'),
+    path('search-users/', search_users, name='search-users'),
 ]

@@ -294,3 +294,41 @@ export const fetchLearnerCommunities = async () => {
     return [];
   }
 };
+
+export const getMembers = async (communityId) => {
+  try {
+    
+    const res = await apiClient.get(`/creator/communities/${communityId}/members/`);
+    return res.data;
+
+  } catch (err) {
+    console.error("Error fetching users:", err);
+  }
+};
+
+export const removeMember = async (communityId, identifier) => {
+  const res = await apiClient.patch(`/creator/communities/${communityId}/members/`, 
+    { action: "remove", member: identifier }
+  );
+  return res.data; // backend returns { members: [...] }
+  };
+    
+export const addMember = async (communityId, identifier) => {
+  console.log("Adding member in axios:", communityId, identifier);
+  const res = await apiClient.post(`/creator/communities/${communityId}/members/`, 
+    { action: "add", member: identifier }
+  );
+  return res.data; // backend returns { members: [...] }
+  };
+    
+export const searchUsers = async (query) => {
+  try {
+    const res = await apiClient.get(`/search-users/`, {
+      params: { q: query },
+    });
+    return res.data; // [{id, username, email}, ...]
+  } catch (err) {
+    console.error("Error searching users:", err);
+    throw err;
+  }
+};
