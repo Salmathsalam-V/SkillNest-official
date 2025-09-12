@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'learner',
     'Admin',
     'chat', 
+    'notification',
 ]
 
 MIDDLEWARE = [

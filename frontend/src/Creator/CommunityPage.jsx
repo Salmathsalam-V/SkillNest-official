@@ -7,10 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember   } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import { toast } from 'sonner';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+    DialogDescription,
+} from "@/components/ui/dialog"; 
+import { X } from "lucide-react";
 
 export const CommunityPage = () => {
   const { communityId } = useParams();
@@ -21,8 +29,12 @@ export const CommunityPage = () => {
   const messagesEndRef = useRef(null);
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
+  const [members, setMembers] = useState([]);
+  const [newMember, setNewMember] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
 
-  // ✅ Load Chat Room
+  //load chat room
   const loadChatRoom = async () => {
     try {
       const { data } = await fetchChatRoom(communityId);
@@ -36,6 +48,7 @@ export const CommunityPage = () => {
   const loadMessages = async () => {
     try {
       const { data } = await fetchMessages(communityId);
+      console.log("Fetched messages:", data);
       setMessages(data.results.reverse());
     } catch (error) {
       console.error("Messages Error:", error);
@@ -100,8 +113,54 @@ const handleSend = async (mediaUrl = null) => {
       setUploading(false);
     }
   };
+const loadMembers = async () => {
+  try {
+    const data = await getMembers(communityId); // pass it here
+    setMembers(data.members || []);
+    console.log("Members loaded:", data);
+  } catch (err) {
+    console.error("Failed to load members:", err);
+  }
+};
 
-  // ✅ Scroll to bottom when new message
+// Add member
+const handleAddMember = async (identifier) => {
+  try {
+    console.log("Adding member:", identifier);
+    const res = await addMember(communityId, identifier); // just string
+    setMembers(res.members); // res.data is the CommunitySerializer output
+    setNewMember("");
+    toast.success("Member added");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to add member");
+  }
+};
+
+
+const handleRemoveMember = async (identifier) => {
+  try {
+    const data = await removeMember(communityId, identifier);
+    setMembers(data.members);      // ✅ data, not data.members
+    toast.success("Member removed");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to remove member");
+  }
+};
+
+
+  const handleSearch = async (q) => {
+  if (!q) return setSearchResults([]);
+    try {
+      const results = await searchUsers(q);
+      setSearchResults(results);
+    } catch (e) {
+      // optional: toast.error("Failed to search users");
+      setSearchResults([]);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -212,8 +271,68 @@ const handleSend = async (mediaUrl = null) => {
 
       <Button onClick={() => handleSend()}>Send</Button>
     </div>
-
     </div>
+    {/* Members Modal */}
+      <Dialog onOpenChange={(open) => open && loadMembers()}>
+        <DialogTrigger asChild>
+          <Button variant="outline">Manage Members</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Community Members</DialogTitle>
+            <DialogDescription>
+              Add or remove members from this community.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Member List */}
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {members.map((member) => (
+              <div
+                key={member.email}
+                className="flex items-center justify-between bg-gray-100 p-2 rounded-lg"
+              >
+                <span>
+                  {member.username} ({member.email})
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveMember(member.email)} // or member.id
+                >
+                  <X className="h-4 w-4 text-red-500" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+
+          {/* Add Member */}
+          <div className="flex gap-2 mt-4">
+            <Input
+              placeholder="Search by username or email..."
+              value={newMember}
+              onChange={(e) => {
+                setNewMember(e.target.value);
+                handleSearch(e.target.value);
+              }}
+            />
+            {searchResults.length > 0 && (
+              <div className="bg-white border rounded mt-2">
+                {searchResults.map((u) => (
+                  <div
+                    key={u.email}
+                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleAddMember(u.email)} // send username
+                  >
+                    {u.username} ({u.email})
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </CreatorLayout>   
   );
 };
