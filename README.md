@@ -53,7 +53,7 @@ skillnest/
 
 ### 2️⃣ Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/skillnest.git
+git clone https://github.com/Salmathsalam-V/skillnest.git
 cd skillnest
 
 
