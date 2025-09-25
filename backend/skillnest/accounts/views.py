@@ -5,7 +5,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
-
 from rest_framework_simplejwt.views import  TokenRefreshView
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from accounts.authentication import JWTCookieAuthentication
@@ -62,17 +61,17 @@ class LoginView(APIView):
             response.set_cookie(
                 key='access_token',
                 value=access_token,
-                httponly=True,
-                secure=True,
-                samesite='None',
+                httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+                secure=settings.AUTH_COOKIE_SECURE,
+                samesite=settings.AUTH_COOKIE_SAMESITE,
                 path='/'
             )
             response.set_cookie(
                 key='refresh_token',
                 value=refresh_token,
-                httponly=True,
-                secure=True,
-                samesite='None',
+                httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+                secure=settings.AUTH_COOKIE_SECURE,
+                samesite=settings.AUTH_COOKIE_SAMESITE,
                 path='/'
             )
             return response
@@ -164,14 +163,11 @@ class GoogleLoginAPIView(APIView):
 
     def post(self, request):
         token = request.data.get("token")
-
-
         idinfo = id_token.verify_oauth2_token(
             token,
             requests.Request(),
             "768158657502-ia2b2gh1gd3o69rm7ehh1rhtvfe2aapi.apps.googleusercontent.com"
         )
-
         email = idinfo["email"]
         name = idinfo.get("name", "")
 
@@ -196,15 +192,14 @@ class GoogleLoginAPIView(APIView):
             "redirect_url": redirect_url
 
         })
-        
-
+    
         # Secure cookies for tokens
         response.set_cookie(
             key='access_token',
             value=str(access),
             httponly=True,
             secure=False,  # ✅ Allow for HTTP during local dev
-            samesite='Lax',  # ✅ Allow cross-origin if your frontend is on a subdomain or localhost
+            samesite='None', 
             path='/'
         )
         response.set_cookie(
@@ -212,7 +207,7 @@ class GoogleLoginAPIView(APIView):
             value=str(refresh),
             httponly=True,
             secure=False,  # ✅ Allow for HTTP during local dev
-            samesite='Lax',  # ✅ Allow cross-origin if your frontend is on a subdomain or localhost
+            samesite='None',  
             path='/'
         )
 

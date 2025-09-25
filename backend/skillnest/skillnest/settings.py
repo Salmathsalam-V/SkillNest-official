@@ -9,12 +9,16 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import logging
 from datetime import timedelta
 from pathlib import Path
 import os
+import ssl
 from dotenv import load_dotenv
 load_dotenv()
+
+from django.core.cache import cache
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,19 +84,19 @@ MIDDLEWARE = [
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  
     "http://localhost:5173",
+    "http://127.0.0.1:8000",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
+    "http://127.0.0.1:8000",
     "http://localhost:5173",
 ]
-SESSION_COOKIE_SECURE = False  # ⚠️ True in production
-CSRF_COOKIE_SECURE = False     # ⚠️ True in production
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
-SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+# SESSION_COOKIE_SECURE = False  # ⚠️ True in production
+# CSRF_COOKIE_SECURE = False     # ⚠️ True in production
+# SESSION_COOKIE_SAMESITE = "Lax"
+# CSRF_COOKIE_SAMESITE = "Lax"
+# SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 REST_FRAMEWORK = {
      'DEFAULT_AUTHENTICATION_CLASSES': (
         'accounts.authentication.JWTCookieAuthentication',
@@ -103,17 +107,19 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=50),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=2),
     'BLACKLIST_AFTER_ROTATION': True,
     'ROTATE_REFRESH_TOKENS': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_COOKIE_ACCESS': 'access_token',         # Custom
     'AUTH_COOKIE_REFRESH': 'refresh_token',       # Custom
-    'AUTH_COOKIE_HTTP_ONLY': True,
-    'AUTH_COOKIE_SECURE': True,          
-    'AUTH_COOKIE_SAMESITE': 'None',
 }
+
+# Change to True in production || Required for SameSite=None to work
+AUTH_COOKIE_SECURE = True
+AUTH_COOKIE_HTTP_ONLY = True  # Prevent JavaScript from accessing the cookie
+AUTH_COOKIE_SAMESITE = "None"  # Required for cross-site cookies
 
 AUTHENTICATION_BACKENDS = ['accounts.authentication.EmailBackend', 
                            'django.contrib.auth.backends.ModelBackend'
@@ -221,9 +227,9 @@ AUTH_USER_MODEL = 'accounts.User'
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -246,22 +252,54 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],  # Memurai default
+            "hosts": ["redis://default:r44Nihhwq3fCO6xuxJlpkEcPBvzrUHTM@redis-18872.crce182.ap-south-1-1.ec2.redns.redis-cloud.com:18872/0"],
         },
     },
 }
 
+WEBSOCKET_ACCEPT_ALL = False  
 # Redis Configuration for other uses
-REDIS_HOST = '127.0.0.1'
-REDIS_PORT = 6379
-REDIS_DB = 0
 
+REDIS_HOST = os.environ.get("REDIS_HOST")
+REDIS_PORT = os.environ.get("REDIS_PORT")
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
+import redis.connection
 CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://default:r44Nihhwq3fCO6xuxJlpkEcPBvzrUHTM@redis-18872.crce182.ap-south-1-1.ec2.redns.redis-cloud.com:18872/0",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
+}
+
+
+# Logging Configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{levelname}] {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        # root logger
+        "": {
+            "handlers": ["console"],
+            "level": "DEBUG",   # show everything
+        },
+        # optional: more control for channels or your app
+        "chat.middleware": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
 }

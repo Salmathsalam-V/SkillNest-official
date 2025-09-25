@@ -63,10 +63,10 @@ export const AppSidebar = () => {
           Chat
         </Button>
       </Link>
-      <Link to="">
+      <Link to="/admin/communities">
         <Button variant="outline" className="w-full justify-start gap-2">
           <PencilLine className="h-5 w-5" />
-          Profile
+          Community
         </Button>
       </Link>
       <Button variant="outline" className="w-full justify-start gap-2" onClick={handleLogout}>

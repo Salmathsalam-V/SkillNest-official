@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, MessageCircle } from "lucide-react";
 import { toggleLike,createComment,toggleCommentLike } from '../endpoints/axios';
-
+import { toast } from 'sonner';
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import AdminLayout from "@/components/Layouts/AdminLayout";
@@ -78,6 +78,7 @@ const handleCommentSubmit = async (postId) => {
     toast.error("Failed to post comment");
   }
 };
+
 
 const handleCommentLikeToggle = async (postId, commentId) => {
   console.log("Toggling like for comment:", commentId, "on post:", postId);

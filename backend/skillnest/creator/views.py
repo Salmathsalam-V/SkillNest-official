@@ -14,6 +14,9 @@ from rest_framework import generics, permissions
 from accounts.models import User
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
+from notification.utils import create_notification
+
+
 
 class PostView(ListCreateAPIView):
     permission_classes = [AllowAny] 
@@ -99,7 +102,9 @@ class ReplyListCreateView(ListCreateAPIView):
 @permission_classes([IsAuthenticated])
 def toggle_comment_like(request, post_id, comment_id):
     try:
+        post = get_object_or_404(Post, id=post_id)
         comment = Comment.objects.get(id=comment_id, post_id=post_id)
+        print("Found comment:", comment)
     except Comment.DoesNotExist:
         return Response({"error": "Comment not found"}, status=404)
 
@@ -110,6 +115,7 @@ def toggle_comment_like(request, post_id, comment_id):
     else:
         comment.likes.add(user)
         liked = True
+        create_notification(sender=user, recipient=post.user, notif_type='comment', post=post)
 
     return Response({
         "success": True,
@@ -162,6 +168,7 @@ class ToggleFollowView(APIView):
         else:
             # Not following → follow
             creator.followers.add(user)
+            create_notification(sender=request.user, recipient=user, notif_type='follow', post=None)
             return Response({
                 'success': True,
                 'following': True,
@@ -204,7 +211,6 @@ class CommunityListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Only list communities created by the logged-in user
         return Community.objects.filter(creator=self.request.user)
 
     def perform_create(self, serializer):

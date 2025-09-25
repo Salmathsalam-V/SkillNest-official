@@ -332,3 +332,27 @@ export const searchUsers = async (query) => {
     throw err;
   }
 };
+
+
+export const getCommunities = async () => {
+  try {
+    
+    const res = await apiClient.get(`/admin/communities/`);
+    return res.data;
+
+  } catch (err) {
+    console.error("Error fetching users:", err);
+  }
+};
+
+export const getCommunityMembers = async (communityId) => {
+  try {
+    
+    const res = await apiClient.get(`/admin/communities/${communityId}/members/`);
+    console.log("Community members data:", res.data);
+    return res.data;
+
+  } catch (err) {
+    console.error("Error fetching users:", err);
+  }
+};

@@ -12,6 +12,11 @@ from rest_framework.views import APIView
 from rest_framework import status
 from .serializers import ContactUsSerializer
 from .models import ContactUs
+from rest_framework import generics
+from creator.models import Community
+from creator.serializers import CommunitySerializer 
+from django.shortcuts import get_object_or_404
+
 
 class LearnerListView(ListAPIView):
     authentication_classes = [JWTCookieAuthentication]  
@@ -99,4 +104,16 @@ class ContactUsView(APIView):
         messages = ContactUs.objects.select_related("user").order_by("-created_at")
         serializer = ContactUsSerializer(messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class CommunityListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = Community.objects.all().prefetch_related('members', 'creator')
+    serializer_class = CommunitySerializer
     
+class CommunityMembersView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request, pk):
+        community = get_object_or_404(Community, pk=pk)
+        members = community.members.all().values("id", "username", "email")
+        return Response(list(members))

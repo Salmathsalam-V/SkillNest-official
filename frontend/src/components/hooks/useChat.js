@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import chatService from '../services/chatService';
+import chatService from '../../services/chatService';
 
 const useChat = (roomSlug) => {
   const [messages, setMessages] = useState([]);
@@ -11,14 +11,13 @@ const useChat = (roomSlug) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Refs for cleanup
   const typingTimeoutRef = useRef();
   const isTypingRef = useRef(false);
 
   // API calls
   const fetchMessages = useCallback(async (page = 1) => {
     try {
+      console.log("inside the useChat fetchMessages");
       const response = await axios.get(`/api/chat/rooms/${roomSlug}/messages/`, {
         params: { page }
       });

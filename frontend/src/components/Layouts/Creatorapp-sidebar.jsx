@@ -15,8 +15,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { logout } from "@/endpoints/axios";
 import { useSelector } from 'react-redux';
+import { useState } from 'react';
+import axios from "axios";
+import { useEffect } from 'react';
+ import { useNotifications } from "@/components/hooks/useNotifications"
+ import { NotificationDropdown } from "@/components/Layouts/NotificationDropdown"
+ export const AppSidebar = () => {
 
-export const AppSidebar = () => {
+  const notifications = useNotifications(); // live
+
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -27,6 +34,8 @@ export const AppSidebar = () => {
   };
   const creator=useSelector((state) => state.user.user)
   console.log(creator)
+
+
   return (
     <aside className="w-64 bg-[#f3f4f6] p-6 shadow-md">
       {/* Logo and Title */}
@@ -36,6 +45,7 @@ export const AppSidebar = () => {
           SkillNest
         </span>
       </div>
+      <NotificationDropdown notifications={[...notifications]} />
 
       {/* Nav Items */}
       <nav className="flex flex-col gap-y-2 font-poppins font-medium">

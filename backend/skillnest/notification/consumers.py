@@ -1,33 +1,99 @@
-# notifications/consumers.py
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from django.contrib.auth.models import AnonymousUser
+# your_app/consumers.py
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Notification
-from rest_framework_simplejwt.tokens import AccessToken
-from accounts.models import User
+from django.contrib.auth.models import AnonymousUser
+import logging
+logger = logging.getLogger(__name__)
 
-class NotificationConsumer(AsyncJsonWebsocketConsumer):
+class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        token = self.scope['query_string'].decode().split('token=')[-1]
-        user = await self.get_user(token)
-        if user is None:
+        self.user = self.scope['user']
+        logger.warning(f"scope from consumer: {self.user}")
+        # Reject connection if user is not authenticated
+        if isinstance(self.user, AnonymousUser):
+            print("Anonymous user tried to connect to notifications in consumers.py")
             await self.close()
-        else:
-            self.user = user
-            self.group_name = f'notifications_{self.user.id}'
-            await self.channel_layer.group_add(self.group_name, self.channel_name)
-            await self.accept()
+            return
+        
+        # Create a unique group for this user
+        self.group_name = f'notifications_{self.user.id}'
+        
+        # Join the user's notification group
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+        
+        await self.accept()
+        
+        # Send a welcome message
+        await self.send(text_data=json.dumps({
+            'type': 'connection_established',
+            'message': 'Connected to notifications'
+        }))
 
-    async def disconnect(self, code):
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+    async def disconnect(self, close_code):
+        # Leave the group
+        if hasattr(self, 'group_name'):
+            await self.channel_layer.group_discard(
+                self.group_name,
+                self.channel_name
+            )
 
-    async def send_notification(self, event):
-        await self.send_json(event['content'])
+    async def receive(self, text_data):
+        # Handle incoming WebSocket messages (optional)
+        text_data_json = json.loads(text_data)
+        message_type = text_data_json.get('type', '')
+        
+        if message_type == 'ping':
+            await self.send(text_data=json.dumps({
+                'type': 'pong',
+                'message': 'Connection alive'
+            }))
 
-    @database_sync_to_async
-    def get_user(self, token):
-        try:
-            payload = AccessToken(token)
-            return User.objects.get(id=payload['user_id'])
-        except:
-            return None
+    # Handle notification messages sent from Django views
+    async def notification_message(self, event):
+        # Send notification to WebSocket
+        await self.send(text_data=json.dumps({
+            'type': 'notification',
+            'id': event.get('id'),
+            'title': event['title'],
+            'message': event['message'],
+            'timestamp': event.get('timestamp'),
+            'data': event.get('data', {})
+        }))
+
+
+
+
+# import json 
+# from channels.generic.websocket import AsyncWebsocketConsumer
+
+# class NotificationConsumer(AsyncWebsocketConsumer):
+#     async def connect(self):
+#         self.user = self.scope['user']
+#         if self.user.is_anonymous:
+#             await self.close()
+#             return 
+        
+#         self.group_name = f"user_{self.user.id}"
+
+#         await self.channel_layer.group_add(
+#             self.group_name,
+#             self.channel_name
+#         )
+#         await self.accept() 
+
+#     async def disconnect(self, close_code):
+#         await self.channel_layer.group_discard(
+#             self.group_name,
+#             self.channel_name
+#         )
+
+#     async def send_notification(self,event):
+#         #send the notification to frontend 
+#         await self.send(text_data = json.dumps({
+#             "type":"notification",
+#             "data":event["data"]
+#         }))

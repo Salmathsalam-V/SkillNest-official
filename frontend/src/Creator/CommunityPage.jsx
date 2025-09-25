@@ -19,6 +19,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog"; 
 import { X } from "lucide-react";
+import chatService from "../services/chatService";
 
 export const CommunityPage = () => {
   const { communityId } = useParams();
@@ -39,6 +40,7 @@ export const CommunityPage = () => {
     try {
       const { data } = await fetchChatRoom(communityId);
       setCommunity(data);
+      console.log("Fetched community chat room:", data);
     } catch (error) {
       console.error("ChatRoom Error:", error);
     }
@@ -173,6 +175,52 @@ const handleRemoveMember = async (identifier) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+// useEffect(() => {
+//   console.log("Setting up WebSocket connection for community chat", communityId);
+//   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+//   console.log("WebSocket protocol:", protocol);
+//   const ws = new WebSocket(`${protocol}://${window.location.host}/ws/community/${communityId}/`);
+//   console.log("after creating WebSocket");
+//   console.log("WebSocket instance:", ws);
+//   ws.onmessage = (e) => {
+//     const data = JSON.parse(e.data);
+//     console.log("WebSocket message received:inside the useffect", data);
+//     if (data.type === "chat_message") {
+//       setMessages((prev) => [...prev, data.message]);
+//     }
+//   };
+
+//   ws.onclose = () => console.log("WS closed");
+//   return () => ws.close();
+// }, [communityId]);
+
+useEffect(() => {
+  console.log("useEffect for chatService with communityId:", communityId, "and community:", community);
+  if (!community?.uuid) return; // wait until community/room info is ready
+  console.log("Connecting to chat service for room:", community.uuid);
+  chatService.connect(community.uuid);
+
+  // listen for messages
+  chatService.on("message", (message) => {
+    setMessages(prev => [...prev, message]);
+  });
+
+  chatService.on("typing", (data) => {
+    // optional: handle typing indicator
+  });
+
+  chatService.on("userStatus", (data) => {
+    // optional: handle online/offline updates
+  });
+
+  chatService.on("connect", () => console.log("WS connected"));
+  chatService.on("disconnect", () => console.log("WS disconnected"));
+
+  // cleanup when leaving page
+  return () => chatService.disconnect();
+}, [community?.uuid]);
+
 
   if (!community) return <p>Loading community...</p>;
 
@@ -196,7 +244,6 @@ const handleRemoveMember = async (identifier) => {
             <p className="text-sm text-gray-500">  by {community.community?.creator?.username || community.created_by?.username}
             </p>
           </div>
-
         </CardContent>
       </Card>
 
@@ -234,7 +281,14 @@ const handleRemoveMember = async (identifier) => {
 )}
 
 </div>
-
+{/* ✅ Date below the bubble */}
+      <span className="text-[10px] text-gray-400 mt-1">
+        {new Date(msg.timestamp).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+        })}
+      </span>
                 
               </div>
             );

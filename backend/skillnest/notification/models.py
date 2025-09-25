@@ -18,3 +18,5 @@ class Notification(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+    def __str__(self):
+        return f"{self.sender.email} - {self.recipient} - {self.notif_type}"

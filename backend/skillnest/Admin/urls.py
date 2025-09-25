@@ -1,6 +1,6 @@
 from django.urls import path
-from . views import CreatorDetailView, LearnerDetailView, LearnerListView,CreatorListView,CreatorData,ContactUsView
-
+from . views import CreatorDetailView, LearnerDetailView, LearnerListView,CreatorListView,CreatorData,ContactUsView,CommunityListView,CommunityMembersView
+# Adimn.urls.py
 
 urlpatterns = [
 
@@ -10,4 +10,7 @@ urlpatterns = [
     path('creators/<int:id>/', CreatorDetailView.as_view(), name='creator-detail'),
     path('creators-view/<int:id>/', CreatorData.as_view(), name='creator-detail'),
     path('contact-us/', ContactUsView.as_view(), name='contact-us'),
+    path('communities/', CommunityListView.as_view(), name='community-list'),
+    path("communities/<int:pk>/members/", CommunityMembersView.as_view(),name="community-members"),
+
 ]
