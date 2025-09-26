@@ -12,11 +12,14 @@ from .serializers import (
     CommunityMessageSerializer,
     UserSerializer,
 )
+import logging
+logger = logging.getLogger(__name__)
 
 def get_or_create_chat_room(community, user):
     try:
         return community.chat_room
     except Community.chat_room.RelatedObjectDoesNotExist:
+        logger.warning(f"Creating chat room for community: {community.uuid}")
         return CommunityChatRoom.objects.create(
             community=community,
             name=community.name,

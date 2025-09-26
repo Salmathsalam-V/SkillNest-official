@@ -51,7 +51,7 @@ export function CreatorData() {
       console.log("Posts fetched:",{id}, res.data);
       const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
       console.log("Posts fetched:", resPosts.data);
-      setPosts(resPosts.data);
+      setPosts(resPosts.data.results || []);
       console.log("creatoriid : ", id);
       try{
         const resCourses = await get_course(id);

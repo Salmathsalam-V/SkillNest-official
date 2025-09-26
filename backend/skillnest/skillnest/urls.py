@@ -12,4 +12,5 @@ urlpatterns = [
     path('api/admin/', include('Admin.urls')), 
     path('api/chat/', include('chat.urls')),
     path('api/notifications/', include('notification.urls')),
+    path('__debug__/', include('debug_toolbar.urls')),
 ]
