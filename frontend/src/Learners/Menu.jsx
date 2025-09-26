@@ -27,7 +27,8 @@ export default function PostsPage() {
         const res = await axios.get("http://localhost:8000/api/creator/posts/", {
           withCredentials: true,
         });
-        setPosts(res.data);
+        console.log("Fetched posts:", res.data.results);
+        setPosts(res.data.results);
       } catch (err) {
         console.error("Error fetching posts:", err);
       } finally {

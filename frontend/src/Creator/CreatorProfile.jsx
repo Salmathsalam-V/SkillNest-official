@@ -185,9 +185,9 @@ const submitPost = async () => {
       console.log("Posts fetched:",{id}, res.data);
       const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
       console.log("Posts fetched:", resPosts.data);
-      setPosts(resPosts.data);
+      setPosts(resPosts.data.results);
       const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
-      setCourses(resCourses.data);
+      setCourses(resCourses.data.results || []);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching creator posts/courses:", err);
@@ -475,8 +475,12 @@ const handleCommentSubmit = async (postId) => {
                       {/* Like & Comment Buttons */}
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" className="p-0">
-                            <Heart className="w-5 h-5 text-red-500" />
+                          <Button variant="ghost" size="sm" className="p-0" onClick={() => handleLikeToggle(post.id)}>
+                            {post.is_liked ? (
+                            <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                            ) : (
+                              <Heart className="w-5 h-5 text-gray-500" />
+                            )}
                           </Button>
                           <span className="text-sm">{post.like_count} likes</span>
   <Button
@@ -664,61 +668,65 @@ const handleCommentSubmit = async (postId) => {
   </DialogContent>
 </Dialog>
 
-            {/* Popup for comments (reuse same as PostsPage) */}
-            <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Comments</DialogTitle>
-                </DialogHeader>
-                {openPost && (
-                  <div className="space-y-3">
-                    {openPost.image && (
-                      <img
-                        src={openPost.image}
-                        alt="Post"
-                        className="rounded-lg w-full mb-2"
-                      />
-                    )}
-                    <p className="text-gray-700">{openPost.caption}</p>
+            {/* Comments modal (like PostsPage) */}
+  <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
+    <DialogContent className="max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Comments</DialogTitle>
+      </DialogHeader>
+      {openPost && (
+        <div className="space-y-3">
+          {openPost.image && <img src={openPost.image} alt="Post" className="rounded-lg w-full mb-2" />}
+          <p className="text-gray-700">{openPost.caption}</p>
 
-                    {/* All comments */}
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {openPost.comments?.length > 0 ? (
-                        openPost.comments.map((comment) => (
-                          <div key={comment.id} className="border-b pb-1">
-                            <p className="text-sm font-semibold">
-                              {comment.user?.username}
-                            </p>
-                            <p className="text-sm text-gray-600">{comment.content}</p>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-400">No comments yet.</p>
-                      )}
-                    </div>
-
-                    {/* Add Comment */}
-                    <div className="flex items-center gap-2 mt-3">
-                      <Textarea
-                        placeholder="Write a comment..."
-                        value={commentText[openPost.id] || ""}
-                        onChange={(e) =>
-                          setCommentText({
-                            ...commentText,
-                            [openPost.id]: e.target.value,
-                          })
-                        }
-                        className="flex-1"
-                      />
-                      <Button onClick={() => handleCommentSubmit(openPost.id)}>
-                        Post
-                      </Button>
-                    </div>
+          {/* All comments */}
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {openPost.comments?.length > 0 ? (
+              openPost.comments.map((comment) => (
+                <div key={comment.id} className="border-b pb-1 flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-semibold">{comment.user?.username}</p>
+                    <p className="text-sm text-gray-600">{comment.content}</p>
                   </div>
-                )}
-              </DialogContent>
-            </Dialog>
-          </TabsContent>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-0"
+                      onClick={() => handleCommentLikeToggle(openPost.id, comment.id)}
+                    >
+                      {comment.is_liked ? (
+                        <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                      ) : (
+                        <Heart className="w-4 h-4 text-gray-500" />
+                      )}
+                    </Button>
+                    <span className="text-xs">{comment.like_count}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400">No comments yet.</p>
+            )}
+          </div>
+
+          {/* Add Comment */}
+          <div className="flex items-center gap-2 mt-3">
+            <Textarea
+              placeholder="Write a comment..."
+              value={commentText[openPost.id] || ""}
+              onChange={(e) =>
+                setCommentText({ ...commentText, [openPost.id]: e.target.value })
+              }
+              className="flex-1"
+            />
+            <Button onClick={() => handleCommentSubmit(openPost.id)}>Post</Button>
+          </div>
+        </div>
+      )}
+    </DialogContent>
+  </Dialog>
+      </TabsContent>
 
 
            <TabsContent value="courses">

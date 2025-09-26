@@ -19,7 +19,6 @@ import { useState } from 'react';
 import axios from "axios";
 import { useEffect } from 'react';
  import { useNotifications } from "@/components/hooks/useNotifications"
- import { NotificationDropdown } from "@/components/Layouts/NotificationDropdown"
  export const AppSidebar = () => {
 
   const notifications = useNotifications(); // live
@@ -37,7 +36,7 @@ import { useEffect } from 'react';
 
 
   return (
-    <aside className="w-64 bg-[#f3f4f6] p-6 shadow-md">
+    <aside className="fixed top-0 left-0 h-screen w-64 bg-[#f3f4f6] p-6 shadow-md overflow-y-auto">
       {/* Logo and Title */}
       <div className="flex items-center gap-2 mb-8">
         <img src="/logo.png" alt="Logo" className="h-12 w-12 object-contain" />
@@ -45,7 +44,6 @@ import { useEffect } from 'react';
           SkillNest
         </span>
       </div>
-      <NotificationDropdown notifications={[...notifications]} />
 
       {/* Nav Items */}
       <nav className="flex flex-col gap-y-2 font-poppins font-medium">

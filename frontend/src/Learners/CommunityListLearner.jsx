@@ -12,7 +12,8 @@ export const CommunityListLearner = () => {
   useEffect(() => {
     const loadData = async () => {
       const res = await fetchLearnerCommunities();
-      setCommunities(res || []);
+      console.log("Fetched communities: learner:b", res.results);
+      setCommunities(res.results || []);
     };
     loadData();
   }, []);

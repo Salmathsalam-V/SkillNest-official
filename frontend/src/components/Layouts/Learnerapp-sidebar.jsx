@@ -27,7 +27,7 @@ export const AppSidebar = () => {
   };
 
   return (
-    <aside className="w-64 bg-[#f3f4f6] p-6 shadow-md">
+    <aside className="fixed top-0 left-0 h-screen w-64 bg-[#f3f4f6] p-6 shadow-md overflow-y-auto">
       {/* Logo and Title */}
       <div className="flex items-center gap-2 mb-8">
         <img src="/logo.png" alt="Logo" className="h-12 w-12 object-contain" />

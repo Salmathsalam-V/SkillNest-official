@@ -34,6 +34,8 @@ export const CommunityPage = () => {
   const [newMember, setNewMember] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);  // File object
+  const [previewURL, setPreviewURL] = useState("");      // for <img>/<video> preview
 
   //load chat room
   const loadChatRoom = async () => {
@@ -133,6 +135,8 @@ const handleAddMember = async (identifier) => {
     setMembers(res.members); // res.data is the CommunitySerializer output
     setNewMember("");
     toast.success("Member added");
+    setMembersModalOpen(false); 
+    setSearchResults([]);
   } catch (err) {
     console.error(err);
     toast.error("Failed to add member");
@@ -145,6 +149,8 @@ const handleRemoveMember = async (identifier) => {
     const data = await removeMember(communityId, identifier);
     setMembers(data.members);      // ✅ data, not data.members
     toast.success("Member removed");
+    setMembersModalOpen(false); 
+    setSearchResults([]);
   } catch (err) {
     console.error(err);
     toast.error("Failed to remove member");
@@ -194,7 +200,41 @@ const handleRemoveMember = async (identifier) => {
 //   ws.onclose = () => console.log("WS closed");
 //   return () => ws.close();
 // }, [communityId]);
+  const handleSendPendingFile = async () => {
+      if (!pendingFile) return;
+      setUploading(true);
+      const formData = new FormData();
+      formData.append("file", pendingFile);
+      formData.append("upload_preset", "skillnest_profile");
 
+      try {
+        const res = await axios.post(
+          "https://api.cloudinary.com/v1_1/dg8kseeqo/upload",
+          formData
+        );
+        const url = res.data.secure_url;
+
+        let messageType = "file";
+        if (pendingFile.type.startsWith("image/")) messageType = "image";
+        else if (pendingFile.type.startsWith("video/")) messageType = "video";
+
+        const { data } = await sendMessage(communityId, {
+          content: "",
+          media_url: url,
+          message_type: messageType,
+        });
+
+        setMessages((prev) => [...prev, data]);
+        toast.success("File sent!");
+      } catch (err) {
+        console.error(err);
+        toast.error("Upload failed");
+      } finally {
+        setUploading(false);
+        setPendingFile(null);
+        setPreviewURL("");
+      }
+    };
 useEffect(() => {
   console.log("useEffect for chatService with communityId:", communityId, "and community:", community);
   if (!community?.uuid) return; // wait until community/room info is ready
@@ -216,6 +256,7 @@ useEffect(() => {
 
   chatService.on("connect", () => console.log("WS connected"));
   chatService.on("disconnect", () => console.log("WS disconnected"));
+
 
   // cleanup when leaving page
   return () => chatService.disconnect();
@@ -281,20 +322,51 @@ useEffect(() => {
 )}
 
 </div>
-{/* ✅ Date below the bubble */}
-      <span className="text-[10px] text-gray-400 mt-1">
-        {new Date(msg.timestamp).toLocaleDateString("en-IN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "2-digit",
-        })}
-      </span>
+            {/* ✅ Date below the bubble */}
+                <span className="text-[10px] text-gray-400 mt-1">
+                  {new Date(msg.timestamp).toLocaleString("en-IN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
                 
               </div>
             );
           })}
           <div ref={messagesEndRef}></div>
         </div>
+      {pendingFile && (
+        <div className="p-3 border-t bg-white flex items-center gap-4">
+          {pendingFile.type.startsWith("image/") ? (
+            <img src={previewURL} alt="preview"
+                className="h-24 w-auto rounded-md border" />
+          ) : pendingFile.type.startsWith("video/") ? (
+            <video src={previewURL} controls
+                  className="h-24 w-auto rounded-md border" />
+          ) : (
+            <p className="text-sm">{pendingFile.name}</p>
+          )}
+
+          <Button
+            variant="destructive"
+            onClick={() => {          // Cancel
+              setPendingFile(null);
+              setPreviewURL("");
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={() => handleSendPendingFile()}   // defined next
+          >
+            Send File
+          </Button>
+        </div>
+      )}
 
       {/* Input area */}
       <div className="p-4 border-t bg-white flex items-center space-x-2">
@@ -304,13 +376,26 @@ useEffect(() => {
         onChange={(e) => setNewMessage(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSend()}
       />
-     <input
+     {/* <input
             type="file"
             accept="image/*,video/*"
             className="hidden"
             id="chat-upload"
             onChange={handleFileUpload}
+          /> */}
+          <input
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            id="chat-upload"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              setPendingFile(file);
+              setPreviewURL(URL.createObjectURL(file));
+            }}
           />
+
           <label
   htmlFor="chat-upload"
   className={`cursor-pointer px-3 py-2 rounded-xl ${
@@ -327,7 +412,9 @@ useEffect(() => {
     </div>
     </div>
     {/* Members Modal */}
-      <Dialog onOpenChange={(open) => open && loadMembers()}>
+      <Dialog open={membersModalOpen}
+         onOpenChange={(open) => {setMembersModalOpen(open);
+          if (open) loadMembers()}}>
         <DialogTrigger asChild>
           <Button variant="outline">Manage Members</Button>
         </DialogTrigger>

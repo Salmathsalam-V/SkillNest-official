@@ -225,12 +225,14 @@ export const get_course = async (userId)=>{
   }
 }
 
-export const fetchCommunities = async () => {
+export const fetchCommunities = async (page = 1) => {
   try {
-    const res = await apiClient.get("creator/communities/");
-    return res.data;
+    // Add the ?page= query parameter
+    const res = await apiClient.get(`creator/communities/?page=${page}`);
+    return res.data;  // { count, next, previous, results }
   } catch (err) {
     console.error("Error fetching communities:", err);
+    return null;
   }
 };
 
@@ -250,7 +252,7 @@ export const createCommunity  = async (name, description, members) => {
 export const fetchUsers = async () => {
   try {
     const res = await apiClient.get("creator/users/"); 
-    return res.data;
+    return res.data.results; // assuming paginated response
   } catch (err) {
     console.error("Error fetching users:", err);
   }

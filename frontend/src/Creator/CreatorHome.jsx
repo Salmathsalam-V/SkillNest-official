@@ -69,11 +69,11 @@ export const CreatorHome = () => {
         </div>
       </div>
 
-      {/* Buttons */}
+      {/* Buttons
       <div className="flex gap-4 mb-6">
         <Button variant="custom" onClick={handleLogout}>Logout</Button>
         <Button variant="success" onClick={() => navigate('/')}>Menu</Button>
-      </div>
+      </div> */}
 
       {/* Sponsored Ad Section */}
       <div className="bg-[#fff3f3] p-6 mb-6 border-l-4 border-[#f2709c] shadow">
