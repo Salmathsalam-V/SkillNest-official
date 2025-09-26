@@ -55,8 +55,10 @@ skillnest/
 ```bash
 git clone https://github.com/Salmathsalam-V/skillnest.git
 cd skillnest
+```
 
-3️⃣ Backend Setup
+###3️⃣ Backend Setup
+```bash
 cd backend
 python -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
@@ -64,33 +66,36 @@ pip install -r requirements.txt
 cp .env.example .env       # configure DB, Redis, etc.
 python manage.py migrate
 python manage.py runserver
-
-4️⃣ Frontend Setup (optional if React)
+```
+###4️⃣ Frontend Setup (optional if React)
+```bash
 cd ../frontend
 npm install
 npm run dev
-
+```
 
 Visit: http://localhost:8000 (backend) or http://localhost:5173 (frontend).
 
 
-🔑 Environment Variables
+###🔑 Environment Variables
 Variable	Example	Description
 SECRET_KEY	your-django-secret	Django secret key
 DATABASE_URL	postgres://user:pass@...	DB connection
 REDIS_URL	redis://127.0.0.1:6379/0	Channels backend
 GOOGLE_CLIENT_ID	xxxx.apps.googleusercontent…	Google OAuth login
 
-🧪 Running Tests
+##3 Running Tests
+```bash
 python manage.py test
+```
 
-👥 User Roles Summary
+###👥 User Roles Summary
 Role	Key Abilities
 Creator	Create/manage communities, host calls, moderate chat
 Learner	Join communities, participate in chat & video sessions
 Admin	Full control: users, communities, site configuration
 
-🌟 Acknowledgements
+###🌟 Acknowledgements
 
 Django & Django REST Framework
 
