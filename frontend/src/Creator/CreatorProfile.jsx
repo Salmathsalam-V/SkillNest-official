@@ -185,9 +185,12 @@ const fetchPosts = async (offset = 0) => {
       `http://localhost:8000/api/creator/creators/${id}/posts/?limit=${pageSize}&offset=${offset}`,
       { withCredentials: true }
     );
-    setPosts((prev) => [...prev, ...res.data.results]);
+    setPosts(offset === 0 ? res.data.results : (prev) => [...prev, ...res.data.results]);
     setNextPage(offset + pageSize);
     setHasMore(!!res.data.next); // DRF gives `next` link if more pages exist
+    const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
+    setCourses(resCourses.data.results || []);
+    setLoading(false);
   } catch (err) {
     console.error("Error fetching posts:", err);
   }
@@ -199,23 +202,6 @@ useEffect(() => {
   fetchPosts(0);
 }, [id]);
 
-  useEffect(() => {
-  const fetchCreatorData = async () => {
-    try {
-      // const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
-      // console.log("Posts fetched:",{id}, res.data);
-      // const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
-      // console.log("Posts fetched:", resPosts.data);
-      setPosts(resPosts.data.results);
-      const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
-      setCourses(resCourses.data.results || []);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching creator posts/courses:", err);
-    }
-  };
-  fetchCreatorData();
-}, [id]);
 
 const handleDeletePost = async (postId) => {
   if (!window.confirm("Are you sure you want to delete this post?")) return;
@@ -581,6 +567,7 @@ const handleCommentSubmit = async (postId) => {
                     </Button>
                   </div>
                 )}
+
 
               </div>
             ) : (
