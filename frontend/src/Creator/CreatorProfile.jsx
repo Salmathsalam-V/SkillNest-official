@@ -30,7 +30,10 @@ export default function CreatorProfile() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newPost, setNewPost] = useState({ caption: "", image: "" });
   const [image, setImage] = useState('');
-  
+  const [nextPage, setNextPage] = useState(0); // offset tracker
+  const [hasMore, setHasMore] = useState(true);
+  const pageSize = 6;
+
   // merging create and edit post modal
   const [postModal, setPostModal] = useState({
       open: false,
@@ -176,15 +179,33 @@ const submitPost = async () => {
       setUploading(false);
     }
   };
+const fetchPosts = async (offset = 0) => {
+  try {
+    const res = await axios.get(
+      `http://localhost:8000/api/creator/creators/${id}/posts/?limit=${pageSize}&offset=${offset}`,
+      { withCredentials: true }
+    );
+    setPosts((prev) => [...prev, ...res.data.results]);
+    setNextPage(offset + pageSize);
+    setHasMore(!!res.data.next); // DRF gives `next` link if more pages exist
+  } catch (err) {
+    console.error("Error fetching posts:", err);
+  }
+};
+useEffect(() => {
+  setPosts([]);      // reset when id changes
+  setNextPage(0);
+  setHasMore(true);
+  fetchPosts(0);
+}, [id]);
 
   useEffect(() => {
   const fetchCreatorData = async () => {
     try {
-
-      const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
-      console.log("Posts fetched:",{id}, res.data);
-      const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
-      console.log("Posts fetched:", resPosts.data);
+      // const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
+      // console.log("Posts fetched:",{id}, res.data);
+      // const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
+      // console.log("Posts fetched:", resPosts.data);
       setPosts(resPosts.data.results);
       const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
       setCourses(resCourses.data.results || []);
@@ -553,7 +574,14 @@ const handleCommentSubmit = async (postId) => {
                   </Card>
                   
                 ))}
-   
+                {hasMore && (
+                  <div className="flex justify-center mt-6">
+                    <Button onClick={() => fetchPosts(nextPage)}>
+                      Load More
+                    </Button>
+                  </div>
+                )}
+
               </div>
             ) : (
               <p className="text-muted-foreground text-center mt-6">No posts available.</p>

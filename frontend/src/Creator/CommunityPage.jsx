@@ -36,6 +36,23 @@ export const CommunityPage = () => {
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);  // File object
   const [previewURL, setPreviewURL] = useState("");      // for <img>/<video> preview
+  const messagesContainerRef = useRef(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (container.scrollTop === 0 && nextCursor && !loadingMore) {
+        loadMoreMessages();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [nextCursor, loadingMore]);
 
   //load chat room
   const loadChatRoom = async () => {
@@ -48,16 +65,44 @@ export const CommunityPage = () => {
     }
   };
 
-  // ✅ Load Messages
-  const loadMessages = async () => {
-    try {
-      const { data } = await fetchMessages(communityId);
-      console.log("Fetched messages:", data);
-      setMessages(data.results.reverse());
-    } catch (error) {
-      console.error("Messages Error:", error);
-    }
-  };
+
+
+// ✅ Initial load
+const loadMessages = async () => {
+  try {
+    const { data } = await fetchMessages(communityId); // no cursor → first page
+    setMessages(data.results.reverse());   // newest last
+    setNextCursor(data.next);
+  } catch (error) {
+    console.error("Messages Error:", error);
+  }
+};
+
+// ✅ Load older messages with cursor
+const loadMoreMessages = async () => {
+  if (!nextCursor) return;
+  setLoadingMore(true);
+
+  const container = messagesContainerRef.current;
+  const prevScrollHeight = container.scrollHeight;
+
+  try {
+    const { data } = await axios.get(nextCursor, { withCredentials: true });
+    setMessages(prev => [...data.results.reverse(), ...prev]);
+    setNextCursor(data.next);
+
+    // Restore scroll so user stays in same position
+    setTimeout(() => {
+      const newScrollHeight = container.scrollHeight;
+      container.scrollTop = newScrollHeight - prevScrollHeight;
+    }, 50);
+  } catch (err) {
+    console.error("Load more error:", err);
+  } finally {
+    setLoadingMore(false);
+  }
+};
+
 
 const handleSend = async (mediaUrl = null) => {
   if (!newMessage.trim() && !mediaUrl) return; // prevent empty send
@@ -288,56 +333,69 @@ useEffect(() => {
         </CardContent>
       </Card>
 
-        {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {messages.map((msg) => {
-            const isMine = msg?.sender?.id === userId;
-            return (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${
-                  isMine ? "items-end" : "items-start"
-                }`}
-              >
-                <span className="text-xs text-gray-500 mb-1">
-                  {isMine ? "You" : msg?.sender?.username || "Unknown"}
-                </span>
-
-                <div
-  className={`max-w-xs px-4 py-2 rounded-2xl shadow ${
-    isMine
-      ? "bg-blue-600 text-white rounded-br-none"
-      : "bg-gray-200 text-gray-900 rounded-bl-none"
-  }`}
+<div
+  ref={messagesContainerRef}
+  className="flex-1 overflow-y-auto p-4 space-y-3"
 >
-  {msg.content && <p>{msg.content}</p>}
- {msg.media_url && (
-  <>
-    {msg.message_type === "video" ? (
-      <video src={msg.media_url} controls className="mt-2 rounded-md max-w-full" />
-    ) : (
-      <img src={msg.media_url} alt="uploaded" className="mt-2 rounded-md max-w-full" />
-    )}
-  </>
-)}
+  {loadingMore && (
+    <p className="text-center text-gray-500 text-sm">Loading older messages...</p>
+  )}
 
-</div>
-            {/* ✅ Date below the bubble */}
-                <span className="text-[10px] text-gray-400 mt-1">
-                  {new Date(msg.timestamp).toLocaleString("en-IN", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-                
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef}></div>
+  {messages.map((msg) => {
+    const isMine = msg?.sender?.id === userId;
+    return (
+      <div
+        key={msg.id}
+        className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+      >
+        <span className="text-xs text-gray-500 mb-1">
+          {isMine ? "You" : msg?.sender?.username || "Unknown"}
+        </span>
+
+        <div
+          className={`max-w-xs px-4 py-2 rounded-2xl shadow ${
+            isMine
+              ? "bg-blue-600 text-white rounded-br-none"
+              : "bg-gray-200 text-gray-900 rounded-bl-none"
+          }`}
+        >
+          {msg.content && <p>{msg.content}</p>}
+          {msg.media_url && (
+            <>
+              {msg.message_type === "video" ? (
+                <video
+                  src={msg.media_url}
+                  controls
+                  className="mt-2 rounded-md max-w-full"
+                />
+              ) : (
+                <img
+                  src={msg.media_url}
+                  alt="uploaded"
+                  className="mt-2 rounded-md max-w-full"
+                />
+              )}
+            </>
+          )}
         </div>
+
+        <span className="text-[10px] text-gray-400 mt-1">
+          {new Date(msg.timestamp).toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
+    );
+  })}
+
+  <div ref={messagesEndRef}></div>
+</div>
+
+
       {pendingFile && (
         <div className="p-3 border-t bg-white flex items-center gap-4">
           {pendingFile.type.startsWith("image/") ? (

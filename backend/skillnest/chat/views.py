@@ -12,6 +12,7 @@ from .serializers import (
     CommunityMessageSerializer,
     UserSerializer,
 )
+from rest_framework.pagination import CursorPagination
 import logging
 logger = logging.getLogger(__name__)
 
@@ -49,12 +50,16 @@ class CommunityChatRoomDetailView(generics.RetrieveAPIView):
         return get_or_create_chat_room(community, user)
 
 
+class ChatMessagePagination(CursorPagination):
+    page_size = 20                       # messages per request
+    ordering = '-timestamp'              # newest first
+
 
 # ✅ 2. List messages in a community chat
 class CommunityMessagesView(generics.ListAPIView):
     serializer_class = CommunityMessageSerializer
     permission_classes = [permissions.IsAuthenticated]
-    pagination_class = MessagePagination
+    pagination_class = ChatMessagePagination
 
     def get_queryset(self):
         community_id = self.kwargs["community_id"]
