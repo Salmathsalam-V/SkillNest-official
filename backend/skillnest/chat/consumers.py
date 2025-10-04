@@ -15,6 +15,7 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
         logger.warning(f"scope from consumer: {self.user}")
 
         if self.user.is_anonymous:
+            logger.warning("Anonymous user tried to connect to WebSocket")
             await self.close()
             return
 
@@ -22,6 +23,7 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
         self.room_uuid  = self.scope['url_route']['kwargs']['room_uuid']
         self.room = await self.get_room_if_allowed()
         if not self.room:
+            logger.warning(f"User {self.user.id} not allowed in room {self.room_uuid}")
             await self.close()
             return
         self.room_group_name = f'community_{self.room_uuid}'
@@ -37,7 +39,7 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
-
+        logger.warning(f"User {self.user.id} connected to room {self.room_uuid}, before accept")
         await self.accept()
 
         # Mark user as online in this community
@@ -57,6 +59,7 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
+            logger.warning(f"User {self.user.id} disconnected from room {self.room_uuid}")
             await self.update_user_presence(False)
 
             await self.channel_layer.group_send(
@@ -78,7 +81,7 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get("type")
-
+        logger.warning(f"Received message of type {message_type} from user {self.user.id}")
         if message_type == "chat_message":
             await self.handle_chat_message(data)
         elif message_type == "typing":
@@ -111,6 +114,7 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
         try:
             room = CommunityChatRoom.objects.select_related("community").get(uuid=self.room_uuid)
             community = room.community
+            logger.warning(f"Fetched room {room.id} for community {community.id}")
             if community.creator == self.user or community.members.filter(id=self.user.id).exists():
                 return room
         except CommunityChatRoom.DoesNotExist:
@@ -128,3 +132,11 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
         presence.current_room = self.room if is_online else None
         presence.last_seen = timezone.now()
         presence.save()
+    
+    async def user_status_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "user_status_update",
+            "user_id": event["user_id"],
+            "username": event["username"],
+            "status": event["status"],
+        }))

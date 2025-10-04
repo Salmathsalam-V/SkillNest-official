@@ -10,6 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { fetchMessages, sendMessage, fetchChatRoom } from "../endpoints/axios";
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import { toast } from "sonner";
+import chatService from "../services/chatService";
 
 export const CommunityPageLearner = () => {
   const { communityId } = useParams();
@@ -47,11 +48,8 @@ export const CommunityPageLearner = () => {
   const handleSend = async (mediaUrl = null, type = "text") => {
     if (!newMessage.trim() && !mediaUrl) return;
     try {
-      const { data } = await sendMessage(communityId, {
-        content: mediaUrl ? "" : newMessage,
-        media_url: mediaUrl,
-        message_type: type,
-      });
+      const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
+
       setMessages((prev) => [...prev, data]);
       setNewMessage("");
     } catch (error) {
@@ -95,6 +93,24 @@ export const CommunityPageLearner = () => {
       setPreviewURL("");
     }
   };
+useEffect(() => {
+  console.log("Learner: setting up WebSocket for community:", communityId, "community:", community);
+  if (!community?.uuid) return; // Wait for chat room to load
+
+  chatService.connect(community.uuid);
+
+  // Handle new incoming messages
+  chatService.on("message", (message) => {
+    console.log("Learner received message via WS:", message);
+    setMessages((prev) => [...prev, message]);
+  });
+
+  chatService.on("connect", () => console.log("Learner WS connected"));
+  chatService.on("disconnect", () => console.log("Learner WS disconnected"));
+
+  // Cleanup on page leave
+  return () => chatService.disconnect();
+}, [community?.uuid]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

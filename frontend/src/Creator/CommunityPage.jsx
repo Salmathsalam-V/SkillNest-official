@@ -108,12 +108,8 @@ const handleSend = async (mediaUrl = null) => {
   if (!newMessage.trim() && !mediaUrl) return; // prevent empty send
 
   try {
-    const { data } = await sendMessage(communityId, {
-    content: newMessage,
-    media_url: null,
-    message_type: "text",
-  });
-
+    const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
+    console.log("Sent message data:", data);
     setMessages([...messages, data]);
     setNewMessage("");
   } catch (error) {
@@ -146,11 +142,7 @@ const handleSend = async (mediaUrl = null) => {
       else if (file.type.startsWith("video/")) messageType = "video";
 
       // Send media message
-      const { data } = await sendMessage(communityId, {
-        content: "",              // empty since it’s media
-        media_url: url,           // ✅ correct field
-        message_type: messageType,
-      });
+      const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
 
 
       setMessages([...messages, data]);
@@ -245,7 +237,8 @@ const handleRemoveMember = async (identifier) => {
 //   ws.onclose = () => console.log("WS closed");
 //   return () => ws.close();
 // }, [communityId]);
-  const handleSendPendingFile = async () => {
+  
+const handleSendPendingFile = async () => {
       if (!pendingFile) return;
       setUploading(true);
       const formData = new FormData();
@@ -263,11 +256,8 @@ const handleRemoveMember = async (identifier) => {
         if (pendingFile.type.startsWith("image/")) messageType = "image";
         else if (pendingFile.type.startsWith("video/")) messageType = "video";
 
-        const { data } = await sendMessage(communityId, {
-          content: "",
-          media_url: url,
-          message_type: messageType,
-        });
+        const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
+
 
         setMessages((prev) => [...prev, data]);
         toast.success("File sent!");
@@ -300,7 +290,7 @@ useEffect(() => {
   });
 
   chatService.on("connect", () => console.log("WS connected"));
-  chatService.on("disconnect", () => console.log("WS disconnected"));
+  chatService.on("disconnect", () => console.log("WS disconnected from chat service"));
 
 
   // cleanup when leaving page

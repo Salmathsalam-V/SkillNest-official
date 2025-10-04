@@ -15,7 +15,7 @@ export default {
     const url=`${protocol}://127.0.0.1:8000/ws/community/${roomUuid}/`;
     console.log("WebSocket URL:url:", url);
     ws = new WebSocket(url);
-
+    console.log("WebSocket object from chat service:", ws);
     ws.onopen = () => emit("connect");
     ws.onclose = () => emit("disconnect");
     ws.onerror = (e) => emit("error", e);
@@ -27,10 +27,19 @@ export default {
     };
   },
 
-  sendMessage(content) {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
-    ws.send(JSON.stringify({ type: "chat_message", content }));
-    return true;
+  sendMessage(roomUuid, content, type = "text", media_url = null) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          type: "chat_message",
+          content,
+          message_type: type,
+          media_url,
+        })
+      );
+    } else {
+      console.warn("WebSocket not open. Cannot send message.");
+    }
   },
 
   sendTyping(isTyping) {
@@ -52,3 +61,17 @@ export default {
     ws = null;
   }
 };
+function sendMessage(roomUuid, content, type = "text", media_url = null) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(
+      JSON.stringify({
+        type: "chat_message",
+        content,
+        message_type: type,
+        media_url,
+      })
+    );
+  } else {
+    console.warn("WebSocket not open. Cannot send message.");
+  }
+}

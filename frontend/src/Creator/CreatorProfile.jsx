@@ -300,7 +300,7 @@ const handleCommentSubmit = async (postId) => {
     toast.error("Failed to post comment");
   }
 };
-  if (loading) return <p className="text-center py-10">Loading...</p>;
+  if (loading) return <p className="text-center py-10">Loaders</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
   return (
