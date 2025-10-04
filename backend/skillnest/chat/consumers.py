@@ -81,11 +81,17 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get("type")
-        logger.warning(f"Received message of type {message_type} from user {self.user.id}")
+        logger.warning(f"Received message of type {message_type} from user {self.user.id}, {data},{text_data}")
         if message_type == "chat_message":
             await self.handle_chat_message(data)
-        elif message_type == "typing":
-            await self.handle_typing(data)
+        
+
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'chat_message',
+            'message': event['message'],
+            
+        }))
 
     async def handle_chat_message(self, data):
         content = (data.get("content") or "").strip()

@@ -61,12 +61,13 @@ export default {
     ws = null;
   }
 };
-function sendMessage(roomUuid, content, type = "text", media_url = null) {
+export const sendMessage = (message) => {
   if (socket && socket.readyState === WebSocket.OPEN) {
+    console.log("Sending message via WebSocket:", message);
     socket.send(
       JSON.stringify({
         type: "chat_message",
-        content,
+        content: message,
         message_type: type,
         media_url,
       })
@@ -75,3 +76,5 @@ function sendMessage(roomUuid, content, type = "text", media_url = null) {
     console.warn("WebSocket not open. Cannot send message.");
   }
 }
+
+//  roomUuid, content, type = "text", media_url = null)

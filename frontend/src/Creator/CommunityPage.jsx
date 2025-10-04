@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog"; 
 import { X } from "lucide-react";
 import chatService from "../services/chatService";
+import { text } from "@fortawesome/fontawesome-svg-core";
 
 export const CommunityPage = () => {
   const { communityId } = useParams();
@@ -108,9 +109,12 @@ const handleSend = async (mediaUrl = null) => {
   if (!newMessage.trim() && !mediaUrl) return; // prevent empty send
 
   try {
-    const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
-    console.log("Sent message data:", data);
-    setMessages([...messages, data]);
+    // const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
+    // console.log("Sent message data:", data);
+    // setMessages([...messages, data]);
+    console.log("Sending message via chatService:", newMessage,text);
+    await chatService.sendMessage(community.uuid, newMessage, "text");
+    setMessages([...messages,newMessage]);
     setNewMessage("");
   } catch (error) {
     console.error("Send Error:", error);
@@ -142,10 +146,10 @@ const handleSend = async (mediaUrl = null) => {
       else if (file.type.startsWith("video/")) messageType = "video";
 
       // Send media message
-      const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
+      await chatService.sendMessage(community.uuid, newMessage, "text");
 
 
-      setMessages([...messages, data]);
+      setMessages([...messages, newMessage]);
       toast.success("Media uploaded");
     } catch (err) {
       console.error("Upload failed:", err);
@@ -256,10 +260,11 @@ const handleSendPendingFile = async () => {
         if (pendingFile.type.startsWith("image/")) messageType = "image";
         else if (pendingFile.type.startsWith("video/")) messageType = "video";
 
-        const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
+        
+        chatService.sendMessage(community.uuid, newMessage, "text");
 
 
-        setMessages((prev) => [...prev, data]);
+        setMessages((prev) => [...prev, newMessage]);
         toast.success("File sent!");
       } catch (err) {
         console.error(err);
