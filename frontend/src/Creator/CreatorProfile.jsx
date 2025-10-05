@@ -57,25 +57,31 @@ const handlePostImageUpload = async (e) => {
   const file = e.target.files[0];
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', 'skillnest_profile');
 
   try {
+    console.log("Uploading image:", file);
     const res = await axios.post(
-      'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
-      formData
+      'http://localhost:8000/api/upload-image/',
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      }
     );
-    const url = res.data.secure_url;
-
+    console.log("Upload response:", res);
+    const url = res.data.url;
     setPostModal((prev) => ({
       ...prev,
       data: { ...prev.data, image: url },
     }));
+
     toast.success("Image uploaded");
   } catch (err) {
     console.error("Image upload failed:", err);
     toast.error("Image upload failed");
   }
 };
+
 const submitPost = async () => {
   const { mode, data } = postModal;
   const payload = { caption: data.caption, image: data.image };
@@ -167,10 +173,16 @@ const submitPost = async () => {
     try {
       setUploading(true);
       const res = await axios.post(
-        'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
-        formData
+        'http://localhost:8000/api/upload-image/',
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          withCredentials: true,
+        }
       );
-      setEditData(prev => ({ ...prev, background: res.data.secure_url }));
+      console.log("Upload response:", res.data.url);
+      const url = res.data.url;
+      setEditData(prev => ({ ...prev, background: url }));
       toast.success("Background image uploaded");
     } catch (error) {
       toast.error("Image upload failed");

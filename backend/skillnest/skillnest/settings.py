@@ -51,12 +51,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'cloudinary',
+    'cloudinary_storage',
     'debug_toolbar',
  
     'dj_rest_auth',
     'dj_rest_auth.registration',
     'rest_framework.authtoken',
-
     'channels',  
 
     #apps
@@ -307,3 +307,11 @@ LOGGING = {
         },
     },
 }
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUD_NAME'),
+    'API_KEY': os.getenv('API_KEY'),
+    'API_SECRET': os.getenv('API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

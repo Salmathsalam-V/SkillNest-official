@@ -79,10 +79,21 @@ class CommentListCreateView(ListCreateAPIView):
         ).order_by("-created_at")   # Only main comments
 
     def perform_create(self, serializer):
-        serializer.save(
+        comment = serializer.save(
             user=self.request.user,
             post_id=self.kwargs['post_id']
         )
+
+        post = comment.post
+        # if post.user != self.request.user: 
+             # don’t notify if you comment on your own post
+        create_notification(
+            sender=self.request.user,
+            recipient=post.user,  # Creator.user is the actual User
+            notif_type='comment',
+            post=post
+        )
+
 
 class ReplyListCreateView(ListCreateAPIView):
     serializer_class = CommentSerializer
@@ -149,32 +160,29 @@ class ToggleFollowView(APIView):
         try:
             creator = Creator.objects.get(user=creator_id)
         except Creator.DoesNotExist:
-            return Response(
-                {'error': 'Creator not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'Creator not found'}, status=status.HTTP_404_NOT_FOUND)
 
         user = request.user
 
         if creator.followers.filter(id=user.id).exists():
             # Already following → unfollow
             creator.followers.remove(user)
-            return Response({
-                'success': True,
-                'following': False,
-                'follower_count': creator.followers.count()
-            }, status=status.HTTP_200_OK)
-
+            following = False
         else:
-            # Not following → follow
+            # Follow → notify creator.user
             creator.followers.add(user)
-            create_notification(sender=request.user, recipient=user, notif_type='follow', post=None)
-            return Response({
-                'success': True,
-                'following': True,
-                'follower_count': creator.followers.count()
-            }, status=status.HTTP_200_OK)
+            following = True
+            create_notification(
+                sender=user,
+                recipient=creator.user,     # notify the creator (User model)
+                notif_type='follow'
+            )
 
+        return Response({
+            'success': True,
+            'following': following,
+            'follower_count': creator.followers.count()
+        }, status=status.HTTP_200_OK)
 class ToggleLikeView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -297,3 +305,7 @@ class CommunityMembersView(APIView):
         )
 
 
+
+
+
+            # create_notification(sender=user, recipient=creator.user, notif_type='follow')
