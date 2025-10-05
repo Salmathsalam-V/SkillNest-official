@@ -78,28 +78,59 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
                 self.channel_name
             )
 
+# inside CommunityChatConsumer
+
     async def receive(self, text_data):
-        data = json.loads(text_data)
-        message_type = data.get("type")
-        logger.warning(f"Received message of type {message_type} from user {self.user.id}, {data},{text_data}")
-        if message_type == "chat_message":
-            await self.handle_chat_message(data)
-        
-
-    async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'chat_message',
-            'message': event['message'],
-            
-        }))
-
-    async def handle_chat_message(self, data):
-        content = (data.get("content") or "").strip()
-        if not content:
+        """
+        Accept either:
+        - envelope style: { type: "chat_message", message_type: "image", content: "", media_url: "..." }
+        - short style:    { type: "image", content: "", media_url: "..." }
+        - or:             { action: "send", message_type: "...", ... }
+        """
+        try:
+            data = json.loads(text_data)
+        except Exception as e:
+            logger.exception("Invalid JSON received")
             return
 
-        message = await self.save_message(content)
+        # Look for various possible envelope keys
+        envelope = data.get("type") or data.get("action") or data.get("event")
+        # message_type is explicit OR fallback to envelope when envelope is a known message type
+        message_type = data.get("message_type") or (envelope if envelope in ("text", "image", "video", "file") else None) or "text"
 
+        logger.warning(f"Received envelope={envelope} message_type={message_type} from user {self.user.id}: {data}")
+
+        # If it's a chat message (either explicit envelope or a known message_type), handle it
+        if envelope == "chat_message" or message_type in ("text", "image", "video", "file"):
+            await self.handle_chat_message(data, message_type=message_type)
+        else:
+            logger.warning(f"Unknown/unsupported action/type received: {envelope}")
+
+    async def chat_message(self, event):
+        """
+        Called by group_send; event['message'] already contains the serialized message dict.
+        """
+        await self.send(text_data=json.dumps({
+            "type": "chat_message",
+            "message": event["message"],
+        }))
+
+    async def handle_chat_message(self, data, message_type="text"):
+        """
+        Save the message (text/media) and broadcast it to the group.
+        Accepts either content (text) and/or media_url.
+        """
+        content = (data.get("content") or "").strip()
+        media_url = data.get("media_url") or None
+
+        # If both text and media are missing, ignore
+        if not content and not media_url:
+            return
+
+        # persist
+        message = await self.save_message(content=content, message_type=message_type, media_url=media_url)
+
+        # broadcast (note "type": "chat_message" here -> calls chat_message)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -107,6 +138,8 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
                 "message": {
                     "id": str(message.id),
                     "content": message.content,
+                    "message_type": message.message_type,
+                    "media_url": message.media_url,
                     "sender": {
                         "id": message.sender.id,
                         "username": message.sender.username,
@@ -115,6 +148,20 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
                 }
             }
         )
+
+    @database_sync_to_async
+    def save_message(self, content="", message_type="text", media_url=None):
+        """
+        Persist CommunityMessage including media_url and message_type.
+        """
+        return CommunityMessage.objects.create(
+            room=self.room,
+            sender=self.user,
+            content=content or "",
+            message_type=message_type,
+            media_url=media_url
+        )
+
     @database_sync_to_async
     def get_room_if_allowed(self):
         try:
@@ -127,9 +174,6 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
             return None
         return None
 
-    @database_sync_to_async
-    def save_message(self, content):
-        return CommunityMessage.objects.create(room=self.room, sender=self.user, content=content)
 
     @database_sync_to_async
     def update_user_presence(self, is_online):
