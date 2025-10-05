@@ -106,58 +106,63 @@ const loadMoreMessages = async () => {
 
 
 const handleSend = async (mediaUrl = null) => {
-  if (!newMessage.trim() && !mediaUrl) return; // prevent empty send
+  if (!newMessage.trim() && !mediaUrl) return;
 
   try {
-    // const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
-    // console.log("Sent message data:", data);
-    // setMessages([...messages, data]);
-    console.log("Sending message via chatService:", newMessage,text);
-    await chatService.sendMessage(community.uuid, newMessage, "text");
-    setMessages([...messages,newMessage]);
+    chatService.sendMessage(community.uuid, newMessage, "text", mediaUrl);
+
+    const tempMessage = {
+      content: newMessage,
+      message_type: mediaUrl
+        ? mediaUrl.match(/\.(mp4|webm|ogg)$/i)
+          ? "video"
+          : "image"
+        : "text",
+      media_url: mediaUrl,
+      sender: { id: userId, username: "You" },
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log("tempMessage: ",tempMessage)
     setNewMessage("");
   } catch (error) {
     console.error("Send Error:", error);
   }
 };
 
-  // ✅ Upload & Send Media (image/video/file)
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
+const handleFileUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  setUploading(true);
 
-    // 👇 Cloudinary upload preset & account
-    formData.append("upload_preset", "skillnest_profile");
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", "skillnest_profile");
 
-    try {
-      const res = await axios.post(
-        "https://api.cloudinary.com/v1_1/dg8kseeqo/upload", // auto-detects type
-        formData
-      );
-      const url = res.data.secure_url;
+  try {
+    const res = await axios.post(
+      "https://api.cloudinary.com/v1_1/dg8kseeqo/upload",
+      formData
+    );
+    const url = res.data.secure_url;
+    console.log("url1:",url)
+    let messageType = "file";
+    if (file.type.startsWith("image/")) messageType = "image";
+    else if (file.type.startsWith("video/")) messageType = "video";
 
-      // Detect file type
-      let messageType = "file";
-      if (file.type.startsWith("image/")) messageType = "image";
-      else if (file.type.startsWith("video/")) messageType = "video";
+    // ✅ Send the URL via WebSocket
+    chatService.sendMessage(community.uuid, "", messageType, url);
 
-      // Send media message
-      await chatService.sendMessage(community.uuid, newMessage, "text");
+    toast.success("Media sent!");
+  } catch (err) {
+    console.error("Upload failed:", err);
+    toast.error("Upload failed");
+  } finally {
+    setUploading(false);
+  }
+};
 
-
-      setMessages([...messages, newMessage]);
-      toast.success("Media uploaded");
-    } catch (err) {
-      console.error("Upload failed:", err);
-      toast.error("Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
 const loadMembers = async () => {
   try {
     const data = await getMembers(communityId); // pass it here
@@ -243,38 +248,38 @@ const handleRemoveMember = async (identifier) => {
 // }, [communityId]);
   
 const handleSendPendingFile = async () => {
-      if (!pendingFile) return;
-      setUploading(true);
-      const formData = new FormData();
-      formData.append("file", pendingFile);
-      formData.append("upload_preset", "skillnest_profile");
+  if (!pendingFile) return;
+  setUploading(true);
+  const formData = new FormData();
+  formData.append("file", pendingFile);
+  formData.append("upload_preset", "skillnest_profile");
 
-      try {
-        const res = await axios.post(
-          "https://api.cloudinary.com/v1_1/dg8kseeqo/upload",
-          formData
-        );
-        const url = res.data.secure_url;
+  try {
+    const res = await axios.post(
+      "https://api.cloudinary.com/v1_1/dg8kseeqo/upload",
+      formData
+    );
+    const url = res.data.secure_url;
+    console.log("url:2",url)
+    let msgType = "file";
+    if (pendingFile.type.startsWith("image/")) msgType = "image";
+    else if (pendingFile.type.startsWith("video/")) msgType = "video";
+    console.log("url2: ",msgType,url)
+    // ✅ Send uploaded file via WebSocket
+    chatService.sendMessage(community.uuid, "", msgType, url);
 
-        let messageType = "file";
-        if (pendingFile.type.startsWith("image/")) messageType = "image";
-        else if (pendingFile.type.startsWith("video/")) messageType = "video";
+    toast.success("File sent!");
+  } catch (err) {
+    console.error(err);
+    toast.error("Upload failed");
+  } finally {
+    setUploading(false);
+    setPendingFile(null);
+    setPreviewURL("");
+  }
+};
 
-        
-        chatService.sendMessage(community.uuid, newMessage, "text");
 
-
-        setMessages((prev) => [...prev, newMessage]);
-        toast.success("File sent!");
-      } catch (err) {
-        console.error(err);
-        toast.error("Upload failed");
-      } finally {
-        setUploading(false);
-        setPendingFile(null);
-        setPreviewURL("");
-      }
-    };
 useEffect(() => {
   console.log("useEffect for chatService with communityId:", communityId, "and community:", community);
   if (!community?.uuid) return; // wait until community/room info is ready
@@ -283,6 +288,7 @@ useEffect(() => {
 
   // listen for messages
   chatService.on("message", (message) => {
+    console.log("send messages compge: ",message)
     setMessages(prev => [...prev, message]);
   });
 
@@ -358,20 +364,13 @@ useEffect(() => {
           {msg.media_url && (
             <>
               {msg.message_type === "video" ? (
-                <video
-                  src={msg.media_url}
-                  controls
-                  className="mt-2 rounded-md max-w-full"
-                />
+                <video src={msg.media_url} controls className="mt-2 rounded-md max-w-full" />
               ) : (
-                <img
-                  src={msg.media_url}
-                  alt="uploaded"
-                  className="mt-2 rounded-md max-w-full"
-                />
+                <img src={msg.media_url} alt="uploaded" className="mt-2 rounded-md max-w-full" />
               )}
             </>
           )}
+
         </div>
 
         <span className="text-[10px] text-gray-400 mt-1">

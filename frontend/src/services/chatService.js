@@ -21,6 +21,7 @@ export default {
     ws.onerror = (e) => emit("error", e);
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
+      console.log("data from chatservice",data)
       if (data.type === "chat_message") emit("message", data.message);
       else if (data.type === "typing_indicator") emit("typing", data);
       else if (data.type === "user_status_update") emit("userStatus", data);
@@ -37,6 +38,7 @@ export default {
           media_url,
         })
       );
+      console.log("Sending message via WebSocket: sendMessage", content,media_url);
     } else {
       console.warn("WebSocket not open. Cannot send message.");
     }
@@ -61,20 +63,6 @@ export default {
     ws = null;
   }
 };
-export const sendMessage = (message) => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    console.log("Sending message via WebSocket:", message);
-    socket.send(
-      JSON.stringify({
-        type: "chat_message",
-        content: message,
-        message_type: type,
-        media_url,
-      })
-    );
-  } else {
-    console.warn("WebSocket not open. Cannot send message.");
-  }
-}
+
 
 //  roomUuid, content, type = "text", media_url = null)
