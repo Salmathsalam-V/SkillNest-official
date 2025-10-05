@@ -115,7 +115,7 @@ def toggle_comment_like(request, post_id, comment_id):
     else:
         comment.likes.add(user)
         liked = True
-        create_notification(sender=user, recipient=post.user, notif_type='comment', post=post)
+        create_notification(sender=user, recipient=post.user, notif_type='comment_like', post=post)
 
     return Response({
         "success": True,

@@ -12,13 +12,13 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         logger.warning(f"scope from consumer: {self.user}")
         # Reject connection if user is not authenticated
         if isinstance(self.user, AnonymousUser):
-            print("Anonymous user tried to connect to notifications in consumers.py")
+            logger.warning("Anonymous user tried to connect to notifications in consumers.py")
             await self.close()
             return
         
         # Create a unique group for this user
         self.group_name = f'notifications_{self.user.id}'
-        
+        logger.info(f"User {self.user} connecting to group {self.group_name}")
         # Join the user's notification group
         await self.channel_layer.group_add(
             self.group_name,
@@ -53,16 +53,16 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             }))
 
     # Handle notification messages sent from Django views
-    async def notification_message(self, event):
+    async def send_notification(self, event):
         # Send notification to WebSocket
+        logger.warning(f"Notification event: {event}")
         await self.send(text_data=json.dumps({
-            'type': 'notification',
-            'id': event.get('id'),
-            'title': event['title'],
-            'message': event['message'],
-            'timestamp': event.get('timestamp'),
-            'data': event.get('data', {})
-        }))
+        'id': event["content"]["id"],
+        'sender': event["content"]["sender"],
+        'type': event["content"]["type"],
+        'post_id': event["content"]["post_id"],
+        'timestamp': event["content"]["created_at"],
+    }))
 
 
 

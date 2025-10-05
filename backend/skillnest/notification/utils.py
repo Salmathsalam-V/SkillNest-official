@@ -2,6 +2,8 @@
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import Notification
+import logging
+logger = logging.getLogger(__name__)
 
 def create_notification(sender, recipient, notif_type, post=None):
     notification = Notification.objects.create(
@@ -11,6 +13,7 @@ def create_notification(sender, recipient, notif_type, post=None):
         post=post
     )
     channel_layer = get_channel_layer()
+    logger.warning(f"Channel layer: {channel_layer}, Recipient ID: {recipient.id}: {notification}")
     async_to_sync(channel_layer.group_send)(
         f'notifications_{recipient.id}',
         {

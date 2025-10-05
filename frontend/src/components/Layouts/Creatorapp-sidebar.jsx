@@ -2,8 +2,6 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  UsersRound,
-  FileText,
   MessageSquareText,
   PencilLine,
   LogOut,
@@ -15,13 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { logout } from "@/endpoints/axios";
 import { useSelector } from 'react-redux';
-import { useState } from 'react';
-import axios from "axios";
-import { useEffect } from 'react';
- import { useNotifications } from "@/components/hooks/useNotifications"
  export const AppSidebar = () => {
 
-  const notifications = useNotifications(); // live
 
   const navigate = useNavigate();
 
@@ -33,8 +26,6 @@ import { useEffect } from 'react';
   };
   const creator=useSelector((state) => state.user.user)
   console.log(creator)
-
-
   return (
     <aside className="fixed top-0 left-0 h-screen w-64 bg-[#f3f4f6] p-6 shadow-md overflow-y-auto">
       {/* Logo and Title */}

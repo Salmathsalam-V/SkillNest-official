@@ -14,7 +14,7 @@ export const useNotifications=()=> {
     const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${wsProtocol}://127.0.0.1:8000/ws/notifications/`);
 
-    console.log("WebSocket instance created:", ws);
+    console.log("WebSocket instance created from hooks, useNotification:", ws);
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
       setNotifications((prev) => [data, ...prev]);

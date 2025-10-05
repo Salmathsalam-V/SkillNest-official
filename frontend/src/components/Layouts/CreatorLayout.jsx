@@ -38,8 +38,24 @@ const CreatorLayout = ({ children }) => {
       .then((res) => setHistory(res.data.results || []))
       .catch(console.error);
   }, []);
+const normalizedHistory = history.map((n) => ({
+  id: n.id,
+  sender: n.sender_name || n.sender,
+  notif_type: n.notif_type || n.type,
+  created_at: n.created_at || n.timestamp,
+  read: n.read || false,
+}));
 
-  const allNotifications = [...notifications, ...history];
+const normalizedLive = notifications.map((n) => ({
+  id: n.id,
+  sender: n.sender,
+  notif_type: n.notif_type || n.type,
+  created_at: n.created_at || n.timestamp,
+  read: false,
+}));
+
+const allNotifications = [...normalizedLive, ...normalizedHistory];
+
 
   return (
     <div className="flex min-h-screen">

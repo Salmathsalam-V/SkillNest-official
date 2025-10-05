@@ -8,10 +8,11 @@ class Notification(models.Model):
         ('like', 'Like'),
         ('comment', 'Comment'),
         ('follow', 'Follow'),
+        ('comment_like', 'Comment Like'),
     )
     recipient = models.ForeignKey(User, related_name='notifications', on_delete=models.CASCADE)
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
-    notif_type = models.CharField(max_length=10, choices=NOTIF_TYPES)
+    notif_type = models.CharField(max_length=15, choices=NOTIF_TYPES)
     post = models.ForeignKey(Post, null=True, blank=True, on_delete=models.CASCADE)
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
