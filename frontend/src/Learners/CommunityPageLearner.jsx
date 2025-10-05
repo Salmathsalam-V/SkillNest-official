@@ -48,9 +48,9 @@ export const CommunityPageLearner = () => {
   const handleSend = async (mediaUrl = null, type = "text") => {
     if (!newMessage.trim() && !mediaUrl) return;
     try {
-      const { data } = chatService.sendMessage(community.uuid, newMessage, "text");
+      chatService.sendMessage(community.uuid, newMessage, "text", mediaUrl);
 
-      setMessages((prev) => [...prev, data]);
+      
       setNewMessage("");
     } catch (error) {
       console.error("Send Error:", error);
