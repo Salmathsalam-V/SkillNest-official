@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from . models import Creator
+import logging
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -57,7 +59,7 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("User account is disabled.")
 
         refresh = RefreshToken.for_user(user)
-
+        logger.debug(f"Generated tokens for user {user.email}: refresh={refresh}, access={refresh.access_token}")
         return {
             'user': {
                 'id': user.id,
