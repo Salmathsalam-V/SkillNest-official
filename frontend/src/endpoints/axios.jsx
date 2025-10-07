@@ -134,6 +134,7 @@ export const logout = async () => {
 export const get_learners = async () => {
   try {
     const response = await apiClient.get(LEARNERS_URL, { withCredentials: true });
+    console.log("Learners fetched:", response.data);
     return response.data.learners;
   } catch (error) {
     console.error("Fetching learners failed:", error.response?.data || error.message);

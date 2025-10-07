@@ -4,7 +4,6 @@ from django.contrib.auth.models import AnonymousUser
 from channels.db import database_sync_to_async
 from .models import Notification
 from rest_framework_simplejwt.tokens import AccessToken
-from accounts.models import User
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
@@ -23,9 +22,9 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
 
     async def send_notification(self, event):
         await self.send_json(event['content'])
-
     @database_sync_to_async
     def get_user(self, token):
+        from accounts.models import User
         try:
             payload = AccessToken(token)
             return User.objects.get(id=payload['user_id'])
