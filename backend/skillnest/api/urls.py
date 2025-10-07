@@ -1,13 +1,13 @@
 from django.urls import path
 from . import views
-from accounts.views import LoginView, RegisterView,ProtectedView, RefreshTokenView,LogoutView,GoogleLoginAPIView,send_otp_view,verify_otp_view,reset_password_view,ProfileView,CreatorCreateView,search_users,upload_image
+from accounts.views import LoginView, RegisterView,ProtectedView, CookieTokenRefreshView,LogoutView,GoogleLoginAPIView,send_otp_view,verify_otp_view,reset_password_view,ProfileView,CreatorCreateView,search_users,upload_image
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from creator.views import PostView
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', RefreshTokenView.as_view(), name='token_refresh'),
+    path('token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
     path('login/', LoginView.as_view(), name='login'),
     path('protected/', ProtectedView.as_view(), name='protected_view'),
     path('post/', PostView.as_view(),name='post'),

@@ -84,16 +84,19 @@ MIDDLEWARE = [
 INTERNAL_IPS = ['127.0.0.1']
 
 CORS_ALLOW_CREDENTIALS = True
-
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:8000",
+     "http://127.0.0.1:5173",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:5173",
+     "http://127.0.0.1:5173",
 ]
+CSRF_COOKIE_SAMESITE = 'None'
 # SESSION_COOKIE_SECURE = False  # ⚠️ True in production
 # CSRF_COOKIE_SECURE = False     # ⚠️ True in production
 # SESSION_COOKIE_SAMESITE = "Lax"
@@ -101,7 +104,7 @@ CSRF_TRUSTED_ORIGINS = [
 # SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 REST_FRAMEWORK = {
      'DEFAULT_AUTHENTICATION_CLASSES': (
-        'accounts.authentication.JWTCookieAuthentication',
+        'accounts.authentication.CustomJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -111,19 +114,21 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=2),
-    'BLACKLIST_AFTER_ROTATION': True,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_COOKIE_ACCESS': 'access_token',         # Custom
-    'AUTH_COOKIE_REFRESH': 'refresh_token',       # Custom
+    'BLACKLIST_AFTER_ROTATION': True,
+
+    # 👇 These are for cookie behavior
+    'AUTH_COOKIE_SECURE': False,  # True in production (HTTPS)
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_SAMESITE': 'None',  # or 'None' if using frontend on another domain  
 }
 
-# Change to True in production || Required for SameSite=None to work
-AUTH_COOKIE_SECURE = True
-AUTH_COOKIE_HTTP_ONLY = True  # Prevent JavaScript from accessing the cookie
-AUTH_COOKIE_SAMESITE = "None"  # Required for cross-site cookies
+# # Change to True in production || Required for SameSite=None to work
+# AUTH_COOKIE_SECURE = True
+# AUTH_COOKIE_HTTP_ONLY = True  # Prevent JavaScript from accessing the cookie
+# AUTH_COOKIE_SAMESITE = "None"  # Required for cross-site cookies
 
 AUTHENTICATION_BACKENDS = ['accounts.authentication.EmailBackend', 
                            'django.contrib.auth.backends.ModelBackend'

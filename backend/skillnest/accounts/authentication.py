@@ -6,16 +6,13 @@ from django.conf import settings
 User = get_user_model()
 
 
-class JWTCookieAuthentication(JWTAuthentication):
+class CustomJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
-        raw_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'])
-        refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-        print("Access token from cookie:", raw_token, "Refresh token from cookie:", refresh_token)
-        if raw_token is None:
-            return None
-        validated_token = self.get_validated_token(raw_token)
-        return self.get_user(validated_token), validated_token
-
+        access_token = request.COOKIES.get('access_token')
+        if access_token:
+            validated_token = self.get_validated_token(access_token)
+            return self.get_user(validated_token), validated_token
+        return None
 
 class EmailBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):

@@ -35,7 +35,7 @@ apiClient.interceptors.response.use(
       
       try {
         // Check if we have cookies before attempting refresh
-        alert('Document cookies:', document.cookie);
+        alert('Document cookies: ' + document.cookie);
         
         const refreshResponse = await refreshClient.post(REFRESH_URL, {}, { 
           withCredentials: true 
@@ -47,7 +47,8 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
         
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError.response?.data);
+       alert('Token refresh failed: ' + JSON.stringify(refreshError.response?.data));
+        console.error('Refresh error:', refreshError.response?.data || refreshError.message);
         
         if (!isSessionExpiredHandle) {
           isSessionExpiredHandle = true;
@@ -76,22 +77,6 @@ export const login = async (email, password) => {
   }
 };
 
-
-// export const refresh_token = async () => {
-//   try {
-//     await axios.post(
-//       REFRESH_URL,
-//       {},
-//       { withCredentials: true }
-//     );
-
-//     // optionally: return the token or a success flag
-//     return response.data.refreshed === true;
-//   } catch (error) {
-//     console.error("Token refresh failed", error);
-//     return false;
-//   }
-// };
 
 export const get_post = async ()=>{
   try{

@@ -8,7 +8,7 @@ from rest_framework import status, viewsets
 from . models import Creator
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
-from accounts.authentication import JWTCookieAuthentication
+
 from rest_framework.views import APIView
 from rest_framework import generics, permissions
 from accounts.models import User
@@ -19,7 +19,7 @@ from notification.utils import create_notification
 
 
 class PostView(ListCreateAPIView):
-    permission_classes = [AllowAny] 
+    permission_classes = [IsAuthenticatedOrReadOnly]
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
 
@@ -30,7 +30,7 @@ class PostView(ListCreateAPIView):
 
 # Retrieve, Update, Delete a single post
 class PostDetailView(RetrieveUpdateDestroyAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 

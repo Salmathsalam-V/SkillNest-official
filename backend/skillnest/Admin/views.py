@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated,IsAdminUser
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from accounts.authentication import JWTCookieAuthentication
+from accounts.authentication import CustomJWTAuthentication
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
 from rest_framework import status
@@ -19,8 +19,8 @@ from django.shortcuts import get_object_or_404
 
 
 class LearnerListView(ListAPIView):
-    authentication_classes = [JWTCookieAuthentication]  
-    permission_classes = [IsAuthenticated] 
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
 
     def get_queryset(self):
@@ -35,14 +35,15 @@ class LearnerListView(ListAPIView):
         })
 
 class LearnerDetailView(RetrieveUpdateDestroyAPIView):
+    authentication_classes = [CustomJWTAuthentication]  
+    permission_classes = [IsAuthenticated] 
     queryset = User.objects.filter(user_type='learner')
     serializer_class = UserSerializer
-    permission_classes = [AllowAny] 
     lookup_field = 'id'
 
 
 class CreatorListView(ListAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny] 
     serializer_class = CombinedCreatorUserSerializer
 
     def get_queryset(self):
