@@ -45,9 +45,13 @@ const CreateExtraDetails = () => {
 
     try {
       const res = await axios.post(
-        'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
-        formData
-      );
+            'http://localhost:8000/api/upload-image/',
+            formData,
+            {
+              headers: { 'Content-Type': 'multipart/form-data' },
+              withCredentials: true,
+            }
+          );
       setBackground(res.data.secure_url);  // Set the uploaded image URL
     } catch (err) {
       console.error("Image upload failed:", err);

@@ -24,6 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { Loader } from '@/components/Layouts/Loader';
 
 const LearnerList = () => {
   const [learners, setLearners] = useState([]);

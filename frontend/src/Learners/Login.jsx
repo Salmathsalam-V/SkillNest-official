@@ -5,7 +5,7 @@ import { login } from '@/endpoints/axios';
 import { setUser } from '../Redux/userSlice';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
-
+import { useState } from 'react';
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
+import { Loader }  from '@/components/Layouts/Loader';
 
 const schema = Yup.object().shape({
   email: Yup.string()
@@ -28,7 +29,8 @@ const schema = Yup.object().shape({
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
+  const [loading, setLoading] = useState(false);
+  
   const {
     register,
     handleSubmit,
@@ -55,6 +57,7 @@ const Login = () => {
       toast.error("Login failed: " + (error.response?.data?.error || error.message));
     }
   };
+  if (loading) return <Loader text="Loading..." />; // or redirect to login
 
   return (
     <div className="flex flex-col gap-6 min-h-screen justify-center items-center bg-muted px-4">

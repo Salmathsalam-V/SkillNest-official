@@ -168,7 +168,7 @@ const submitPost = async () => {
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'skillnest_profile'); // Your Cloudinary preset
+    formData.append('upload_preset', 'skillnest_profile'); 
 
     try {
       setUploading(true);
@@ -208,7 +208,7 @@ const fetchPosts = async (offset = 0) => {
   }
 };
 useEffect(() => {
-  setPosts([]);      // reset when id changes
+  setPosts([]);      
   setNextPage(0);
   setHasMore(true);
   fetchPosts(0);
@@ -257,8 +257,12 @@ const handleUpdatePost = async (post) => {
 
     try {
       const res = await axios.post(
-        'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
-        formData
+        'http://localhost:8000/api/upload-image/',
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          withCredentials: true,
+        }
       );
       setImage(res.data.secure_url);
     } catch (err) {
@@ -312,6 +316,34 @@ const handleCommentSubmit = async (postId) => {
     toast.error("Failed to post comment");
   }
 };
+const handleProfileUpload = async (e) => {
+  const file = e.target.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'skillnest_profile'); // optional if needed by your backend
+
+  try {
+    setUploading(true);
+    const res = await axios.post(
+      'http://localhost:8000/api/upload-image/',
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      }
+    );
+    console.log("Profile upload response:", res.data.url);
+    const url = res.data.url;
+    setEditData((prev) => ({ ...prev, profile: url }));
+    toast.success("Profile image uploaded");
+  } catch (error) {
+    toast.error("Profile image upload failed");
+    console.error("Upload error:", error);
+  } finally {
+    setUploading(false);
+  }
+};
+
   if (loading) return <p className="text-center py-10">Loaders</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
@@ -368,7 +400,8 @@ const handleCommentSubmit = async (postId) => {
                 <DialogTrigger asChild>
                   <Button variant="outline" onClick={() => setIsEditOpen(true)}>Edit Profile</Button>
                 </DialogTrigger>
-                <DialogContent>
+                  <DialogContent className="max-h-[80vh] overflow-y-auto">
+
                   <DialogHeader>
                   <DialogTitle>Edit Creator Info</DialogTitle>
                   <DialogDescription>Update the creator's information below and click Save.</DialogDescription>
@@ -393,25 +426,46 @@ const handleCommentSubmit = async (postId) => {
                       value={editData.category}
                       onChange={handleInputChange}
                     />
-                    <div className="flex flex-col gap-2">
-  <Label htmlFor="background-upload">Upload Background</Label>
-  <Input
-    id="background-upload"
-    type="file"
-    accept="image/*"
-    onChange={handleBackgroundUpload}
-  />
-  {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
-  {editData.background && (
-    <img
-      src={editData.background}
-      alt="Background preview"
-      className="w-full max-w-sm h-40 object-cover rounded-md mt-2 border"
-    />
-  )}
-</div>
+                  {/* Upload Profile Image */}
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="profile-upload">Upload Profile Image</Label>
+                    <Input
+                      id="profile-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileUpload}
+                    />
+                    {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                    {editData.profile && (
+                      <img
+                        src={editData.profile}
+                        alt="Profile preview"
+                        className="w-24 h-24 rounded-full object-cover border mt-2"
+                      />
+                    )}
+                  </div>
 
-<div className="mt-2">
+                  {/* Upload Background Image */}
+                  <div className="flex flex-col gap-2 mt-3">
+                    <Label htmlFor="background-upload">Upload Background</Label>
+                    <Input
+                      id="background-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBackgroundUpload}
+                    />
+                    {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                    {editData.background && (
+                      <img
+                        src={editData.background}
+                        alt="Background preview"
+                        className="w-full max-w-sm h-40 object-cover rounded-md mt-2 border"
+                      />
+                    )}
+                  </div>
+
+
+{/* <div className="mt-2">
   <Label>Or paste background image URL</Label>
   <Input
     name="background"
@@ -419,7 +473,7 @@ const handleCommentSubmit = async (postId) => {
     value={editData.background}
     onChange={handleInputChange}
   />
-</div>
+</div> */}
 
                     <Textarea
                       name="description"
@@ -431,6 +485,7 @@ const handleCommentSubmit = async (postId) => {
                   </div>
                 </DialogContent>
               </Dialog>
+
             </div>
           </div>
         </Card>

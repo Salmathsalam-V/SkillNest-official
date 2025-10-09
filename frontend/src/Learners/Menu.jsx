@@ -11,13 +11,12 @@ import { toast } from 'sonner';
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import AdminLayout from "@/components/Layouts/AdminLayout";
-
+import { Loader }  from '@/components/Layouts/Loader';
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
   const [commentText, setCommentText] = useState({});
   const [loading, setLoading] = useState(true);
   const [openPost, setOpenPost] = useState(null);
-
   const user = useSelector((state) => state.user.user); // get user from redux
   const userType = user?.user_type;
 
@@ -121,7 +120,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
   }
 };
 
-  if (loading) return <p className="text-center mt-10">Loading posts...</p>;
+  if (loading) return <Loader text="Loading posts..." />; // or redirect to login
 
   // ✅ Decide layout
   let Layout;
@@ -219,7 +218,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
 
       {/* Popup for comments */}
       <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
           <DialogHeader>
             <DialogTitle>Comments</DialogTitle>
           </DialogHeader>

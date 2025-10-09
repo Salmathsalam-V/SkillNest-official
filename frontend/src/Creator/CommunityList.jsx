@@ -11,6 +11,9 @@ import {
   DialogContent, } from "@/components/ui/dialog";
 import { DialogHeader } from "@/components/ui/dialog";
 import { DialogTitle } from "@/components/ui/dialog";
+import { Loader }  from '@/components/Layouts/Loader';
+import { toast } from "sonner";
+
 
 export const CommunityList = () => {
   const [communities, setCommunities] = useState([]);
@@ -22,22 +25,30 @@ export const CommunityList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false); // modal state
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
   // Fetch communities and users
   useEffect(() => {
-    const loadData = async () => {
-      const data = await fetchCommunities(page);
-      if (data) {
-        setCommunities(prev => data.results);
+    try{
+      const loadData = async () => {
+        const data = await fetchCommunities(page);
+        if (data) {
+          setCommunities(prev => data.results);
 
-        setTotalPages(Math.ceil(data.count / data.results.length)); // 10 = DRF PAGE_SIZE
+          setTotalPages(Math.ceil(data.count / data.results.length)); // 10 = DRF PAGE_SIZE
+        }
+        const userRes = await fetchUsers();
+        setUsers(userRes || []);
+      };
+      loadData();
+    }
+    catch (err) {
+        console.error("Error fetching posts:", err);
+      } finally {
+        setLoading(false);
       }
-      const userRes = await fetchUsers();
-      setUsers(userRes || []);
-    };
-    loadData();
   }, [page]);
 
   const handleMemberToggle = (userId) => {
@@ -49,7 +60,7 @@ export const CommunityList = () => {
   };
 
   const handleCreate = async () => {
-    if (!name.trim()) return alert("Name is required");
+    if (!name.trim()) return toast.error("Name is required");
     try {
       const newCommunity = await createCommunity(name, description, selectedMembers);
       setCommunities([...communities, newCommunity]);
@@ -66,6 +77,7 @@ export const CommunityList = () => {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+  if (loading) return <Loader text="Loading communities..." />; // or redirect to login
 
   return (
     <CreatorLayout>
@@ -120,7 +132,7 @@ export const CommunityList = () => {
 
        {/* Create Community Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Community</DialogTitle>
             </DialogHeader>

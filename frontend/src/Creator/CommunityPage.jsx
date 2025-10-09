@@ -21,6 +21,7 @@ import {
 import { X } from "lucide-react";
 import chatService from "../services/chatService";
 import { text } from "@fortawesome/fontawesome-svg-core";
+import { Loader }  from '@/components/Layouts/Loader';
 
 export const CommunityPage = () => {
   const { communityId } = useParams();
@@ -40,6 +41,7 @@ export const CommunityPage = () => {
   const messagesContainerRef = useRef(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -309,7 +311,10 @@ useEffect(() => {
 }, [community?.uuid]);
 
 
-  if (!community) return <p>Loading community...</p>;
+  // if (!community) return <p>Loading community...</p>;
+
+  if (!community) return <Loader text="Loading Chats..." />; // or redirect to login
+  
 
   return (   
     <CreatorLayout>
