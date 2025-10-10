@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
+import { listCreators } from "@/endpoints/axios";
 
 export const CreatorsListPublic = () => {
   const [creators, setCreators] = useState([]);
@@ -24,7 +25,7 @@ export const CreatorsListPublic = () => {
   useEffect(() => {
     const fetchCreators = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/admin/creators/");
+        const response = await listCreators();
         if (response.data.success) {
           setCreators(response.data.creators);
           setFilteredCreators(response.data.creators);

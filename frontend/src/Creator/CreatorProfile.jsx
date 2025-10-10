@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Heart, MessageCircle } from "lucide-react";
-import { createComment } from '../endpoints/axios';
+import { createComment, imageUpload, updateCreatorProfile, updatePost } from '../endpoints/axios';
 
 export default function CreatorProfile() {
   const { id } = useParams();
@@ -60,8 +60,7 @@ const handlePostImageUpload = async (e) => {
 
   try {
     console.log("Uploading image:", file);
-    const res = await axios.post(
-      'http://localhost:8000/api/upload-image/',
+    const res = await imageUpload(
       formData,
       {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -94,20 +93,12 @@ const submitPost = async () => {
   try {
     let res;
     if (mode === 'create') {
-      res = await axios.post(
-        `http://localhost:8000/api/creator/creators/${id}/posts/`,
-        payload,
-        { withCredentials: true }
-      );
+      res = await getCreatorPosts(id);
       setPosts((prev) => [res.data, ...prev]);
       toast.success("Post created successfully");
     } else {
       // mode === 'edit'
-      res = await axios.patch(
-        `http://localhost:8000/api/creator/creators/posts/${data.id}/`,
-        payload,
-        { withCredentials: true }
-      );
+      const res = await updatePost(data.id, payload);
       setPosts((prev) =>
         prev.map((p) => (p.id === data.id ? { ...p, ...res.data } : p))
       );
@@ -154,10 +145,10 @@ const submitPost = async () => {
 
   const handleSaveChanges = async () => {
     try {
-      const response = await axios.patch(`http://localhost:8000/api/admin/creators-view/${id}/`, editData);
+      const res = await updateCreatorProfile(id, editData);
       toast.success("Profile updated successfully");
       setIsEditOpen(false);
-      if (response.data.success) {
+      if (res.data.success) {
         setCreator({ ...creator, ...editData });
       }
     } catch (error) {

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember   } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload   } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import { toast } from 'sonner';
 import {
@@ -143,10 +143,7 @@ const handleFileUpload = async (e) => {
   formData.append("upload_preset", "skillnest_profile");
 
   try {
-    const res = await axios.post(
-      "https://api.cloudinary.com/v1_1/dg8kseeqo/upload",
-      formData
-    );
+    const res = await imageUpload( formData);
     const url = res.data.secure_url;
     console.log("url1:",url)
     let messageType = "file";
@@ -257,8 +254,7 @@ const handleSendPendingFile = async () => {
   formData.append("upload_preset", "skillnest_profile");
 
   try {
-    const res = await axios.post(
-      "https://api.cloudinary.com/v1_1/dg8kseeqo/upload",
+    const res = await imageUpload(
       formData
     );
     const url = res.data.secure_url;

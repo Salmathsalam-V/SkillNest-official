@@ -22,7 +22,7 @@ import Footer from './Footer';
 import { useSelector } from "react-redux";
  import { useNotifications } from "@/components/hooks/useNotifications"
  import { NotificationDropdown } from "@/components/Layouts/NotificationDropdown"
-
+import { getNotifications } from '@/endpoints/axios';
 const CreatorLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
@@ -33,10 +33,15 @@ const CreatorLayout = ({ children }) => {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    axios
-      .get("http://127.0.0.1:8000/api/notifications/list/", { withCredentials: true })
-      .then((res) => setHistory(res.data.results || []))
-      .catch(console.error);
+    const fetchNotifications = async () => {
+      const res = await getNotifications();
+      if (res.success) {
+        setHistory(res.data);
+      } else {
+        console.error("Failed to load notifications:", res.error);
+      }
+    };
+    fetchNotifications();
   }, []);
 const normalizedHistory = history.map((n) => ({
   id: n.id,

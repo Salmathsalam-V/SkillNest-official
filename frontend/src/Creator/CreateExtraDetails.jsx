@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { imageUpload } from '@/endpoints/axios';
+import { createCreator } from '@/endpoints/axios';
 
 const CreateExtraDetails = () => {
   const [category, setCategory] = useState('');
@@ -18,24 +20,29 @@ const CreateExtraDetails = () => {
   const email = location.state?.email;
   const categories = ['Crochet', 'Baking', 'Crafting', 'Pottery', 'Painting', 'Other'];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const selectedCategory = category === 'Other' ? customCategory : category;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const selectedCategory = category === "Other" ? customCategory : category;
 
-    try {
-      console.log("email",email)
-      await axios.post('http://localhost:8000/api/create-creator/', {
-        email,
-        category: selectedCategory,
-        description,
-        background,
-      }, { withCredentials: true });
-      navigate('/login')
-    } catch (error) {
-      toast.error("Failed to create background")
-      console.error('Failed to create creator background:', error);
+  try {
+    const res = await createCreator({
+      email,
+      category: selectedCategory,
+      description,
+      background,
+    });
+
+    if (res.success) {
+      toast.success("Creator created successfully");
+      navigate("/login");
+    } else {
+      toast.error("Failed to create creator");
     }
-  };
+  } catch (err) {
+    console.error("Error creating creator:", err);
+    toast.error("Something went wrong");
+  }
+};
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -44,8 +51,7 @@ const CreateExtraDetails = () => {
     formData.append('upload_preset', 'skillnest_profile'); // from Cloudinary dashboard
 
     try {
-      const res = await axios.post(
-            'http://localhost:8000/api/upload-image/',
+      const res = await imageUpload(
             formData,
             {
               headers: { 'Content-Type': 'multipart/form-data' },

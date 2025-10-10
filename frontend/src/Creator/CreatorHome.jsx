@@ -7,8 +7,7 @@ import LearnerBanner from '../assets/learner-banner.jpg';
 import { useSelector } from 'react-redux';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import axios from 'axios';
-
+import { sendContactMessage } from '@/endpoints/axios';
 const communities = [
   { id: 1, name: "Batch Alpha - Fabindia", description: "Active Learning Group", messages: 3 },
   { id: 2, name: "Batch Beta - Zudio", description: "Python Enthusiasts", messages: 1 },
@@ -36,26 +35,26 @@ export const CreatorHome = () => {
     const success = await logout();
     if (success) navigate('/login');
   };
-   const handleContactUs = async () => {
-    if (!message.trim()) {
-      toast.error("Please write a message before sending.");
-      return;
-    }
-    try {
-      console.log(user.id);
-      const res = await axios.post(
-        "http://localhost:8000/api/admin/contact-us/", 
-        { content: message, user: user.id },                 
-        { withCredentials: true }             
-      );
-      toast.success("Message sent to admin successfully");
-      setMessage(""); 
-    } catch (err) {
-      console.error("Error on sending:", err);
-      toast.error("Failed to send message.");
-    }
-  };
+const handleContactUs = async () => {
+  if (!message.trim()) {
+    toast.error("Please write a message before sending.");
+    return;
+  }
 
+  try {
+    const res = await sendContactMessage({ content: message, userId: user.id });
+
+    if (res.success) {
+      toast.success("Message sent to admin successfully");
+      setMessage("");
+    } else {
+      toast.error("Failed to send message");
+    }
+  } catch (err) {
+    console.error("Error sending message:", err);
+    toast.error("Something went wrong");
+  }
+};
   return (
     <CreatorLayout>
       {/* Banner */}

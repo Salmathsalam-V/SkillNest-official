@@ -489,13 +489,75 @@ export const updateLearner = async (learnerId, updatedData) => {
   }
 };
 
-// ✅ Fetch all contact messages
+//  Fetch all contact messages
 export const getContactMessages = async () => {
   try {
     const res = await apiClient.get("/admin/contact-us/");
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to fetch contact messages:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Fetch all notifications
+export const getNotifications = async () => {
+  try {
+    const res = await apiClient.get("/notifications/list/");
+    return { success: true, data: res.data.results || [] };
+  } catch (err) {
+    console.error("Error fetching notifications:", err);
+    return { success: false, error: err };
+  }
+};
+
+// Create a creator
+export const createCreator = async ({ email, category, description, background }) => {
+  try {
+    const res = await apiClient.post("/create-creator/", {
+      email,
+      category,
+      description,
+      background,
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to create creator:", err);
+    return { success: false, error: err };
+  }
+};
+
+// Send a message to admin
+export const sendContactMessage = async ({ content, userId }) => {
+  try {
+    const res = await apiClient.post("/admin/contact-us/", {
+      content,
+      user: userId,
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to send contact message:", err);
+    return { success: false, error: err };
+  }
+};
+
+// Update a post by ID
+export const updatePost = async (postId, payload) => {
+  try {
+    const res = await apiClient.patch(`/creator/creators/posts/${postId}/`, payload);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to update post:", err);
+    return { success: false, error: err };
+  }
+};
+
+export const updateCreatorProfile = async (creatorId, payload) => {
+  try {
+    const res = await apiClient.patch(`/admin/creators-view/${creatorId}/`, payload);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to update creator profile:", err);
     return { success: false, error: err };
   }
 };

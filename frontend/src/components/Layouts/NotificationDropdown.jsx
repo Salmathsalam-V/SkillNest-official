@@ -1,5 +1,4 @@
 import React, { useState,useEffect } from "react";
-import axios from "axios";
 export function NotificationDropdown({notifications}) {
   const [open, setOpen] = useState(false);
   console.log("Notifications in Dropdown:", notifications);
