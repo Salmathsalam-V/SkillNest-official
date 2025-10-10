@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom, imageUpload } from "../endpoints/axios";
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import { toast } from "sonner";
 import chatService from "../services/chatService";
@@ -72,8 +72,7 @@ export const CommunityPageLearner = () => {
     formData.append("file", pendingFile);
     formData.append("upload_preset", "skillnest_profile");
     try {
-      const res = await axios.post(
-        "https://api.cloudinary.com/v1_1/dg8kseeqo/upload",
+      const res = await imageUpload(
         formData
       );
       const url = res.data.secure_url;
