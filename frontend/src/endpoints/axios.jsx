@@ -1,4 +1,6 @@
 import axios from 'axios';
+import api from "@/api/axios";
+
 
 const BASE_URL = 'http://127.0.0.1:8000/api/';
 const LOGIN_URL = `${BASE_URL}login/`;
@@ -356,5 +358,77 @@ export const getCommunityMembers = async (communityId) => {
 
   } catch (err) {
     console.error("Error fetching users:", err);
+  }
+};
+
+
+export const registerUser = async (formData) => {
+  try {
+    const response = await api.post("register/", formData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Register error:", error.response?.data || error.message);
+    return { success: false, error };
+  }
+};
+
+export const imageUpload = async (formData) => {
+  try {
+    const res = await api.post("/upload-image/",   
+      imgData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+  } catch (error) {
+    console.error("image uplaod  error from axios:", error.response?.data || error.message);
+    return { success: false, error };
+  }
+};
+
+export const creatorData = async (creatorId) => {
+  try {
+    const res = await apiClient.get(`/admin/creators-view/${creatorId}/`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    return { success: false, error: err };
+  }
+};
+
+export const getCreatorPosts = async (creatorId) => {
+  try {
+    const res = await apiClient.get(`/creator/creators/${creatorId}/posts/`);
+    return { success: true, data: res.data.results || [] };
+  } catch (err) {
+    console.error("Error fetching creator posts:", err);
+    return { success: false, error: err };
+  }
+};
+
+
+// ✅ Approve creator
+export const approveCreator = async (creatorId) => {
+  try {
+    const res = await apiClient.patch(`/admin/creators-view/${creatorId}/`, {
+      approve: "accept",
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error approving creator:", err);
+    return { success: false, error: err };
+  }
+};
+
+// ✅ Reject creator
+export const rejectCreator = async (creatorId) => {
+  try {
+    const res = await apiClient.patch(`/admin/creators-view/${creatorId}/`, {
+      approve: "reject",
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error rejecting creator:", err);
+    return { success: false, error: err };
   }
 };

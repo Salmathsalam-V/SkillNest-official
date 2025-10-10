@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AdminLayout from '@/components/Layouts/AdminLayout';
-import { toggleLike,createComment,toggleCommentLike,get_course } from '../endpoints/axios';
+import { toggleLike,createComment,toggleCommentLike,get_course,creatorData,getCreatorPosts,approveCreator,rejectCreator  } from '../endpoints/axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Heart, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner'; 
+import { Loader }  from '@/components/Layouts/Loader';
+
 
 export function CreatorData() {
   const { id } = useParams();
@@ -21,10 +22,12 @@ export function CreatorData() {
   const [courses, setCourses] = useState([]);
   const [posts, setPosts] = useState([]);
   const [commentText, setCommentText] = useState({});
+  
   useEffect(() => {
     const fetchCreator = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/api/admin/creators-view/${id}/`);
+        console.log("Fetching creator with id:", id);
+        const response = await creatorData(id);
         console.log("Fetched creator: from cr view", response.data);
         if (response.data.success) {
             setCreator(response.data.creator);
@@ -46,16 +49,13 @@ export function CreatorData() {
     useEffect(() => {
   const fetchCreatorData = async () => {
     try {
-
-      const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
-      console.log("Posts fetched:",{id}, res.data);
-      const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
+      const resPosts = await getCreatorPosts(id);
       console.log("Posts fetched:", resPosts.data);
-      setPosts(resPosts.data.results || []);
+      setPosts(resPosts.data || []);
       console.log("creatoriid : ", id);
       try{
         const resCourses = await get_course(id);
-        setCourses(resCourses);
+        setCourses(resCourses || []);
         console.log("Courses fetched:", courses,resCourses[0]);
 
       }
@@ -72,7 +72,7 @@ export function CreatorData() {
 
 const handleApprove = async () => {
   try {
-    const response = await axios.patch(`http://localhost:8000/api/admin/creators-view/${id}/`, {
+    const response = await approveCreator(id, {
       approve: "accept"
     });
     if (response.data.success) {
@@ -85,7 +85,7 @@ const handleApprove = async () => {
 
 const handleReject = async () => {
   try {
-    const response = await axios.patch(`http://localhost:8000/api/admin/creators-view/${id}/`, {
+    const response = await rejectCreator(id , {
       approve: "reject"
     });
     if (response.data.success) {
@@ -178,8 +178,8 @@ const handleCommentLikeToggle = async (postId, commentId) => {
   }
 };
 
-  if (loading) return <p className="text-center py-10">Loading...</p>;
-  if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
+  if (loading) return <Loader text="Loading ..." />; // or redirect to login
+  if (error) return <Loader text="Loading creator data ..." />; 
 
   return (
     <AdminLayout>
