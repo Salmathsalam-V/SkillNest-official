@@ -432,3 +432,70 @@ export const rejectCreator = async (creatorId) => {
     return { success: false, error: err };
   }
 };
+//fetch creators list for admin
+export const listCreators = async () => {
+  try {
+    const res = await apiClient.get('/admin/creators/');
+    console.log("Creators list response:", res.data);
+    return { success: true, data: res.data || [] };
+  } catch (err) {
+    console.error("Error fetching creator posts:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Delete a creator from admin
+export const deleteCreator = async (creatorId) => {
+  try {
+    const res = await apiClient.delete(`/admin/creators/${creatorId}/`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error deleting creator:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Update a creator from admin
+export const updateCreator = async (creatorId, updatedData) => {
+  try {
+    const res = await apiClient.patch(`/admin/creators/${creatorId}/`, updatedData);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error updating creator:", err);
+    return { success: false, error: err };
+  }
+};
+
+
+//  Delete learner from admin
+export const deleteLearner = async (learnerId) => {
+  try {
+    const res = await apiClient.delete(`/admin/learners/${learnerId}/`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error deleting learner:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Update learner from admin
+export const updateLearner = async (learnerId, updatedData) => {
+  try {
+    const res = await apiClient.patch(`/admin/learners/${learnerId}/`, updatedData);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error updating learner:", err);
+    return { success: false, error: err };
+  }
+};
+
+// ✅ Fetch all contact messages
+export const getContactMessages = async () => {
+  try {
+    const res = await apiClient.get("/admin/contact-us/");
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to fetch contact messages:", err);
+    return { success: false, error: err };
+  }
+};

@@ -1,6 +1,5 @@
 import React, { useEffect, useState,useMemo } from 'react';
-import axios from 'axios';
-import { get_learners } from '@/endpoints/axios';
+import { get_learners,deleteLearner,updateLearner } from '@/endpoints/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,13 +23,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { toast } from 'sonner';
+import { Loader } from '@/components/Layouts/Loader';
 
 const LearnerList = () => {
   const [learners, setLearners] = useState([]);
   const [editingLearner, setEditingLearner] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,16 +47,16 @@ const LearnerList = () => {
   }, []);
 
 
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`http://localhost:8000/api/admin/learners/${id}/`);
-      setLearners(prev => prev.filter(learner => learner.id !== id));
-      alert("Learner deleted successfully");
-    } catch (err) {
-      console.error('Error deleting learner:', err);
-      alert('Failed to delete learner.');
-    }
-  };
+const handleDelete = async (id) => {
+  const res = await deleteLearner(id);
+  if (res.success) {
+    setLearners(prev => prev.filter(learner => learner.id !== id));
+    toast.error("Learner deleted successfully");
+  } else {
+    console.error("Error deleting learner:", res.error);
+    toast.error("Failed to delete learner");
+  }
+};
 
   const handleEditClick = (learner) => {
     setEditingLearner({ ...learner });
@@ -70,20 +71,22 @@ const LearnerList = () => {
     }));
   };
 
-  const handleUpdateLearner = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.patch(`http://localhost:8000/api/admin/learners/${editingLearner.id}/`, editingLearner);
-      alert("Learner updated successfully");
-      setLearners(prev =>
-        prev.map(l => l.id === editingLearner.id ? editingLearner : l)
-      );
-      setIsEditOpen(false);
-    } catch (err) {
-      console.error("Update error:", err);
-      alert("Failed to update learner");
-    }
-  };
+ const handleUpdateLearner = async (e) => {
+  e.preventDefault();
+  const res = await updateLearner(editingLearner.id, editingLearner);
+
+  if (res.success) {
+    setLearners(prev =>
+      prev.map(l => (l.id === editingLearner.id ? editingLearner : l))
+    );
+    toast.success("Learner updated successfully");
+    setIsEditOpen(false);
+  } else {
+    console.error("Update error:", res.error);
+    toast.error("Failed to update learner");
+  }
+};
+
   const filteredLearners = useMemo(() => {
     return learners.filter(learner =>
       learner.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -91,6 +94,8 @@ const LearnerList = () => {
       learner.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, learners]);
+
+  if (!loading) return <Loader text="Loading ..." />;
   return (
     <AdminLayout>
       <div className="p-4">

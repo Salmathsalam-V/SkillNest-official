@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -25,18 +24,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { Loader } from '@/components/Layouts/Loader';
+import { listCreators,updateCreator,deleteCreator } from '../endpoints/axios';
 
 const CreatorList = () => {
   const [creators, setCreators] = useState([]);
   const [editingCreators, setEditingCreators] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCreators = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/admin/creators/');
+        const response = await listCreators();
+        console.log("Creators fetched from creator list :", response.data.creators);
         if (response.data.success) {
           setCreators(response.data.creators);
         }
@@ -56,18 +59,17 @@ const CreatorList = () => {
     );
   }, [searchTerm, creators]);
 
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`http://localhost:8000/api/admin/creators/${id}/`);
-      setCreators(prev => prev.filter(creator => creator.id !== id));
-      toast.error("Creator deleted Successfully");
-      alert("Creator deleted successfully");
-    } catch (err) {
-      console.error('Error deleting creator:', err);
-      alert('Failed to delete creator.');
-      toast.error("Failed to delete creator");
-    }
-  };
+const handleDelete = async (id) => {
+  const res = await deleteCreator(id);
+  if (res.success) {
+    setCreators(prev => prev.filter(creator => creator.id !== id));
+    toast.error("Creator deleted successfully");
+  } else {
+    console.error("Error deleting creator:", res.error);
+    toast.error("Failed to delete creator");
+  }
+};
+
   
  const handleViewMore = (id) => {
   navigate(`/creators-view/${id}`);
@@ -88,16 +90,21 @@ const CreatorList = () => {
 
   const handleUpdateCreators = async (e) => {
     e.preventDefault();
-    try {
-      await axios.patch(`http://localhost:8000/api/admin/creators/${editingCreators.id}/`, editingCreators);
-      toast.success("Creator updated successfully")
-      setCreators(prev => prev.map(l => l.id === editingCreators.id ? editingCreators : l));
+    const res = await updateCreator(editingCreators.id, editingCreators);
+
+    if (res.success) {
+      setCreators(prev =>
+        prev.map(l => (l.id === editingCreators.id ? editingCreators : l))
+      );
+      toast.success("Creator updated successfully");
       setIsEditOpen(false);
-    } catch (err) {
-      console.error("Update error:", err);
-      toast.error("Failed to update creators")
+    } else {
+      console.error("Update error:", res.error);
+      toast.error("Failed to update creator");
     }
   };
+    if (!loading) return <Loader text="Loading ..." />; // or redirect to login
+  
 
   return (
     <AdminLayout>

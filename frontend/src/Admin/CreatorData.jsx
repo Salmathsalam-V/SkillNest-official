@@ -178,7 +178,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
   }
 };
 
-  if (loading) return <Loader text="Loading ..." />; // or redirect to login
+  if (loading) return <Loader text="Loading ..." />; 
   if (error) return <Loader text="Loading creator data ..." />; 
 
   return (
