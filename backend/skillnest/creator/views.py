@@ -4,7 +4,7 @@ from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,Co
 from .models import Post,Comment,Community,Course
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 from . models import Creator
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
@@ -12,6 +12,8 @@ from accounts.authentication import JWTCookieAuthentication
 from rest_framework.views import APIView
 from rest_framework import generics, permissions
 from accounts.models import User
+from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
 
 class PostView(ListCreateAPIView):
     permission_classes = [AllowAny] 
@@ -217,3 +219,75 @@ class CommunityDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         # User can only edit/delete their own communities
         return Community.objects.filter(creator=self.request.user)
+    
+class CommunityMembersView(APIView):
+    """
+    Handles:
+        GET    /api/creator/communities/<pk>/members/
+        PATCH  /api/creator/communities/<pk>/members/
+        POST   /api/creator/communities/<pk>/members/
+    """
+
+    def get(self, request, pk):
+        community = get_object_or_404(Community, pk=pk)
+        data = [
+            {"id": u.id, "username": u.username, "email": u.email}
+            for u in community.members.all()
+        ]
+        return Response({"members": data}, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        return self._update_members(request, pk)
+
+    def post(self, request, pk):
+        # allow POST for add action as well
+        return self._update_members(request, pk)
+
+    # helper for patch/post
+    def _update_members(self, request, pk):
+        print("request.data type:", type(request.data))
+        print("request.data content:", request.data)
+        
+        community = get_object_or_404(Community, pk=pk)
+        action_type = request.data.get("action", "add")
+        identifier = request.data.get("member")
+        print("Received identifier:", identifier, "of type", type(identifier))
+        if isinstance(identifier, dict):
+            identifier = identifier.get("member")
+            print("Extracted identifier from dict:", identifier)
+        if not identifier:
+            return Response(
+                {"error": "member field required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            print("Looking for user with identifier:", identifier)
+            user = (
+                User.objects.get(username=identifier)
+                if "@" not in identifier
+                else User.objects.get(email=identifier)
+            )
+        except User.DoesNotExist:
+            return Response(
+                {"error": f"User {identifier} not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if action_type == "add":
+            community.members.add(user)
+        elif action_type == "remove":
+            community.members.remove(user)
+        else:
+            return Response(
+                {"error": "action must be 'add' or 'remove'"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        community.save()
+        return Response(
+            CommunitySerializer(community, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )
+
+

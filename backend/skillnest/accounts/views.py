@@ -293,3 +293,9 @@ class CreatorCreateView(generics.CreateAPIView):
     serializer_class = CreatorSerializer
 
 
+@api_view(["get"])
+def search_users(request):
+    q = request.query_params.get("q", "")
+    users = User.objects.filter(username__icontains=q) | User.objects.filter(email__icontains=q)
+    data = [{"id": u.id, "username": u.username, "email": u.email} for u in users[:10]]
+    return Response(data)

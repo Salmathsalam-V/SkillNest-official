@@ -134,6 +134,7 @@ export const logout = async () => {
 export const get_learners = async () => {
   try {
     const response = await apiClient.get(LEARNERS_URL, { withCredentials: true });
+    console.log("Learners fetched:", response.data);
     return response.data.learners;
   } catch (error) {
     console.error("Fetching learners failed:", error.response?.data || error.message);
@@ -253,5 +254,82 @@ export const fetchUsers = async () => {
     return res.data;
   } catch (err) {
     console.error("Error fetching users:", err);
+  }
+};
+
+
+
+
+export const fetchChatRoom = (communityId) =>
+  apiClient.get(`/chat/communities/${communityId}/chat-room/`);
+
+export const fetchMessages = (communityId, page = 1) =>
+  apiClient.get(`/chat/communities/${communityId}/messages/`, {
+    params: { page },
+  });
+
+// api/axios.js (example sendMessage)
+export const sendMessage = async (communityId, messageData) => {
+  // messageData should be like { content, media_url, message_type }
+  return await apiClient.post(`/chat/communities/${communityId}/messages/send/`, messageData);
+};
+
+export const fetchMembers = (communityId) =>
+  apiClient.get(`/chat/communities/${communityId}/members/`);
+
+export const fetchLearnerCommunities = async () => {
+  try {
+    const res = await apiClient.get("/learner/communities/"); // make sure leading slash
+    return res.data;
+  } catch (err) {
+    if (err.response) {
+      // Server responded with a status outside 2xx
+      console.error("Server error:", err.response.status, err.response.data);
+    } else if (err.request) {
+      // Request was made but no response received
+      console.error("No response received:", err.request);
+    } else {
+      // Something else happened
+      console.error("Axios error:", err.message);
+    }
+    return [];
+  }
+};
+
+export const getMembers = async (communityId) => {
+  try {
+    
+    const res = await apiClient.get(`/creator/communities/${communityId}/members/`);
+    return res.data;
+
+  } catch (err) {
+    console.error("Error fetching users:", err);
+  }
+};
+
+export const removeMember = async (communityId, identifier) => {
+  const res = await apiClient.patch(`/creator/communities/${communityId}/members/`, 
+    { action: "remove", member: identifier }
+  );
+  return res.data; // backend returns { members: [...] }
+  };
+    
+export const addMember = async (communityId, identifier) => {
+  console.log("Adding member in axios:", communityId, identifier);
+  const res = await apiClient.post(`/creator/communities/${communityId}/members/`, 
+    { action: "add", member: identifier }
+  );
+  return res.data; // backend returns { members: [...] }
+  };
+    
+export const searchUsers = async (query) => {
+  try {
+    const res = await apiClient.get(`/search-users/`, {
+      params: { q: query },
+    });
+    return res.data; // [{id, username, email}, ...]
+  } catch (err) {
+    console.error("Error searching users:", err);
+    throw err;
   }
 };
