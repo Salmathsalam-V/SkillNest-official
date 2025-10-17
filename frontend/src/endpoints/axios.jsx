@@ -9,8 +9,6 @@ const POST_URL = `${BASE_URL}post/`;
 const LOGOUT_URL = `${BASE_URL}logout/`;
 const LEARNERS_URL = `${BASE_URL}admin/learners/`;
 
-// const AUTH_URL = `${BASE_URL}authenticate/`;
-
 let isSessionExpiredHandle = false;
 
 const apiClient = axios.create({
@@ -558,6 +556,17 @@ export const updateCreatorProfile = async (creatorId, payload) => {
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to update creator profile:", err);
+    return { success: false, error: err };
+  }
+};
+export const deletePost = async (postId) => {
+  try {
+    const res = await apiClient.delete(`/creator/creators/posts/${postId}/`, {
+      withCredentials: true, // ensures cookies are sent
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error deleting post:", err);
     return { success: false, error: err };
   }
 };

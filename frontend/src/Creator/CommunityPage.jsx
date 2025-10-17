@@ -257,7 +257,7 @@ const handleSendPendingFile = async () => {
     const res = await imageUpload(
       formData
     );
-    const url = res.data.secure_url;
+    const url = res.data;
     console.log("url:2",url)
     let msgType = "file";
     if (pendingFile.type.startsWith("image/")) msgType = "image";
@@ -309,7 +309,7 @@ useEffect(() => {
 
   // if (!community) return <p>Loading community...</p>;
 
-  if (!community) return <Loader text="Loading Chats..." />; // or redirect to login
+  if (!community) return <Loader text="Loading Chats..." />; 
   
 
   return (   

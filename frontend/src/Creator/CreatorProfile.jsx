@@ -11,8 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Heart, MessageCircle } from "lucide-react";
-import { createComment, imageUpload, updateCreatorProfile, updatePost } from '../endpoints/axios';
+import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost } from '../endpoints/axios';
+import { Loader
 
+ } from '@/components/Layouts/Loader';
 export default function CreatorProfile() {
   const { id } = useParams();
   const [creator, setCreator] = useState(null);
@@ -207,19 +209,17 @@ useEffect(() => {
 
 
 const handleDeletePost = async (postId) => {
-  if (!window.confirm("Are you sure you want to delete this post?")) return;
+  // if (!window.confirm("Are you sure you want to delete this post?")) return;
 
-  try {
-    await axios.delete(`http://localhost:8000/api/creator/creators/posts/${postId}/`, {
-      withCredentials: true,
-    });
+  const res = await deletePost(postId);
+  if (res.success) {
     toast.success("Post deleted successfully");
-    setPosts((prev) => prev.filter((p) => p.id !== postId)); // remove from state
-  } catch (err) {
-    console.error("Error deleting post:", err);
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  } else {
     toast.error("Failed to delete post");
   }
 };
+
 
 const handleUpdatePost = async (post) => {
   try {
@@ -335,7 +335,7 @@ const handleProfileUpload = async (e) => {
   }
 };
 
-  if (loading) return <p className="text-center py-10">Loaders</p>;
+  if (loading) return <Loader text="Loading Profile..." />;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
   return (
@@ -370,7 +370,6 @@ const handleProfileUpload = async (e) => {
             <h2 className="text-xl font-semibold">@{creator.username}</h2>
             <p className="text-gray-600 text-sm mb-1">Email: {creator.email}</p>
             <p className="text-gray-600 text-sm mb-1">Fullname: {creator.fullname}</p>
-                        <p className="text-gray-600 text-sm mb-1">id: {id}</p>
             <div className="flex flex-col gap-2">
           <div className="mt-2">
             <p className="text-gray-600 text-sm mb-1">Background Image:</p>
