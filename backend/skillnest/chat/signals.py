@@ -11,5 +11,5 @@ def create_chat_room(sender, instance, created, **kwargs):
         CommunityChatRoom.objects.create(
             community=instance,
             name=instance.name,
-            created_by=instance.created_by  # adjust to your field
+            created_by=getattr(instance, "creator", None) or instance.creator
         )

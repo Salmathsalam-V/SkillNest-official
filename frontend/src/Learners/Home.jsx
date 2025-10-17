@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { logout } from "../endpoints/axios";
+import { logout, sendContactMessage } from "../endpoints/axios";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import CreatorLayout from '@/components/Layouts/CreatorLayout';
@@ -30,8 +30,7 @@ export const Home = () => {
     }
     try {
       console.log(user.id);
-      const res = await axios.post(
-        "http://localhost:8000/api/admin/contact-us/", 
+      const res = await sendContactMessage( 
         { content: message, user: user.id },                 
         { withCredentials: true }             
       );

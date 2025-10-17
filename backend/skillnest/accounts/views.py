@@ -3,9 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
-
 from rest_framework_simplejwt.views import  TokenRefreshView
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from accounts.authentication import JWTCookieAuthentication
@@ -14,6 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from accounts.serializers import UserSerializer, LoginSerializer,CreatorSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from .authentication import JWTCookieAuthentication
 
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -26,6 +27,12 @@ from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework import generics, permissions
 from .models import Creator
+
+import cloudinary.uploader
+from rest_framework.decorators import parser_classes,authentication_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+import logging
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 from .models import User
@@ -62,17 +69,17 @@ class LoginView(APIView):
             response.set_cookie(
                 key='access_token',
                 value=access_token,
-                httponly=True,
-                secure=True,
-                samesite='None',
+                httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+                secure=settings.AUTH_COOKIE_SECURE,
+                samesite=settings.AUTH_COOKIE_SAMESITE,
                 path='/'
             )
             response.set_cookie(
                 key='refresh_token',
                 value=refresh_token,
-                httponly=True,
-                secure=True,
-                samesite='None',
+                httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+                secure=settings.AUTH_COOKIE_SECURE,
+                samesite=settings.AUTH_COOKIE_SAMESITE,
                 path='/'
             )
             return response
@@ -164,14 +171,11 @@ class GoogleLoginAPIView(APIView):
 
     def post(self, request):
         token = request.data.get("token")
-
-
         idinfo = id_token.verify_oauth2_token(
             token,
             requests.Request(),
             "768158657502-ia2b2gh1gd3o69rm7ehh1rhtvfe2aapi.apps.googleusercontent.com"
         )
-
         email = idinfo["email"]
         name = idinfo.get("name", "")
 
@@ -196,15 +200,14 @@ class GoogleLoginAPIView(APIView):
             "redirect_url": redirect_url
 
         })
-        
-
+    
         # Secure cookies for tokens
         response.set_cookie(
             key='access_token',
             value=str(access),
             httponly=True,
             secure=False,  # ✅ Allow for HTTP during local dev
-            samesite='Lax',  # ✅ Allow cross-origin if your frontend is on a subdomain or localhost
+            samesite='None', 
             path='/'
         )
         response.set_cookie(
@@ -212,7 +215,7 @@ class GoogleLoginAPIView(APIView):
             value=str(refresh),
             httponly=True,
             secure=False,  # ✅ Allow for HTTP during local dev
-            samesite='Lax',  # ✅ Allow cross-origin if your frontend is on a subdomain or localhost
+            samesite='None',  
             path='/'
         )
 
@@ -299,3 +302,23 @@ def search_users(request):
     users = User.objects.filter(username__icontains=q) | User.objects.filter(email__icontains=q)
     data = [{"id": u.id, "username": u.username, "email": u.email} for u in users[:10]]
     return Response(data)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@parser_classes([MultiPartParser, FormParser])
+def upload_image(request):
+    file = request.FILES.get('file')
+    logger.info(f"Received file: {file}")
+    if not file:
+        return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        result = cloudinary.uploader.upload(file, folder="skillnest")
+        logger.info(f"Cloudinary upload result: {result}")
+        return Response({
+            "url": result.get("secure_url"),
+            "public_id": result.get("public_id")
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        print("Cloudinary upload failed:", e)
+        return Response({"error": "Upload failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

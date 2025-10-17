@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { setUser } from '../Redux/userSlice';
 import { toast } from 'sonner';
-
+import { Loader } from "@/components/Layouts/Loader";
 
 const Profile = () => {
 //   const [userdata, setUser] = useState(null);
@@ -29,15 +29,17 @@ const Profile = () => {
   const [editingLearner, setEditingLearner] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const dispatch = useDispatch();
+  const [loading, setLoading] = useState(true);
 
   if (!user) {
-    return <div>Loading...</div>; // or redirect to login
-  }
+    setLoading(false);
     const handleEditClick = (learner) => {
     setEditingLearner({ ...learner }); // Clone to avoid direct state mutation
     setIsEditOpen(true);
   };
-  
+  }
+  if (loading) return <Loader text="Loading creator profile..." />; // or redirect to login
+
   useEffect(() => {
   const fetchLearner = async () => {
     try {
@@ -113,7 +115,7 @@ const handleUpdateLearner = async (e) => {
       </Card>
        {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
           <form onSubmit={handleUpdateLearner}>
             <DialogHeader>
               <DialogTitle>Edit Learner</DialogTitle>

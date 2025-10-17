@@ -4,32 +4,42 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
-from .models import ChatRoom, Message, UserPresence
+from accounts.models import User
+from .models import CommunityChatRoom, CommunityMessage,UserPresence
+import logging
+logger = logging.getLogger(__name__)
 
 class CommunityChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
+        logger.warning(f"scope from consumer: {self.user}")
 
         if self.user.is_anonymous:
+            logger.warning("Anonymous user tried to connect to WebSocket")
             await self.close()
             return
 
         # Get room_slug from URL
-        self.room_slug = self.scope['url_route']['kwargs']['room_slug']
-        self.room_group_name = f'community_{self.room_slug}'
-
-        # Check if this is a valid community room
-        has_access = await self.check_room_access()
-        if not has_access:
+        self.room_uuid  = self.scope['url_route']['kwargs']['room_uuid']
+        self.room = await self.get_room_if_allowed()
+        if not self.room:
+            logger.warning(f"User {self.user.id} not allowed in room {self.room_uuid}")
             await self.close()
             return
+        self.room_group_name = f'community_{self.room_uuid}'
 
+        # Check if this is a valid community room
+        # has_access = await self.check_room_access()
+        # if not has_access:
+        #     await self.close()
+        #     return
+    
         # Add this channel to the group
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
-
+        logger.warning(f"User {self.user.id} connected to room {self.room_uuid}, before accept")
         await self.accept()
 
         # Mark user as online in this community
@@ -43,12 +53,13 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
                 "user_id": self.user.id,
                 "username": self.user.username,
                 "status": "online",
-                "message": f"{self.user.username} joined the community chat"
+                "status": "online"
             }
         )
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
+            logger.warning(f"User {self.user.id} disconnected from room {self.room_uuid}")
             await self.update_user_presence(False)
 
             await self.channel_layer.group_send(
@@ -67,22 +78,59 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
                 self.channel_name
             )
 
+# inside CommunityChatConsumer
+
     async def receive(self, text_data):
-        data = json.loads(text_data)
-        message_type = data.get("type")
-
-        if message_type == "chat_message":
-            await self.handle_chat_message(data)
-        elif message_type == "typing":
-            await self.handle_typing(data)
-
-    async def handle_chat_message(self, data):
-        content = data.get("content", "").strip()
-        if not content:
+        """
+        Accept either:
+        - envelope style: { type: "chat_message", message_type: "image", content: "", media_url: "..." }
+        - short style:    { type: "image", content: "", media_url: "..." }
+        - or:             { action: "send", message_type: "...", ... }
+        """
+        try:
+            data = json.loads(text_data)
+        except Exception as e:
+            logger.exception("Invalid JSON received")
             return
 
-        message = await self.save_message(content)
+        # Look for various possible envelope keys
+        envelope = data.get("type") or data.get("action") or data.get("event")
+        # message_type is explicit OR fallback to envelope when envelope is a known message type
+        message_type = data.get("message_type") or (envelope if envelope in ("text", "image", "video", "file") else None) or "text"
 
+        logger.warning(f"Received envelope={envelope} message_type={message_type} from user {self.user.id}: {data}")
+
+        # If it's a chat message (either explicit envelope or a known message_type), handle it
+        if envelope == "chat_message" or message_type in ("text", "image", "video", "file"):
+            await self.handle_chat_message(data, message_type=message_type)
+        else:
+            logger.warning(f"Unknown/unsupported action/type received: {envelope}")
+
+    async def chat_message(self, event):
+        """
+        Called by group_send; event['message'] already contains the serialized message dict.
+        """
+        await self.send(text_data=json.dumps({
+            "type": "chat_message",
+            "message": event["message"],
+        }))
+
+    async def handle_chat_message(self, data, message_type="text"):
+        """
+        Save the message (text/media) and broadcast it to the group.
+        Accepts either content (text) and/or media_url.
+        """
+        content = (data.get("content") or "").strip()
+        media_url = data.get("media_url") or None
+
+        # If both text and media are missing, ignore
+        if not content and not media_url:
+            return
+
+        # persist
+        message = await self.save_message(content=content, message_type=message_type, media_url=media_url)
+
+        # broadcast (note "type": "chat_message" here -> calls chat_message)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -90,6 +138,8 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
                 "message": {
                     "id": str(message.id),
                     "content": message.content,
+                    "message_type": message.message_type,
+                    "media_url": message.media_url,
                     "sender": {
                         "id": message.sender.id,
                         "username": message.sender.username,
@@ -99,71 +149,44 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    async def handle_typing(self, data):
-        is_typing = data.get("is_typing", False)
-
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "typing_indicator",
-                "user_id": self.user.id,
-                "username": self.user.username,
-                "is_typing": is_typing,
-            }
+    @database_sync_to_async
+    def save_message(self, content="", message_type="text", media_url=None):
+        """
+        Persist CommunityMessage including media_url and message_type.
+        """
+        return CommunityMessage.objects.create(
+            room=self.room,
+            sender=self.user,
+            content=content or "",
+            message_type=message_type,
+            media_url=media_url
         )
 
-    # Event handlers
-    async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "chat_message",
-            "message": event["message"],
-        }))
+    @database_sync_to_async
+    def get_room_if_allowed(self):
+        try:
+            room = CommunityChatRoom.objects.select_related("community").get(uuid=self.room_uuid)
+            community = room.community
+            logger.warning(f"Fetched room {room.id} for community {community.id}")
+            if community.creator == self.user or community.members.filter(id=self.user.id).exists():
+                return room
+        except CommunityChatRoom.DoesNotExist:
+            return None
+        return None
 
-    async def typing_indicator(self, event):
-        if event["user_id"] != self.user.id:
-            await self.send(text_data=json.dumps({
-                "type": "typing_indicator",
-                "user_id": event["user_id"],
-                "username": event["username"],
-                "is_typing": event["is_typing"],
-            }))
 
+    @database_sync_to_async
+    def update_user_presence(self, is_online):
+        presence, created = UserPresence.objects.get_or_create(user=self.user)
+        presence.is_online = is_online
+        presence.current_room = self.room if is_online else None
+        presence.last_seen = timezone.now()
+        presence.save()
+    
     async def user_status_update(self, event):
         await self.send(text_data=json.dumps({
             "type": "user_status_update",
             "user_id": event["user_id"],
             "username": event["username"],
             "status": event["status"],
-            "message": event["message"],
         }))
-
-    # Database helpers
-    @database_sync_to_async
-    def check_room_access(self):
-        try:
-            room = ChatRoom.objects.get(slug=self.room_slug, room_type="public")
-            return True
-        except ChatRoom.DoesNotExist:
-            return False
-
-    @database_sync_to_async
-    def save_message(self, content):
-        room = ChatRoom.objects.get(slug=self.room_slug, room_type="public")
-        return Message.objects.create(
-            room=room,
-            sender=self.user,
-            content=content
-        )
-
-    @database_sync_to_async
-    def update_user_presence(self, is_online):
-        room = ChatRoom.objects.get(slug=self.room_slug, room_type="public")
-        presence, created = UserPresence.objects.get_or_create(
-            user=self.user,
-            defaults={"is_online": is_online, "current_room": room}
-        )
-        if not created:
-            presence.is_online = is_online
-            presence.last_seen = timezone.now()
-            presence.current_room = room if is_online else None
-            presence.save()

@@ -1,4 +1,6 @@
 import axios from 'axios';
+import api from "@/api/axios";
+
 
 const BASE_URL = 'http://127.0.0.1:8000/api/';
 const LOGIN_URL = `${BASE_URL}login/`;
@@ -6,8 +8,6 @@ const REFRESH_URL  = `${BASE_URL}token/refresh/`;
 const POST_URL = `${BASE_URL}post/`;
 const LOGOUT_URL = `${BASE_URL}logout/`;
 const LEARNERS_URL = `${BASE_URL}admin/learners/`;
-
-// const AUTH_URL = `${BASE_URL}authenticate/`;
 
 let isSessionExpiredHandle = false;
 
@@ -226,12 +226,14 @@ export const get_course = async (userId)=>{
   }
 }
 
-export const fetchCommunities = async () => {
+export const fetchCommunities = async (page = 1) => {
   try {
-    const res = await apiClient.get("creator/communities/");
-    return res.data;
+    // Add the ?page= query parameter
+    const res = await apiClient.get(`creator/communities/?page=${page}`);
+    return res.data;  // { count, next, previous, results }
   } catch (err) {
     console.error("Error fetching communities:", err);
+    return null;
   }
 };
 
@@ -251,7 +253,7 @@ export const createCommunity  = async (name, description, members) => {
 export const fetchUsers = async () => {
   try {
     const res = await apiClient.get("creator/users/"); 
-    return res.data;
+    return res.data.results; // assuming paginated response
   } catch (err) {
     console.error("Error fetching users:", err);
   }
@@ -331,5 +333,241 @@ export const searchUsers = async (query) => {
   } catch (err) {
     console.error("Error searching users:", err);
     throw err;
+  }
+};
+
+
+export const getCommunities = async () => {
+  try {
+    
+    const res = await apiClient.get(`/admin/communities/`);
+    return res.data;
+
+  } catch (err) {
+    console.error("Error fetching users:", err);
+  }
+};
+
+export const getCommunityMembers = async (communityId) => {
+  try {
+    
+    const res = await apiClient.get(`/admin/communities/${communityId}/members/`);
+    console.log("Community members data:", res.data);
+    return res.data;
+
+  } catch (err) {
+    console.error("Error fetching users:", err);
+  }
+};
+
+
+export const registerUser = async (formData) => {
+  try {
+    const response = await api.post("register/", formData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Register error:", error.response?.data || error.message);
+    return { success: false, error };
+  }
+};
+
+export const imageUpload = async (formData) => {
+  try {
+    const res = await api.post("/upload-image/",   
+      imgData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+  } catch (error) {
+    console.error("image uplaod  error from axios:", error.response?.data || error.message);
+    return { success: false, error };
+  }
+};
+
+export const creatorData = async (creatorId) => {
+  try {
+    const res = await apiClient.get(`/admin/creators-view/${creatorId}/`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    return { success: false, error: err };
+  }
+};
+
+export const getCreatorPosts = async (creatorId) => {
+  try {
+    const res = await apiClient.get(`/creator/creators/${creatorId}/posts/`);
+    return { success: true, data: res.data.results || [] };
+  } catch (err) {
+    console.error("Error fetching creator posts:", err);
+    return { success: false, error: err };
+  }
+};
+
+
+// ✅ Approve creator
+export const approveCreator = async (creatorId) => {
+  try {
+    const res = await apiClient.patch(`/admin/creators-view/${creatorId}/`, {
+      approve: "accept",
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error approving creator:", err);
+    return { success: false, error: err };
+  }
+};
+
+// ✅ Reject creator
+export const rejectCreator = async (creatorId) => {
+  try {
+    const res = await apiClient.patch(`/admin/creators-view/${creatorId}/`, {
+      approve: "reject",
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error rejecting creator:", err);
+    return { success: false, error: err };
+  }
+};
+//fetch creators list for admin
+export const listCreators = async () => {
+  try {
+    const res = await apiClient.get('/admin/creators/');
+    console.log("Creators list response:", res.data);
+    return { success: true, data: res.data || [] };
+  } catch (err) {
+    console.error("Error fetching creator posts:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Delete a creator from admin
+export const deleteCreator = async (creatorId) => {
+  try {
+    const res = await apiClient.delete(`/admin/creators/${creatorId}/`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error deleting creator:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Update a creator from admin
+export const updateCreator = async (creatorId, updatedData) => {
+  try {
+    const res = await apiClient.patch(`/admin/creators/${creatorId}/`, updatedData);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error updating creator:", err);
+    return { success: false, error: err };
+  }
+};
+
+
+//  Delete learner from admin
+export const deleteLearner = async (learnerId) => {
+  try {
+    const res = await apiClient.delete(`/admin/learners/${learnerId}/`);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error deleting learner:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Update learner from admin
+export const updateLearner = async (learnerId, updatedData) => {
+  try {
+    const res = await apiClient.patch(`/admin/learners/${learnerId}/`, updatedData);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error updating learner:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Fetch all contact messages
+export const getContactMessages = async () => {
+  try {
+    const res = await apiClient.get("/admin/contact-us/");
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to fetch contact messages:", err);
+    return { success: false, error: err };
+  }
+};
+
+//  Fetch all notifications
+export const getNotifications = async () => {
+  try {
+    const res = await apiClient.get("/notifications/list/");
+    return { success: true, data: res.data.results || [] };
+  } catch (err) {
+    console.error("Error fetching notifications:", err);
+    return { success: false, error: err };
+  }
+};
+
+// Create a creator
+export const createCreator = async ({ email, category, description, background }) => {
+  try {
+    const res = await apiClient.post("/create-creator/", {
+      email,
+      category,
+      description,
+      background,
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to create creator:", err);
+    return { success: false, error: err };
+  }
+};
+
+// Send a message to admin
+export const sendContactMessage = async ({ content, userId }) => {
+  try {
+    const res = await apiClient.post("/admin/contact-us/", {
+      content,
+      user: userId,
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to send contact message:", err);
+    return { success: false, error: err };
+  }
+};
+
+// Update a post by ID
+export const updatePost = async (postId, payload) => {
+  try {
+    const res = await apiClient.patch(`/creator/creators/posts/${postId}/`, payload);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to update post:", err);
+    return { success: false, error: err };
+  }
+};
+
+export const updateCreatorProfile = async (creatorId, payload) => {
+  try {
+    const res = await apiClient.patch(`/admin/creators-view/${creatorId}/`, payload);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to update creator profile:", err);
+    return { success: false, error: err };
+  }
+};
+export const deletePost = async (postId) => {
+  try {
+    const res = await apiClient.delete(`/creator/creators/posts/${postId}/`, {
+      withCredentials: true, // ensures cookies are sent
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error deleting post:", err);
+    return { success: false, error: err };
   }
 };

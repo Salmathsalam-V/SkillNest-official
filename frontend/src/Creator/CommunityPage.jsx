@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember   } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload   } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import { toast } from 'sonner';
 import {
@@ -19,6 +19,9 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog"; 
 import { X } from "lucide-react";
+import chatService from "../services/chatService";
+import { text } from "@fortawesome/fontawesome-svg-core";
+import { Loader }  from '@/components/Layouts/Loader';
 
 export const CommunityPage = () => {
   const { communityId } = useParams();
@@ -33,86 +36,132 @@ export const CommunityPage = () => {
   const [newMember, setNewMember] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);  // File object
+  const [previewURL, setPreviewURL] = useState("");      // for <img>/<video> preview
+  const messagesContainerRef = useRef(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (container.scrollTop === 0 && nextCursor && !loadingMore) {
+        loadMoreMessages();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [nextCursor, loadingMore]);
 
   //load chat room
   const loadChatRoom = async () => {
     try {
       const { data } = await fetchChatRoom(communityId);
       setCommunity(data);
+      console.log("Fetched community chat room:", data);
     } catch (error) {
       console.error("ChatRoom Error:", error);
     }
   };
 
-  // ✅ Load Messages
-  const loadMessages = async () => {
-    try {
-      const { data } = await fetchMessages(communityId);
-      console.log("Fetched messages:", data);
-      setMessages(data.results.reverse());
-    } catch (error) {
-      console.error("Messages Error:", error);
-    }
-  };
 
-const handleSend = async (mediaUrl = null) => {
-  if (!newMessage.trim() && !mediaUrl) return; // prevent empty send
+
+// ✅ Initial load
+const loadMessages = async () => {
+  try {
+    const { data } = await fetchMessages(communityId); // no cursor → first page
+    setMessages(data.results.reverse());   // newest last
+    setNextCursor(data.next);
+  } catch (error) {
+    console.error("Messages Error:", error);
+  }
+};
+
+// ✅ Load older messages with cursor
+const loadMoreMessages = async () => {
+  if (!nextCursor) return;
+  setLoadingMore(true);
+
+  const container = messagesContainerRef.current;
+  const prevScrollHeight = container.scrollHeight;
 
   try {
-    const { data } = await sendMessage(communityId, {
-    content: newMessage,
-    media_url: null,
-    message_type: "text",
-  });
+    const { data } = await axios.get(nextCursor, { withCredentials: true });
+    setMessages(prev => [...data.results.reverse(), ...prev]);
+    setNextCursor(data.next);
 
-    setMessages([...messages, data]);
+    // Restore scroll so user stays in same position
+    setTimeout(() => {
+      const newScrollHeight = container.scrollHeight;
+      container.scrollTop = newScrollHeight - prevScrollHeight;
+    }, 50);
+  } catch (err) {
+    console.error("Load more error:", err);
+  } finally {
+    setLoadingMore(false);
+  }
+};
+
+
+const handleSend = async (mediaUrl = null) => {
+  if (!newMessage.trim() && !mediaUrl) return;
+
+  try {
+    chatService.sendMessage(community.uuid, newMessage, "text", mediaUrl);
+
+    const tempMessage = {
+      content: newMessage,
+      message_type: mediaUrl
+        ? mediaUrl.match(/\.(mp4|webm|ogg)$/i)
+          ? "video"
+          : "image"
+        : "text",
+      media_url: mediaUrl,
+      sender: { id: userId, username: "You" },
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log("tempMessage: ",tempMessage)
     setNewMessage("");
   } catch (error) {
     console.error("Send Error:", error);
   }
 };
 
-  // ✅ Upload & Send Media (image/video/file)
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
+const handleFileUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  setUploading(true);
 
-    // 👇 Cloudinary upload preset & account
-    formData.append("upload_preset", "skillnest_profile");
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", "skillnest_profile");
 
-    try {
-      const res = await axios.post(
-        "https://api.cloudinary.com/v1_1/dg8kseeqo/upload", // auto-detects type
-        formData
-      );
-      const url = res.data.secure_url;
+  try {
+    const res = await imageUpload( formData);
+    const url = res.data.secure_url;
+    console.log("url1:",url)
+    let messageType = "file";
+    if (file.type.startsWith("image/")) messageType = "image";
+    else if (file.type.startsWith("video/")) messageType = "video";
 
-      // Detect file type
-      let messageType = "file";
-      if (file.type.startsWith("image/")) messageType = "image";
-      else if (file.type.startsWith("video/")) messageType = "video";
+    // ✅ Send the URL via WebSocket
+    chatService.sendMessage(community.uuid, "", messageType, url);
 
-      // Send media message
-      const { data } = await sendMessage(communityId, {
-        content: "",              // empty since it’s media
-        media_url: url,           // ✅ correct field
-        message_type: messageType,
-      });
+    toast.success("Media sent!");
+  } catch (err) {
+    console.error("Upload failed:", err);
+    toast.error("Upload failed");
+  } finally {
+    setUploading(false);
+  }
+};
 
-
-      setMessages([...messages, data]);
-      toast.success("Media uploaded");
-    } catch (err) {
-      console.error("Upload failed:", err);
-      toast.error("Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
 const loadMembers = async () => {
   try {
     const data = await getMembers(communityId); // pass it here
@@ -131,6 +180,8 @@ const handleAddMember = async (identifier) => {
     setMembers(res.members); // res.data is the CommunitySerializer output
     setNewMember("");
     toast.success("Member added");
+    setMembersModalOpen(false); 
+    setSearchResults([]);
   } catch (err) {
     console.error(err);
     toast.error("Failed to add member");
@@ -143,6 +194,8 @@ const handleRemoveMember = async (identifier) => {
     const data = await removeMember(communityId, identifier);
     setMembers(data.members);      // ✅ data, not data.members
     toast.success("Member removed");
+    setMembersModalOpen(false); 
+    setSearchResults([]);
   } catch (err) {
     console.error(err);
     toast.error("Failed to remove member");
@@ -173,8 +226,91 @@ const handleRemoveMember = async (identifier) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+// useEffect(() => {
+//   console.log("Setting up WebSocket connection for community chat", communityId);
+//   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+//   console.log("WebSocket protocol:", protocol);
+//   const ws = new WebSocket(`${protocol}://${window.location.host}/ws/community/${communityId}/`);
+//   console.log("after creating WebSocket");
+//   console.log("WebSocket instance:", ws);
+//   ws.onmessage = (e) => {
+//     const data = JSON.parse(e.data);
+//     console.log("WebSocket message received:inside the useffect", data);
+//     if (data.type === "chat_message") {
+//       setMessages((prev) => [...prev, data.message]);
+//     }
+//   };
 
-  if (!community) return <p>Loading community...</p>;
+//   ws.onclose = () => console.log("WS closed");
+//   return () => ws.close();
+// }, [communityId]);
+  
+const handleSendPendingFile = async () => {
+  if (!pendingFile) return;
+  setUploading(true);
+  const formData = new FormData();
+  formData.append("file", pendingFile);
+  formData.append("upload_preset", "skillnest_profile");
+
+  try {
+    const res = await imageUpload(
+      formData
+    );
+    const url = res.data;
+    console.log("url:2",url)
+    let msgType = "file";
+    if (pendingFile.type.startsWith("image/")) msgType = "image";
+    else if (pendingFile.type.startsWith("video/")) msgType = "video";
+    console.log("url2: ",msgType,url)
+    // ✅ Send uploaded file via WebSocket
+    chatService.sendMessage(community.uuid, "", msgType, url);
+
+    toast.success("File sent!");
+  } catch (err) {
+    console.error(err);
+    toast.error("Upload failed");
+  } finally {
+    setUploading(false);
+    setPendingFile(null);
+    setPreviewURL("");
+  }
+};
+
+
+useEffect(() => {
+  console.log("useEffect for chatService with communityId:", communityId, "and community:", community);
+  if (!community?.uuid) return; // wait until community/room info is ready
+  console.log("Connecting to chat service for room:", community.uuid);
+  chatService.connect(community.uuid);
+
+  // listen for messages
+  chatService.on("message", (message) => {
+    console.log("send messages compge: ",message)
+    setMessages(prev => [...prev, message]);
+  });
+
+  chatService.on("typing", (data) => {
+    // optional: handle typing indicator
+  });
+
+  chatService.on("userStatus", (data) => {
+    // optional: handle online/offline updates
+  });
+
+  chatService.on("connect", () => console.log("WS connected"));
+  chatService.on("disconnect", () => console.log("WS disconnected from chat service"));
+
+
+  // cleanup when leaving page
+  return () => chatService.disconnect();
+}, [community?.uuid]);
+
+
+  // if (!community) return <p>Loading community...</p>;
+
+  if (!community) return <Loader text="Loading Chats..." />; 
+  
 
   return (   
     <CreatorLayout>
@@ -196,51 +332,94 @@ const handleRemoveMember = async (identifier) => {
             <p className="text-sm text-gray-500">  by {community.community?.creator?.username || community.created_by?.username}
             </p>
           </div>
-
         </CardContent>
       </Card>
 
-        {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {messages.map((msg) => {
-            const isMine = msg?.sender?.id === userId;
-            return (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${
-                  isMine ? "items-end" : "items-start"
-                }`}
-              >
-                <span className="text-xs text-gray-500 mb-1">
-                  {isMine ? "You" : msg?.sender?.username || "Unknown"}
-                </span>
-
-                <div
-  className={`max-w-xs px-4 py-2 rounded-2xl shadow ${
-    isMine
-      ? "bg-blue-600 text-white rounded-br-none"
-      : "bg-gray-200 text-gray-900 rounded-bl-none"
-  }`}
+<div
+  ref={messagesContainerRef}
+  className="flex-1 overflow-y-auto p-4 space-y-3"
 >
-  {msg.content && <p>{msg.content}</p>}
- {msg.media_url && (
-  <>
-    {msg.message_type === "video" ? (
-      <video src={msg.media_url} controls className="mt-2 rounded-md max-w-full" />
-    ) : (
-      <img src={msg.media_url} alt="uploaded" className="mt-2 rounded-md max-w-full" />
-    )}
-  </>
-)}
+  {loadingMore && (
+    <p className="text-center text-gray-500 text-sm">Loading older messages...</p>
+  )}
 
+  {messages.map((msg) => {
+    const isMine = msg?.sender?.id === userId;
+    return (
+      <div
+        key={msg.id}
+        className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+      >
+        <span className="text-xs text-gray-500 mb-1">
+          {isMine ? "You" : msg?.sender?.username || "Unknown"}
+        </span>
+
+        <div
+          className={`max-w-xs px-4 py-2 rounded-2xl shadow ${
+            isMine
+              ? "bg-blue-600 text-white rounded-br-none"
+              : "bg-gray-200 text-gray-900 rounded-bl-none"
+          }`}
+        >
+          {msg.content && <p>{msg.content}</p>}
+          {msg.media_url && (
+            <>
+              {msg.message_type === "video" ? (
+                <video src={msg.media_url} controls className="mt-2 rounded-md max-w-full" />
+              ) : (
+                <img src={msg.media_url} alt="uploaded" className="mt-2 rounded-md max-w-full" />
+              )}
+            </>
+          )}
+
+        </div>
+
+        <span className="text-[10px] text-gray-400 mt-1">
+          {new Date(msg.timestamp).toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
+    );
+  })}
+
+  <div ref={messagesEndRef}></div>
 </div>
 
-                
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef}></div>
+
+      {pendingFile && (
+        <div className="p-3 border-t bg-white flex items-center gap-4">
+          {pendingFile.type.startsWith("image/") ? (
+            <img src={previewURL} alt="preview"
+                className="h-24 w-auto rounded-md border" />
+          ) : pendingFile.type.startsWith("video/") ? (
+            <video src={previewURL} controls
+                  className="h-24 w-auto rounded-md border" />
+          ) : (
+            <p className="text-sm">{pendingFile.name}</p>
+          )}
+
+          <Button
+            variant="destructive"
+            onClick={() => {          // Cancel
+              setPendingFile(null);
+              setPreviewURL("");
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={() => handleSendPendingFile()}   // defined next
+          >
+            Send File
+          </Button>
         </div>
+      )}
 
       {/* Input area */}
       <div className="p-4 border-t bg-white flex items-center space-x-2">
@@ -250,13 +429,26 @@ const handleRemoveMember = async (identifier) => {
         onChange={(e) => setNewMessage(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSend()}
       />
-     <input
+     {/* <input
             type="file"
             accept="image/*,video/*"
             className="hidden"
             id="chat-upload"
             onChange={handleFileUpload}
+          /> */}
+          <input
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            id="chat-upload"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              setPendingFile(file);
+              setPreviewURL(URL.createObjectURL(file));
+            }}
           />
+
           <label
   htmlFor="chat-upload"
   className={`cursor-pointer px-3 py-2 rounded-xl ${
@@ -273,7 +465,9 @@ const handleRemoveMember = async (identifier) => {
     </div>
     </div>
     {/* Members Modal */}
-      <Dialog onOpenChange={(open) => open && loadMembers()}>
+      <Dialog open={membersModalOpen}
+         onOpenChange={(open) => {setMembersModalOpen(open);
+          if (open) loadMembers()}}>
         <DialogTrigger asChild>
           <Button variant="outline">Manage Members</Button>
         </DialogTrigger>

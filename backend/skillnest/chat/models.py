@@ -98,3 +98,11 @@ class CommunityMessageRead(models.Model):
 
     class Meta:
         unique_together = ['user', 'message']
+
+class UserPresence(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="presence")
+    is_online = models.BooleanField(default=False)
+    current_room = models.ForeignKey(
+        CommunityChatRoom, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    last_seen = models.DateTimeField(auto_now=True)

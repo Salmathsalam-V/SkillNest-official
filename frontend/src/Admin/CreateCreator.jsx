@@ -1,11 +1,10 @@
 import Layout from '@/components/Layouts/AdminLayout'
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-
+import { registerUser } from '@/endpoints/axios';
 export const CreateCreator = () => {
     const navigate=useNavigate()
     const [formData, setFormData] = useState({
@@ -23,7 +22,8 @@ export const CreateCreator = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-        const res = await axios.post("http://localhost:8000/api/register/", formData);
+          
+        const res = await registerUser (formData);
         toast.success("Registered Succcessfully");
         navigate('/listcreator')
         } catch (err) {

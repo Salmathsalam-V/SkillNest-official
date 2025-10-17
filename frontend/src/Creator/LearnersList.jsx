@@ -24,6 +24,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { Loader } from '@/components/Layouts/Loader';
+import { get_learners } from '@/endpoints/axios';
 
 const LearnerList = () => {
   const [learners, setLearners] = useState([]);
@@ -36,7 +38,7 @@ const LearnerList = () => {
   useEffect(() => {
     const fetchLearners = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/admin/learners/');
+        const response = await get_learners();
         if (response.data.success) {
           setLearners(response.data.learners);
         }

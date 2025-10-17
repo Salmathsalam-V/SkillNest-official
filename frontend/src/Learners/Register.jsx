@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { imageUpload, registerUser } from "@/endpoints/axios";
 
 // ✅ validation schema
 const schema = Yup.object().shape({
@@ -82,8 +83,7 @@ export const Register = () => {
     formData.append("upload_preset", "skillnest_profile");
 
     try {
-      const res = await axios.post(
-        "https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload",
+      const res = await imageUpload(
         formData
       );
       setProfile(res.data.secure_url);
@@ -98,8 +98,7 @@ export const Register = () => {
   const onSubmit = async (data) => {
     try {
       const finalData = { ...data, profile };
-      const res = await axios.post(
-        "http://localhost:8000/api/register/",
+      const res = await registerUser(
         finalData
       );
 

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -9,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,DialogD
 import { Heart, MessageCircle } from "lucide-react";
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { toggleFollow,toggleLike,createComment,toggleCommentLike,get_course } from '../endpoints/axios';
+import { toggleFollow,toggleLike,createComment,toggleCommentLike,get_course, creatorData, getCreatorPosts } from '../endpoints/axios';
 
 export function CreatorDetailpage() {
   const { id } = useParams();
@@ -24,7 +23,7 @@ export function CreatorDetailpage() {
   useEffect(() => {
     const fetchCreator = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/api/admin/creators-view/${id}/`);
+        const response = await creatorData(id);
         console.log("Fetched creator: from cr view", response.data);
         if (response.data.success) {
           setCreator(response.data.creator);
@@ -45,12 +44,9 @@ export function CreatorDetailpage() {
     useEffect(() => {
   const fetchCreatorData = async () => {
     try {
-
-      const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
-      console.log("Posts fetched:",{id}, res.data);
-      const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
+      const resPosts = await getCreatorPosts(id);
       console.log("Posts fetched:", resPosts.data);
-      setPosts(resPosts.data);
+      setPosts(resPosts.data || []);
       console.log("creatoriid : ", id);
       try{
         const resCourses = await get_course(id);
@@ -204,7 +200,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
           className="w-24 h-24 rounded-full object-cover border-4 border-white shadow"
         />
         <div className="flex-1">
-          {creator.id}
+     
           <h2 className="text-xl font-semibold">@{creator.username}</h2>
           <p className="text-gray-600 text-sm mb-1">Category: {creator.category}</p>
           <p className="text-gray-700">{creator.description}</p>

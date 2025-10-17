@@ -7,17 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, MessageCircle } from "lucide-react";
 import { toggleLike,createComment,toggleCommentLike } from '../endpoints/axios';
-
+import { toast } from 'sonner';
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import AdminLayout from "@/components/Layouts/AdminLayout";
-
+import { Loader }  from '@/components/Layouts/Loader';
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
   const [commentText, setCommentText] = useState({});
   const [loading, setLoading] = useState(true);
   const [openPost, setOpenPost] = useState(null);
-
   const user = useSelector((state) => state.user.user); // get user from redux
   const userType = user?.user_type;
 
@@ -27,7 +26,8 @@ export default function PostsPage() {
         const res = await axios.get("http://localhost:8000/api/creator/posts/", {
           withCredentials: true,
         });
-        setPosts(res.data);
+        console.log("Fetched posts:", res.data.results);
+        setPosts(res.data.results);
       } catch (err) {
         console.error("Error fetching posts:", err);
       } finally {
@@ -79,6 +79,7 @@ const handleCommentSubmit = async (postId) => {
   }
 };
 
+
 const handleCommentLikeToggle = async (postId, commentId) => {
   console.log("Toggling like for comment:", commentId, "on post:", postId);
   try {
@@ -119,7 +120,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
   }
 };
 
-  if (loading) return <p className="text-center mt-10">Loading posts...</p>;
+  if (loading) return <Loader text="Loading posts..." />; // or redirect to login
 
   // ✅ Decide layout
   let Layout;
@@ -217,7 +218,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
 
       {/* Popup for comments */}
       <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
           <DialogHeader>
             <DialogTitle>Comments</DialogTitle>
           </DialogHeader>

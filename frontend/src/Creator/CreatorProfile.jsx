@@ -11,8 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Heart, MessageCircle } from "lucide-react";
-import { createComment } from '../endpoints/axios';
+import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost } from '../endpoints/axios';
+import { Loader
 
+ } from '@/components/Layouts/Loader';
 export default function CreatorProfile() {
   const { id } = useParams();
   const [creator, setCreator] = useState(null);
@@ -30,7 +32,10 @@ export default function CreatorProfile() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newPost, setNewPost] = useState({ caption: "", image: "" });
   const [image, setImage] = useState('');
-  
+  const [nextPage, setNextPage] = useState(0); // offset tracker
+  const [hasMore, setHasMore] = useState(true);
+  const pageSize = 6;
+
   // merging create and edit post modal
   const [postModal, setPostModal] = useState({
       open: false,
@@ -54,25 +59,30 @@ const handlePostImageUpload = async (e) => {
   const file = e.target.files[0];
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', 'skillnest_profile');
 
   try {
-    const res = await axios.post(
-      'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
-      formData
+    console.log("Uploading image:", file);
+    const res = await imageUpload(
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      }
     );
-    const url = res.data.secure_url;
-
+    console.log("Upload response:", res);
+    const url = res.data.url;
     setPostModal((prev) => ({
       ...prev,
       data: { ...prev.data, image: url },
     }));
+
     toast.success("Image uploaded");
   } catch (err) {
     console.error("Image upload failed:", err);
     toast.error("Image upload failed");
   }
 };
+
 const submitPost = async () => {
   const { mode, data } = postModal;
   const payload = { caption: data.caption, image: data.image };
@@ -85,20 +95,12 @@ const submitPost = async () => {
   try {
     let res;
     if (mode === 'create') {
-      res = await axios.post(
-        `http://localhost:8000/api/creator/creators/${id}/posts/`,
-        payload,
-        { withCredentials: true }
-      );
+      res = await getCreatorPosts(id);
       setPosts((prev) => [res.data, ...prev]);
       toast.success("Post created successfully");
     } else {
       // mode === 'edit'
-      res = await axios.patch(
-        `http://localhost:8000/api/creator/creators/posts/${data.id}/`,
-        payload,
-        { withCredentials: true }
-      );
+      const res = await updatePost(data.id, payload);
       setPosts((prev) =>
         prev.map((p) => (p.id === data.id ? { ...p, ...res.data } : p))
       );
@@ -145,10 +147,10 @@ const submitPost = async () => {
 
   const handleSaveChanges = async () => {
     try {
-      const response = await axios.patch(`http://localhost:8000/api/admin/creators-view/${id}/`, editData);
+      const res = await updateCreatorProfile(id, editData);
       toast.success("Profile updated successfully");
       setIsEditOpen(false);
-      if (response.data.success) {
+      if (res.data.success) {
         setCreator({ ...creator, ...editData });
       }
     } catch (error) {
@@ -159,15 +161,21 @@ const submitPost = async () => {
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'skillnest_profile'); // Your Cloudinary preset
+    formData.append('upload_preset', 'skillnest_profile'); 
 
     try {
       setUploading(true);
       const res = await axios.post(
-        'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
-        formData
+        'http://localhost:8000/api/upload-image/',
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          withCredentials: true,
+        }
       );
-      setEditData(prev => ({ ...prev, background: res.data.secure_url }));
+      console.log("Upload response:", res.data.url);
+      const url = res.data.url;
+      setEditData(prev => ({ ...prev, background: url }));
       toast.success("Background image uploaded");
     } catch (error) {
       toast.error("Image upload failed");
@@ -176,40 +184,42 @@ const submitPost = async () => {
       setUploading(false);
     }
   };
-
-  useEffect(() => {
-  const fetchCreatorData = async () => {
-    try {
-
-      const res = await axios.get("http://localhost:8000/api/creator/posts/", { withCredentials: true });
-      console.log("Posts fetched:",{id}, res.data);
-      const resPosts = await axios.get(`http://localhost:8000/api/creator/creators/${id}/posts/`);
-      console.log("Posts fetched:", resPosts.data);
-      setPosts(resPosts.data);
-      const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
-      setCourses(resCourses.data);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching creator posts/courses:", err);
-    }
-  };
-  fetchCreatorData();
+const fetchPosts = async (offset = 0) => {
+  try {
+    const res = await axios.get(
+      `http://localhost:8000/api/creator/creators/${id}/posts/?limit=${pageSize}&offset=${offset}`,
+      { withCredentials: true }
+    );
+    setPosts(offset === 0 ? res.data.results : (prev) => [...prev, ...res.data.results]);
+    setNextPage(offset + pageSize);
+    setHasMore(!!res.data.next); // DRF gives `next` link if more pages exist
+    const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
+    setCourses(resCourses.data.results || []);
+    setLoading(false);
+  } catch (err) {
+    console.error("Error fetching posts:", err);
+  }
+};
+useEffect(() => {
+  setPosts([]);      
+  setNextPage(0);
+  setHasMore(true);
+  fetchPosts(0);
 }, [id]);
 
-const handleDeletePost = async (postId) => {
-  if (!window.confirm("Are you sure you want to delete this post?")) return;
 
-  try {
-    await axios.delete(`http://localhost:8000/api/creator/creators/posts/${postId}/`, {
-      withCredentials: true,
-    });
+const handleDeletePost = async (postId) => {
+  // if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+  const res = await deletePost(postId);
+  if (res.success) {
     toast.success("Post deleted successfully");
-    setPosts((prev) => prev.filter((p) => p.id !== postId)); // remove from state
-  } catch (err) {
-    console.error("Error deleting post:", err);
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  } else {
     toast.error("Failed to delete post");
   }
 };
+
 
 const handleUpdatePost = async (post) => {
   try {
@@ -238,8 +248,12 @@ const handleUpdatePost = async (post) => {
 
     try {
       const res = await axios.post(
-        'https://api.cloudinary.com/v1_1/dg8kseeqo/image/upload',
-        formData
+        'http://localhost:8000/api/upload-image/',
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          withCredentials: true,
+        }
       );
       setImage(res.data.secure_url);
     } catch (err) {
@@ -293,7 +307,35 @@ const handleCommentSubmit = async (postId) => {
     toast.error("Failed to post comment");
   }
 };
-  if (loading) return <p className="text-center py-10">Loading...</p>;
+const handleProfileUpload = async (e) => {
+  const file = e.target.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'skillnest_profile'); // optional if needed by your backend
+
+  try {
+    setUploading(true);
+    const res = await axios.post(
+      'http://localhost:8000/api/upload-image/',
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      }
+    );
+    console.log("Profile upload response:", res.data.url);
+    const url = res.data.url;
+    setEditData((prev) => ({ ...prev, profile: url }));
+    toast.success("Profile image uploaded");
+  } catch (error) {
+    toast.error("Profile image upload failed");
+    console.error("Upload error:", error);
+  } finally {
+    setUploading(false);
+  }
+};
+
+  if (loading) return <Loader text="Loading Profile..." />;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
   return (
@@ -328,7 +370,6 @@ const handleCommentSubmit = async (postId) => {
             <h2 className="text-xl font-semibold">@{creator.username}</h2>
             <p className="text-gray-600 text-sm mb-1">Email: {creator.email}</p>
             <p className="text-gray-600 text-sm mb-1">Fullname: {creator.fullname}</p>
-                        <p className="text-gray-600 text-sm mb-1">id: {id}</p>
             <div className="flex flex-col gap-2">
           <div className="mt-2">
             <p className="text-gray-600 text-sm mb-1">Background Image:</p>
@@ -349,7 +390,8 @@ const handleCommentSubmit = async (postId) => {
                 <DialogTrigger asChild>
                   <Button variant="outline" onClick={() => setIsEditOpen(true)}>Edit Profile</Button>
                 </DialogTrigger>
-                <DialogContent>
+                  <DialogContent className="max-h-[80vh] overflow-y-auto">
+
                   <DialogHeader>
                   <DialogTitle>Edit Creator Info</DialogTitle>
                   <DialogDescription>Update the creator's information below and click Save.</DialogDescription>
@@ -374,25 +416,46 @@ const handleCommentSubmit = async (postId) => {
                       value={editData.category}
                       onChange={handleInputChange}
                     />
-                    <div className="flex flex-col gap-2">
-  <Label htmlFor="background-upload">Upload Background</Label>
-  <Input
-    id="background-upload"
-    type="file"
-    accept="image/*"
-    onChange={handleBackgroundUpload}
-  />
-  {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
-  {editData.background && (
-    <img
-      src={editData.background}
-      alt="Background preview"
-      className="w-full max-w-sm h-40 object-cover rounded-md mt-2 border"
-    />
-  )}
-</div>
+                  {/* Upload Profile Image */}
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="profile-upload">Upload Profile Image</Label>
+                    <Input
+                      id="profile-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileUpload}
+                    />
+                    {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                    {editData.profile && (
+                      <img
+                        src={editData.profile}
+                        alt="Profile preview"
+                        className="w-24 h-24 rounded-full object-cover border mt-2"
+                      />
+                    )}
+                  </div>
 
-<div className="mt-2">
+                  {/* Upload Background Image */}
+                  <div className="flex flex-col gap-2 mt-3">
+                    <Label htmlFor="background-upload">Upload Background</Label>
+                    <Input
+                      id="background-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBackgroundUpload}
+                    />
+                    {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                    {editData.background && (
+                      <img
+                        src={editData.background}
+                        alt="Background preview"
+                        className="w-full max-w-sm h-40 object-cover rounded-md mt-2 border"
+                      />
+                    )}
+                  </div>
+
+
+{/* <div className="mt-2">
   <Label>Or paste background image URL</Label>
   <Input
     name="background"
@@ -400,7 +463,7 @@ const handleCommentSubmit = async (postId) => {
     value={editData.background}
     onChange={handleInputChange}
   />
-</div>
+</div> */}
 
                     <Textarea
                       name="description"
@@ -412,6 +475,7 @@ const handleCommentSubmit = async (postId) => {
                   </div>
                 </DialogContent>
               </Dialog>
+
             </div>
           </div>
         </Card>
@@ -475,8 +539,12 @@ const handleCommentSubmit = async (postId) => {
                       {/* Like & Comment Buttons */}
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" className="p-0">
-                            <Heart className="w-5 h-5 text-red-500" />
+                          <Button variant="ghost" size="sm" className="p-0" onClick={() => handleLikeToggle(post.id)}>
+                            {post.is_liked ? (
+                            <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                            ) : (
+                              <Heart className="w-5 h-5 text-gray-500" />
+                            )}
                           </Button>
                           <span className="text-sm">{post.like_count} likes</span>
   <Button
@@ -549,7 +617,15 @@ const handleCommentSubmit = async (postId) => {
                   </Card>
                   
                 ))}
-   
+                {hasMore && (
+                  <div className="flex justify-center mt-6">
+                    <Button onClick={() => fetchPosts(nextPage)}>
+                      Load More
+                    </Button>
+                  </div>
+                )}
+
+
               </div>
             ) : (
               <p className="text-muted-foreground text-center mt-6">No posts available.</p>
@@ -664,61 +740,65 @@ const handleCommentSubmit = async (postId) => {
   </DialogContent>
 </Dialog>
 
-            {/* Popup for comments (reuse same as PostsPage) */}
-            <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Comments</DialogTitle>
-                </DialogHeader>
-                {openPost && (
-                  <div className="space-y-3">
-                    {openPost.image && (
-                      <img
-                        src={openPost.image}
-                        alt="Post"
-                        className="rounded-lg w-full mb-2"
-                      />
-                    )}
-                    <p className="text-gray-700">{openPost.caption}</p>
+            {/* Comments modal (like PostsPage) */}
+  <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
+    <DialogContent className="max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Comments</DialogTitle>
+      </DialogHeader>
+      {openPost && (
+        <div className="space-y-3">
+          {openPost.image && <img src={openPost.image} alt="Post" className="rounded-lg w-full mb-2" />}
+          <p className="text-gray-700">{openPost.caption}</p>
 
-                    {/* All comments */}
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {openPost.comments?.length > 0 ? (
-                        openPost.comments.map((comment) => (
-                          <div key={comment.id} className="border-b pb-1">
-                            <p className="text-sm font-semibold">
-                              {comment.user?.username}
-                            </p>
-                            <p className="text-sm text-gray-600">{comment.content}</p>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-400">No comments yet.</p>
-                      )}
-                    </div>
-
-                    {/* Add Comment */}
-                    <div className="flex items-center gap-2 mt-3">
-                      <Textarea
-                        placeholder="Write a comment..."
-                        value={commentText[openPost.id] || ""}
-                        onChange={(e) =>
-                          setCommentText({
-                            ...commentText,
-                            [openPost.id]: e.target.value,
-                          })
-                        }
-                        className="flex-1"
-                      />
-                      <Button onClick={() => handleCommentSubmit(openPost.id)}>
-                        Post
-                      </Button>
-                    </div>
+          {/* All comments */}
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {openPost.comments?.length > 0 ? (
+              openPost.comments.map((comment) => (
+                <div key={comment.id} className="border-b pb-1 flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-semibold">{comment.user?.username}</p>
+                    <p className="text-sm text-gray-600">{comment.content}</p>
                   </div>
-                )}
-              </DialogContent>
-            </Dialog>
-          </TabsContent>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-0"
+                      onClick={() => handleCommentLikeToggle(openPost.id, comment.id)}
+                    >
+                      {comment.is_liked ? (
+                        <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                      ) : (
+                        <Heart className="w-4 h-4 text-gray-500" />
+                      )}
+                    </Button>
+                    <span className="text-xs">{comment.like_count}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400">No comments yet.</p>
+            )}
+          </div>
+
+          {/* Add Comment */}
+          <div className="flex items-center gap-2 mt-3">
+            <Textarea
+              placeholder="Write a comment..."
+              value={commentText[openPost.id] || ""}
+              onChange={(e) =>
+                setCommentText({ ...commentText, [openPost.id]: e.target.value })
+              }
+              className="flex-1"
+            />
+            <Button onClick={() => handleCommentSubmit(openPost.id)}>Post</Button>
+          </div>
+        </div>
+      )}
+    </DialogContent>
+  </Dialog>
+      </TabsContent>
 
 
            <TabsContent value="courses">
