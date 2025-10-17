@@ -1,5 +1,8 @@
 .env
 .env*
 /venv
+echo "__pycache__/"
+echo "*.py[cod]" 
+
 __pycache__/
 *.py[cod]
