@@ -86,7 +86,7 @@ export const Register = () => {
       const res = await imageUpload(
         formData
       );
-      setProfile(res.data.secure_url);
+      setProfile(res.data.url);
       toast.success("Image uploaded successfully");
     } catch (err) {
       toast.error("Image upload failed");

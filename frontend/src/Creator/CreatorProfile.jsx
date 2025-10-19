@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Heart, MessageCircle } from "lucide-react";
-import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost } from '../endpoints/axios';
+import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost,  createCreatorPost,toggleCommentLike } from '../endpoints/axios';
 import { Loader
 
  } from '@/components/Layouts/Loader';
@@ -95,7 +95,7 @@ const submitPost = async () => {
   try {
     let res;
     if (mode === 'create') {
-      res = await getCreatorPosts(id);
+      res = await createCreatorPost(id, payload);
       setPosts((prev) => [res.data, ...prev]);
       toast.success("Post created successfully");
     } else {
@@ -247,15 +247,10 @@ const handleUpdatePost = async (post) => {
     formData.append('upload_preset', 'skillnest_profile');
 
     try {
-      const res = await axios.post(
-        'http://localhost:8000/api/upload-image/',
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          withCredentials: true,
-        }
-      );
-      setImage(res.data.secure_url);
+      const res = await imageUpload(
+                  formData,
+                );
+      setImage(res.data.url);
     } catch (err) {
       console.error("Image upload failed:", err);
       toast.error("Image upload failed");
@@ -334,6 +329,46 @@ const handleProfileUpload = async (e) => {
     setUploading(false);
   }
 };
+const handleCommentLikeToggle = async (postId, commentId) => {
+  console.log("Toggling like for comment:", commentId, "on post:", postId);
+  try {
+    const data = await toggleCommentLike(postId, commentId);
+    console.log("Comment like toggle response:", data);
+    if (data.success) {
+      // Update state for that comment
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                comments: p.comments.map((c) =>
+                  c.id === commentId
+                    ? { ...c, is_liked: data.liked, like_count: data.like_count }
+                    : c
+                ),
+              }
+            : p
+        )
+      );
+
+      // Also update openPost if the dialog is open
+      if (openPost?.id === postId) {
+        setOpenPost((prev) => ({
+          ...prev,
+          comments: prev.comments.map((c) =>
+            c.id === commentId
+              ? { ...c, is_liked: data.liked, like_count: data.like_count }
+              : c
+          ),
+        }));
+      }
+    }
+  } catch (err) {
+    console.log("Comment like toggle error:", err);
+    toast.error("Failed to like comment");
+  }
+};
+
 
   if (loading) return <Loader text="Loading Profile..." />;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
@@ -390,7 +425,7 @@ const handleProfileUpload = async (e) => {
                 <DialogTrigger asChild>
                   <Button variant="outline" onClick={() => setIsEditOpen(true)}>Edit Profile</Button>
                 </DialogTrigger>
-                  <DialogContent className="max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
 
                   <DialogHeader>
                   <DialogTitle>Edit Creator Info</DialogTitle>
@@ -706,7 +741,7 @@ const handleProfileUpload = async (e) => {
 
 {/* CREATE POST DIALOG */}
 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-  <DialogContent>
+  <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
     <DialogHeader>
       <DialogTitle>Create New Post</DialogTitle>
     </DialogHeader>
@@ -742,7 +777,7 @@ const handleProfileUpload = async (e) => {
 
             {/* Comments modal (like PostsPage) */}
   <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
-    <DialogContent className="max-w-lg">
+    <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
       <DialogHeader>
         <DialogTitle>Comments</DialogTitle>
       </DialogHeader>

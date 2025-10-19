@@ -1,5 +1,6 @@
 import axios from 'axios';
 import api from "@/api/axios";
+import { data } from 'react-router-dom';
 
 
 const BASE_URL = 'http://127.0.0.1:8000/api/';
@@ -226,16 +227,17 @@ export const get_course = async (userId)=>{
   }
 }
 
-export const fetchCommunities = async (page = 1) => {
+export const fetchCommunities = async (limit = 6, offset = 0) => {
   try {
     // Add the ?page= query parameter
-    const res = await apiClient.get(`creator/communities/?page=${page}`);
+    const res = await apiClient.get(`creator/communities/?limit=${limit}&offset=${offset}`);
     return res.data;  // { count, next, previous, results }
   } catch (err) {
     console.error("Error fetching communities:", err);
     return null;
   }
 };
+
 
 export const createCommunity  = async (name, description, members) => {
   try {
@@ -279,9 +281,9 @@ export const sendMessage = async (communityId, messageData) => {
 export const fetchMembers = (communityId) =>
   apiClient.get(`/chat/communities/${communityId}/members/`);
 
-export const fetchLearnerCommunities = async () => {
+export const fetchLearnerCommunities = async (limit = 6, offset = 0) => {
   try {
-    const res = await apiClient.get("/learner/communities/"); // make sure leading slash
+    const res = await apiClient.get(`/learner/communities/?limit=${limit}&offset=${offset}`); // make sure leading slash
     return res.data;
   } catch (err) {
     if (err.response) {
@@ -374,11 +376,12 @@ export const registerUser = async (formData) => {
 export const imageUpload = async (formData) => {
   try {
     const res = await api.post("/upload-image/",   
-      imgData,
+      formData,
       {
         headers: { "Content-Type": "multipart/form-data" },
       }
     );
+    return { success: true, data: res.data };
   } catch (error) {
     console.error("image uplaod  error from axios:", error.response?.data || error.message);
     return { success: false, error };
@@ -405,6 +408,15 @@ export const getCreatorPosts = async (creatorId) => {
   }
 };
 
+export const createCreatorPost = async (creatorId, postData) => {
+  try {
+    const res = await apiClient.post(`/creator/creators/${creatorId}/posts/`, postData);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error creating post:", err);
+    return { success: false, error: err };
+  }
+};
 
 // ✅ Approve creator
 export const approveCreator = async (creatorId) => {

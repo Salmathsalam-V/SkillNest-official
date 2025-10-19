@@ -15,6 +15,7 @@ from accounts.models import User
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from notification.utils import create_notification
+from django.db.models import Q
 
 
 
@@ -219,8 +220,10 @@ class CommunityListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Community.objects.filter(creator=self.request.user)
-
+        user = self.request.user
+        return Community.objects.filter(
+            Q(creator=user) | Q(members=user)
+        ).distinct().order_by('-created_at')
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
 

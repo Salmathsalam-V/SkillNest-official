@@ -75,7 +75,7 @@ export const CommunityPageLearner = () => {
       const res = await imageUpload(
         formData
       );
-      const url = res.data.secure_url;
+      const url = res.data.url;
 
       let msgType = "file";
       if (pendingFile.type.startsWith("image/")) msgType = "image";

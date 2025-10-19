@@ -48,17 +48,13 @@ const handleSubmit = async (e) => {
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'skillnest_profile'); // from Cloudinary dashboard
+    formData.append('upload_preset', 'skillnest_profile'); 
 
     try {
       const res = await imageUpload(
             formData,
-            {
-              headers: { 'Content-Type': 'multipart/form-data' },
-              withCredentials: true,
-            }
           );
-      setBackground(res.data.secure_url);  // Set the uploaded image URL
+      setBackground(res.data.url);  
     } catch (err) {
       console.error("Image upload failed:", err);
       toast.error("Image upload failed");
