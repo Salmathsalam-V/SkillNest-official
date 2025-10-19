@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Heart, MessageCircle } from "lucide-react";
-import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost } from '../endpoints/axios';
+import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost,  createCreatorPost } from '../endpoints/axios';
 import { Loader
 
  } from '@/components/Layouts/Loader';
@@ -95,7 +95,7 @@ const submitPost = async () => {
   try {
     let res;
     if (mode === 'create') {
-      res = await getCreatorPosts(id);
+      res = await createCreatorPost(id, payload);
       setPosts((prev) => [res.data, ...prev]);
       toast.success("Post created successfully");
     } else {
@@ -247,15 +247,10 @@ const handleUpdatePost = async (post) => {
     formData.append('upload_preset', 'skillnest_profile');
 
     try {
-      const res = await axios.post(
-        'http://localhost:8000/api/upload-image/',
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          withCredentials: true,
-        }
-      );
-      setImage(res.data.secure_url);
+      const res = await imageUpload(
+                  formData,
+                );
+      setImage(res.data.url);
     } catch (err) {
       console.error("Image upload failed:", err);
       toast.error("Image upload failed");

@@ -257,7 +257,8 @@ const handleSendPendingFile = async () => {
     const res = await imageUpload(
       formData
     );
-    const url = res.data;
+    console.log("res data:",res)
+    const url = res.data.url;
     console.log("url:2",url)
     let msgType = "file";
     if (pendingFile.type.startsWith("image/")) msgType = "image";

@@ -22,34 +22,58 @@ export const CommunityList = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedMembers, setSelectedMembers] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [offset, setOffset] = useState(0);
+  const [next, setNext] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false); // modal state
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
+  const LIMIT = 6;
 
   // Fetch communities and users
-  useEffect(() => {
-    try{
-      const loadData = async () => {
-        const data = await fetchCommunities(page);
-        if (data) {
-          setCommunities(prev => data.results);
-
-          setTotalPages(Math.ceil(data.count / data.results.length)); // 10 = DRF PAGE_SIZE
+ useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await fetchCommunities(LIMIT, offset);
+        if (offset === 0) {
+          setCommunities(data.results);
+        } else {
+          setCommunities((prev) => [...prev, ...data.results]);
         }
+        setNext(data.next);
         const userRes = await fetchUsers();
         setUsers(userRes || []);
-      };
-      loadData();
-    }
-    catch (err) {
-        console.error("Error fetching posts:", err);
+      } catch (err) {
+        console.error("Error fetching communities:", err);
       } finally {
         setLoading(false);
       }
-  }, [page]);
+    };
+    loadData();
+  }, [offset]);
+
+  const handleLoadMore = () => {
+    if (next) {
+      // Extract offset from next URL (e.g., ?limit=6&offset=12)
+      const urlParams = new URLSearchParams(new URL(next).search);
+      const newOffset = parseInt(urlParams.get("offset")) || 0;
+      setOffset(newOffset);
+    }
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 &&
+        next
+      ) {
+        handleLoadMore();
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [next]);
+
 
   const handleMemberToggle = (userId) => {
     setSelectedMembers((prev) =>
@@ -99,11 +123,11 @@ export const CommunityList = () => {
                 </CardContent>
                 {/* Navigate to community page with ID */}
                <Button
-  onClick={() => navigate(`/creator/communities/${community.id}`)}
-  variant="custom"
->
-  View
-</Button>
+                  onClick={() => navigate(`/creator/communities/${community.id}`)}
+                  variant="custom"
+                >
+                  View
+                </Button>
 
               </Card>
             ))}
@@ -122,12 +146,7 @@ export const CommunityList = () => {
           </Button>
         </div>
 
-        {/* Pagination */}
-        <div className="flex justify-center items-center gap-4 mt-4">
-          <Button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</Button>
-          <span>Page {page} of {totalPages}</span>
-          <Button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
-        </div>
+
 
 
        {/* Create Community Modal */}

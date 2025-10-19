@@ -38,7 +38,7 @@ const Profile = () => {
     setIsEditOpen(true);
   };
   }
-  if (loading) return <Loader text="Loading creator profile..." />; // or redirect to login
+  if (loading) return <Loader text="Loading learner profile..." />; // or redirect to login
 
   useEffect(() => {
   const fetchLearner = async () => {

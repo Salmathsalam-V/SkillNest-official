@@ -10,4 +10,4 @@ class CommunityMemberListView(generics.ListAPIView):
 
     def get_queryset(self):
         # Only list communities where the logged-in user is a member
-        return Community.objects.filter(members=self.request.user)
+        return Community.objects.filter(members=self.request.user).order_by("-created_at")

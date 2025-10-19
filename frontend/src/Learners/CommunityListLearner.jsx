@@ -4,20 +4,56 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
+import { Loader }  from '@/components/Layouts/Loader';
+
 
 export const CommunityListLearner = () => {
   const [communities, setCommunities] = useState([]);
   const navigate = useNavigate();
+  const [offset, setOffset] = useState(0);
+  const [next, setNext] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const LIMIT = 6;
+
 
   useEffect(() => {
     const loadData = async () => {
-      const res = await fetchLearnerCommunities();
+      const res = await fetchLearnerCommunities(LIMIT, offset);
       console.log("Fetched communities: learner:b", res.results);
-      setCommunities(res.results || []);
+      if (offset === 0) {
+          setCommunities(res.results);
+        } else {
+          setCommunities((prev) => [...prev, ...res.results]);
+        }
+      setNext(res.next);
+      setLoading(false);
     };
     loadData();
-  }, []);
+  }, [offset]);
+    const handleLoadMore = () => {
+    if (next) {
+      // Extract offset from next URL (e.g., ?limit=6&offset=12)
+      const urlParams = new URLSearchParams(new URL(next).search);
+      const newOffset = parseInt(urlParams.get("offset")) || 0;
+      setOffset(newOffset);
+    }
+  };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 &&
+        next
+      ) {
+        handleLoadMore();
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [next]);
+  console.log("Communities state:", communities);
+  if (loading) return <Loader text="Loading communities..." />; // or redirect to login
+  
   return (
     <LearnerLayout>
         <div className="p-6 space-y-6">
