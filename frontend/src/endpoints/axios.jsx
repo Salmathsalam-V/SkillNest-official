@@ -1,6 +1,7 @@
 import axios from 'axios';
 import api from "@/api/axios";
 import { data } from 'react-router-dom';
+import { get } from 'react-hook-form';
 
 
 const BASE_URL = 'http://127.0.0.1:8000/api/';
@@ -33,14 +34,27 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       
       console.log('Attempting token refresh...');
+      console.log('Original request URL:', originalRequest.url);
+      console.log('Original request headers:', originalRequest.headers);
+      console.log('Original request data:', originalRequest.data);
+      console.log('Refresh token from :', document.cookie);
       
       try {
         // Check if we have cookies before attempting refresh
-        alert('Document cookies:', document.cookie);
         
-        const refreshResponse = await refreshClient.post(REFRESH_URL, {}, { 
+        alert(`Document cookies: ${document.cookie}`);
+        console.log('Document cookies before refresh from axios apiClient :');
+        const res = await call_refresh(error, () => apiClient(originalRequest));
+        if (res){
+          console.log("Request retried successfully after refresh");
+          return res
+        }
+        const refreshResponse = await refreshClient.post(REFRESH_URL, {
+          // refresh : refreshToken,
+        }, { 
           withCredentials: true 
         });
+
         
         console.log("Token refreshed successfully", refreshResponse.data);
 
@@ -78,21 +92,33 @@ export const login = async (email, password) => {
 };
 
 
-// export const refresh_token = async () => {
-//   try {
-//     await axios.post(
-//       REFRESH_URL,
-//       {},
-//       { withCredentials: true }
-//     );
+export const refresh_token = async () => {
+  try {
+    await axios.post(
+      REFRESH_URL,
+      {},
+      { withCredentials: true }
+    );
 
-//     // optionally: return the token or a success flag
-//     return response.data.refreshed === true;
-//   } catch (error) {
-//     console.error("Token refresh failed", error);
-//     return false;
-//   }
-// };
+    // optionally: return the token or a success flag
+    return response.data.refreshed === true;
+  } catch (error) {
+    console.error("Token refresh failed", error);
+    return false;
+  }
+};
+const call_refresh=async (error, func ) =>{
+  if (error.response && error.response.status === 401){
+    console.log("Calling refresh")
+    const tokenRefreshed = await refresh_token();
+    console.log("Token refreshed:", tokenRefreshed)
+    if (tokenRefreshed){
+      const retryResponse = await func();
+      return retryResponse.data
+    }
+  }
+  return false
+}
 
 export const get_post = async ()=>{
   try{
@@ -107,18 +133,7 @@ export const get_post = async ()=>{
   }
 }
 
-const call_refresh=async (error, func ) =>{
-  if (error.response && error.response.status === 401){
-    console.log("Calling refresh")
-    const tokenRefreshed = await refresh_token();
-    console.log("Token refreshed:", tokenRefreshed)
-    if (tokenRefreshed){
-      const retryResponse = await func();
-      return retryResponse.data
-    }
-  }
-  return false
-}
+
 export const logout = async () => {
   try {
     // Use axios directly instead of apiClient to bypass interceptors

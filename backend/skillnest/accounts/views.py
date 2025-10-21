@@ -41,10 +41,11 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserSerializer(data=request.data)
+        logger.info(f"Registration data received: {request.data}")
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        print(serializer.errors)  
+        logger.debug(serializer.errors)  
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def get(self, request):
         return Response({'message': 'Register view'})
@@ -56,11 +57,42 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
+            user = data['user']
+            logger.info(f"User {user} logged in successfully.")
+            #  # Check user status & approval conditions
+            if user['user_type'] == 'creator':
+                user_instance = User.objects.get(id=user['id'])
+                # Creator must be approved and active
+                creator_profile = Creator.objects.filter(user=user_instance).first() # Access related Creator profile, if not exists, None
+                if not creator_profile or creator_profile.approve != 'accept':
+                    logger.warning(f"Creator account for user {user['email']} is not approved.")
+                    return Response(
+                        {'success': False, 'error': 'Creator account is not approved yet.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+                if not user['status']:
+                    logger.warning(f"Creator account for user {user['email']} is not active.")
+                    return Response(
+                            {'success': False, 'error': 'Creator account is not active. Please verify your email.'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+            elif user['user_type'] == 'learner':
+                # Learner must be active
+                if not user['status']:
+                    return Response(
+                        {'success': False, 'error': 'Learner account is not active. Please verify your email.'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+                
+
 
             access_token = data['access']
             refresh_token = data['refresh']
 
             response = Response({
+                'success': True,
                 'user': data['user'],
                 'message': 'Login successful'
             }, status=status.HTTP_200_OK)
@@ -113,12 +145,12 @@ class RefreshTokenView(APIView):
 
     def post(self, request):
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-        print(f"Refresh token from cookies: {refresh_token}")
-        print(f"All cookies: {request.COOKIES}")
-        print(f"Cookie key being used: {settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']}")
+        logger.debug(f"Refresh token from cookies: {refresh_token}")
+        logger.debug(f"All cookies: {request.COOKIES}")
+        logger.debug(f"Cookie key being used: {settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']}")
         
         if refresh_token is None:
-            print("No refresh token found in cookies")
+            logger.debug("No refresh token found in cookies")
             return Response(
                 {"detail": "Session expired. Please log in again from refresh."}, 
                 status=status.HTTP_401_UNAUTHORIZED
