@@ -43,18 +43,25 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       const res = await login(data.email, data.password);
+      console.log('Login response:', res.error, res.data);
       if (res?.success) {
         dispatch(setUser(res.data.user));
         const userType = res.data.user.user_type;
-        toast.success('Login successful!');
+        toast.success(res.data.message || 'Login successful!');
         if (userType === 'learner') navigate('/learnerhome');
         else if (userType === 'creator') navigate('/creatorhome');
         else navigate('/adminhome');
-      } else {
+      }else if (res?.error.error) {
+        console.log('Backend error message:', res.error);
+        toast.error(res.error.error);
+      }else {
         toast.error('Invalid credentials');
       }
     } catch (error) {
-      toast.error("Login failed: " + (error.response?.data?.error || error.message));
+      console.log('Login error:', error);
+      const backendError = error.response?.data?.error;
+      toast.error(backendError || error.message || 'Something went wrong during login.');
+      console.log('Login error:', error);
     }
   };
   if (loading) return <Loader text="Loading..." />; // or redirect to login

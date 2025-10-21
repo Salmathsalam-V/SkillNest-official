@@ -48,32 +48,33 @@ export const Register = () => {
   });
 
   // ✅ handle backend errors
-  const handleBackendErrors = (errorData) => {
-    if (typeof errorData === "object" && errorData !== null) {
-      Object.keys(errorData).forEach((field) => {
-        const fieldErrors = errorData[field];
-        if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-          setError(field, {
-            type: "server",
-            message: fieldErrors[0],
-          });
+const handleBackendErrors = (errorData) => {
+  console.log("Backend validation errors:", errorData);
 
-          // Extra toast messages for duplicates
-          if (field === "username" && fieldErrors[0].includes("already exists")) {
-            toast.error("Username already taken. Please choose a different one.");
-          } else if (field === "email" && fieldErrors[0].includes("already exists")) {
-            toast.error("Email already registered. Please use a different email or try logging in.");
-          } else {
-            toast.error(`${field}: ${fieldErrors[0]}`);
-          }
-        }
+  if (typeof errorData === "object" && errorData !== null) {
+    Object.entries(errorData).forEach(([field, messages]) => {
+      const message = Array.isArray(messages) ? messages[0] : messages;
+
+      // Map to form errors
+      setError(field, {
+        type: "server",
+        message,
       });
-    } else if (typeof errorData === "string") {
-      toast.error(errorData);
-    } else {
-      toast.error("Registration failed. Please check your information and try again.");
-    }
-  };
+
+      // Toast messages for user clarity
+      if (field === "username" && message.includes("exists")) {
+        toast.error("Username already taken. Please choose a different one.");
+      } else if (field === "email" && message.includes("exists")) {
+        toast.error("Email already registered. Please use a different email or try logging in.");
+      } else {
+        toast.error(`${field}: ${message}`);
+      }
+    });
+  } else {
+    toast.error("Registration failed. Please check your inputs.");
+  }
+};
+
 
   // ✅ image upload
   const handleImageUpload = async (e) => {
@@ -94,41 +95,28 @@ export const Register = () => {
     }
   };
 
-  // ✅ form submit
-  const onSubmit = async (data) => {
-    try {
-      const finalData = { ...data, profile };
-      const res = await registerUser(
-        finalData
-      );
+const onSubmit = async (data) => {
+  const finalData = { ...data, profile };
+  const res = await registerUser(finalData);
 
-      try {
-        await axios.post("http://localhost:8000/api/send_otp/", {
-          email: data.email,
-        });
-        navigate("/verify-otp", {
-          state: { email: data.email, isForgotPassword: false },
-        });
-        toast.success("OTP sent to your email successfully");
-      } catch (error) {
-        toast.error("Failed to send OTP");
-        console.error("Failed to send OTP", error);
-      }
-    } catch (err) {
-      console.error("Registration error:", err);
-      if (err.response?.status === 400) {
-        handleBackendErrors(err.response.data);
-      } else if (err.response?.status === 409) {
-        toast.error("User already exists with this information");
-      } else if (err.response?.status === 500) {
-        toast.error("Server error. Please try again later.");
-      } else if (err.code === "NETWORK_ERROR" || !err.response) {
-        toast.error("Network error. Please check your connection and try again.");
-      } else {
-        toast.error("Registration failed. Please try again.");
-      }
+  if (res.success) {
+    // Registration succeeded ✅
+    await axios.post("http://localhost:8000/api/send_otp/", { email: data.email });
+    toast.success("OTP sent to your email successfully");
+    navigate("/verify-otp", {
+      state: { email: data.email, isForgotPassword: false },
+    });
+  } else {
+    // Registration failed ❌
+    const backendError = res.error?.response?.data;
+    if (backendError) {
+      handleBackendErrors(backendError);  // ✅ use your function
+    } else {
+      toast.error("Registration failed. Please try again.");
     }
-  };
+  }
+};
+
 
 
   return (
