@@ -1,8 +1,10 @@
 from rest_framework import serializers
-from .models import Post, Comment, Course, QA_Post
+from .models import Post, Comment, Course
 from accounts.models import User, Creator
-from .models import Community
+from .models import Community,CommunityInvite
 from django.contrib.auth import get_user_model
+import logging
+logger = logging.getLogger(__name__)
 
 
 # --- User (simplified for nested usage) ---
@@ -74,17 +76,9 @@ class CourseSerializer(serializers.ModelSerializer):
         fields = ['id', 'post', 'rating']
 
 
-# --- QA Serializer ---
-class QASerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    course = CourseSerializer(read_only=True)
-
-    class Meta:
-        model = QA_Post
-        fields = ['id', 'course', 'user', 'question', 'answer', 'created_at']
 # community
 class CommunitySerializer(serializers.ModelSerializer):
-    creator = serializers.ReadOnlyField(source='creator.username')  # show creator’s name
+    creator = serializers.ReadOnlyField(source='creator.username')
     members = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
@@ -99,21 +93,41 @@ class CommunitySerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context['request']
         user = request.user
-
-        # Ensure only creators can create communities
+        logger.info(f"Creating community by user: {user.username} and the request data: {validated_data}")
+        # ✅ 1. Only creators can create communities
         if user.user_type != 'creator':
             raise serializers.ValidationError("Only creators can create a community.")
 
+        # ✅ 2. Extract members if any
+        members = validated_data.pop('members', [])
+        logger.info(f"Invited members: {[member.username for member in members]}")
+        # ✅ 3. Create the community
         community = Community.objects.create(
             creator=user,
             name=validated_data['name'],
             description=validated_data.get('description', "")
         )
 
-        # Add members if provided
-        members = validated_data.get('members')
-        if members:
-            community.members.set(members)
+        # ✅ 4. Create invite for each member
+        for invited_user in members:
+            # Prevent duplicate invites or self-invites
+            if invited_user == user:
+                continue
+            CommunityInvite.objects.get_or_create(
+                community=community,
+                invited_by=user,
+                invited_user=invited_user,
+                status='pending',
+                
+            )
 
         return community
 
+class CommunityInviteSerializer(serializers.ModelSerializer):
+    community_name = serializers.CharField(source="community.name", read_only=True)
+    invited_by_username = serializers.CharField(source="invited_by.username", read_only=True)
+
+    class Meta:
+        model = CommunityInvite
+        fields = ["id", "community_name", "invited_by_username", "status", "created_at"]
+        read_only_fields = ["id", "community_name", "invited_by_username", "created_at"]

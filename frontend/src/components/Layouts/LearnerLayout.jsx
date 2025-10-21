@@ -8,10 +8,13 @@ import {
 } from "@/components/ui/menubar"
 import { useNavigate } from 'react-router-dom';
 import Footer from './Footer';
+import { Bell } from "lucide-react";
+import InviteModal from "@/components/Layouts/InviteModal";
 
 const LearnerLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -39,8 +42,11 @@ const LearnerLayout = ({ children }) => {
               <MenubarTrigger>About</MenubarTrigger>
             </MenubarMenu>
             <MenubarMenu>
-              <MenubarTrigger>Notification</MenubarTrigger>
+              <MenubarTrigger onClick={() => setInviteModalOpen(true)}>
+                <Bell className="w-5 h-5 cursor-pointer" />
+              </MenubarTrigger>
             </MenubarMenu>
+            <InviteModal open={inviteModalOpen} setOpen={setInviteModalOpen} />
             <MenubarMenu>
               <MenubarTrigger onClick={() => navigate('/profile')}>
                 Profiles

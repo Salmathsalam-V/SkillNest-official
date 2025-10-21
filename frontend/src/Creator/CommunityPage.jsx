@@ -482,23 +482,27 @@ useEffect(() => {
 
           {/* Member List */}
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {members.map((member) => (
-              <div
-                key={member.email}
-                className="flex items-center justify-between bg-gray-100 p-2 rounded-lg"
-              >
-                <span>
-                  {member.username} ({member.email})
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveMember(member.email)} // or member.id
+            {members.length > 0 ? (
+              members.map((member) => (
+                <div
+                  key={member.email}
+                  className="flex items-center justify-between bg-gray-100 p-2 rounded-lg"
                 >
-                  <X className="h-4 w-4 text-red-500" />
-                </Button>
-              </div>
-            ))}
+                  <span>
+                    {member.username} ({member.email})
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveMember(member.email)} // or member.id
+                  >
+                    <X className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center">No members yet.</p>
+            )}
           </div>
 
 

@@ -598,3 +598,19 @@ export const deletePost = async (postId) => {
     return { success: false, error: err };
   }
 };
+
+export const fetchInvites = async () => {
+  try {
+    const res = await apiClient.get("creator/invites/");
+    console.log("Fetched Invites:", res.data.results);
+    return res.data.results;
+  } catch (err) {
+    console.error("Error fetching invites:", err);
+  }
+};
+
+
+export const respondToInvite = async (inviteId, action) => {
+  const res = await apiClient.patch(`creator/invites/${inviteId}/`, { action });
+  return res.data;
+};

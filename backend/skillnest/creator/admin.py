@@ -1,9 +1,9 @@
 from django.contrib import admin
-from .models import   Post,Comment, Course, QA_Post,Community
+from .models import   Post,Comment, Course,Community,CommunityInvite
 
 
 admin.site.register(Post)
 admin.site.register(Comment),
-admin.site.register(Course)
-admin.site.register(QA_Post)
-admin.site.register(Community)
+admin.site.register(Course),
+admin.site.register(Community),
+admin.site.register(CommunityInvite)

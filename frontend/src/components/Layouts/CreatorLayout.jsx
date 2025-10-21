@@ -23,6 +23,7 @@ import { useSelector } from "react-redux";
  import { useNotifications } from "@/components/hooks/useNotifications"
  import { NotificationDropdown } from "@/components/Layouts/NotificationDropdown"
 import { getNotifications } from '@/endpoints/axios';
+
 const CreatorLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
