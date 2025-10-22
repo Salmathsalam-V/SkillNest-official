@@ -1,11 +1,11 @@
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer
+from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer,ReportPostSerializer
 from .models import Post,Comment,Community,Course
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, viewsets
-from . models import Creator
+from . models import Creator,CommunityInvite,ReportPost
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
 from accounts.authentication import JWTCookieAuthentication
@@ -16,6 +16,8 @@ from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from notification.utils import create_notification
 from django.db.models import Q
+import logging
+logger = logging.getLogger(__name__)
 
 
 
@@ -210,9 +212,9 @@ class ToggleLikeView(APIView):
         }, status=status.HTTP_200_OK)
 
 class UserListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
 # List + Create
 class CommunityListCreateView(generics.ListCreateAPIView):
@@ -245,6 +247,8 @@ class CommunityMembersView(APIView):
         POST   /api/creator/communities/<pk>/members/
     """
 
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request, pk):
         community = get_object_or_404(Community, pk=pk)
         data = [
@@ -257,29 +261,28 @@ class CommunityMembersView(APIView):
         return self._update_members(request, pk)
 
     def post(self, request, pk):
-        # allow POST for add action as well
         return self._update_members(request, pk)
 
     # helper for patch/post
     def _update_members(self, request, pk):
         print("request.data type:", type(request.data))
         print("request.data content:", request.data)
-        
+
         community = get_object_or_404(Community, pk=pk)
         action_type = request.data.get("action", "add")
         identifier = request.data.get("member")
-        print("Received identifier:", identifier, "of type", type(identifier))
+
         if isinstance(identifier, dict):
             identifier = identifier.get("member")
-            print("Extracted identifier from dict:", identifier)
+
         if not identifier:
             return Response(
                 {"error": "member field required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # find user by username or email
         try:
-            print("Looking for user with identifier:", identifier)
             user = (
                 User.objects.get(username=identifier)
                 if "@" not in identifier
@@ -292,23 +295,85 @@ class CommunityMembersView(APIView):
             )
 
         if action_type == "add":
-            community.members.add(user)
+            # Check if user is already in community
+            if user in community.members.all():
+                return Response({"message": "User already a member"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if invite already exists
+            existing_invite = CommunityInvite.objects.filter(
+                community=community, invited_user=user, status="pending"
+            ).first()
+            if existing_invite:
+                return Response({"message": "Invite already sent"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create invite instead of adding directly
+            invite = CommunityInvite.objects.create(
+                community=community,
+                invited_by=request.user,
+                invited_user=user,
+            )
+
+            return Response(
+                {"message": f"Invitation sent to {user.username}", "invite_id": invite.id},
+                status=status.HTTP_201_CREATED,
+            )
+
         elif action_type == "remove":
-            community.members.remove(user)
+            # Remove user if already a member
+            if user in community.members.all():
+                community.members.remove(user)
+                return Response({"message": f"{user.username} removed from community"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "User not a member"}, status=status.HTTP_400_BAD_REQUEST)
+
         else:
             return Response(
                 {"error": "action must be 'add' or 'remove'"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        community.save()
-        return Response(
-            CommunitySerializer(community, context={"request": request}).data,
-            status=status.HTTP_200_OK,
-        )
 
+class PendingInvitesView(generics.ListAPIView):
+    """GET: List pending invites for the logged-in learner"""
+    serializer_class = CommunityInviteSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        result= CommunityInvite.objects.filter(invited_user=user, status="pending").order_by("-created_at")
+        logger.info(f"Pending invites for user {user.username}: {result}")
+        return result
 
+class RespondToInviteView(generics.UpdateAPIView):
+    """PATCH: Accept or decline an invite"""
+    serializer_class = CommunityInviteSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
+    def patch(self, request, pk):
+        try:
+            invite = CommunityInvite.objects.get(pk=pk, invited_user=request.user)
+        except CommunityInvite.DoesNotExist:
+            return Response({"error": "Invite not found"}, status=status.HTTP_404_NOT_FOUND)
 
-            # create_notification(sender=user, recipient=creator.user, notif_type='follow')
+        action = request.data.get("action")
+        if action not in ["accept", "decline"]:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if action == "accept":
+            invite.status = "accepted"
+            invite.community.members.add(request.user)  # add learner to community
+        else:
+            invite.status = "declined"
+
+        invite.save()
+        return Response(CommunityInviteSerializer(invite).data, status=status.HTTP_200_OK)
+    
+class ReportPostView(generics.ListCreateAPIView):
+    serializer_class = ReportPostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return all reports for a given post"""
+        post_id = self.kwargs['post_id']
+        return ReportPost.objects.filter(post_id=post_id).order_by('-created_at')
+

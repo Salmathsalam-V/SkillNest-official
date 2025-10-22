@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { login } from '@/endpoints/axios';
+import { login,googleLogin } from '@/endpoints/axios';
 import { setUser } from '../Redux/userSlice';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
@@ -45,6 +45,7 @@ const Login = () => {
       const res = await login(data.email, data.password);
       console.log('Login response:', res.error, res.data);
       if (res?.success) {
+        console.log('User data from login:', res.data.user);
         dispatch(setUser(res.data.user));
         const userType = res.data.user.user_type;
         toast.success(res.data.message || 'Login successful!');
@@ -62,6 +63,37 @@ const Login = () => {
       const backendError = error.response?.data?.error;
       toast.error(backendError || error.message || 'Something went wrong during login.');
       console.log('Login error:', error);
+    }
+  };
+const handleGoogleLogin = async (credentialResponse) => {
+    try {
+      const token = credentialResponse.credential;
+
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/google-login/",
+        { token },
+        { withCredentials: true }  // ✅ so cookies (access & refresh tokens) are saved
+      );
+
+      console.log("Google login response:", response.data, response.data.user, response.data.redirect_url);
+      if (response.data.user) {
+        dispatch(setUser(response.data.user));
+        toast.success(response.data.message || "Login successful!");
+      }
+
+      // ✅ check for redirect_url
+      if (response.data.redirect_url) {
+        // use navigate() if using react-router
+        navigate(response.data.redirect_url);
+
+        // or this if outside of a Router component:
+        // window.location.href = response.data.redirect_url;
+      } else {
+        console.warn("No redirect_url found in response");
+      }
+
+    } catch (error) {
+      console.error("Google login failed:", error.response?.data || error.message);
     }
   };
   if (loading) return <Loader text="Loading..." />; // or redirect to login
@@ -125,23 +157,34 @@ const Login = () => {
               {/* Google Login */}
               <div className="flex justify-center">
                 <GoogleLogin
+                  onSuccess={handleGoogleLogin}
+                  onError={() => console.error('Google Login Failed')}
+                />
+
+                {/* <GoogleLogin
                   onSuccess={async (credentialResponse) => {
                     const token = credentialResponse.credential;
                     try {
-                      const res = await axios.post(
-                        'http://localhost:8000/api/google-login/',
-                        { token },
-                        { withCredentials: true }
-                      );
-                      dispatch(setUser(res.data));
-                      const redirectUrl = res.data.redirect_url;
-                      if (redirectUrl) window.location.href = redirectUrl;
+                      const token = credentialResponse.credential;
+                      const res = axios.post('http://localhost:8000/api/google-login/', { token }, { withCredentials: true });
+                      console.log('Google login response:', res);
+                      if (res.success) {
+                        dispatch(setUser(res.data));
+                        console.log('User data from Google login:', res.data);
+                        if (response.data.redirect_url) {
+                          console.log('Redirecting to:', response.data.redirect_url);
+                          window.location.href = response.data.redirect_url;
+                        }
+                      }
+                      // dispatch(setUser(res.data));
+                      // const redirectUrl = res.data.redirect_url;
+                      // if (redirectUrl) window.location.href = redirectUrl;
                     } catch (err) {
                       console.error('Backend error', err);
                     }
                   }}
                   onError={() => console.log('Google login failed')}
-                />
+                /> */}
               </div>
 
               <div className="text-center text-sm">

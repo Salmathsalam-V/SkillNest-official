@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import PostView, PostDetailView, CommentListCreateView, CommentDetailView,CreatorPostsView,CreatorCoursesView,CommunityMembersView
 from .views import ToggleFollowView,ToggleLikeView,ReplyListCreateView,toggle_comment_like,CommunityListCreateView,CommunityDetailView,UserListView
+from .views import PendingInvitesView,RespondToInviteView,ReportPostView
 
 
 
@@ -21,4 +22,7 @@ urlpatterns = [
     path("creator/communities/community/<int:pk>/", CommunityDetailView.as_view(), name="community-detail"),
     path("users/", UserListView.as_view(), name="user-list"),
     path("communities/<int:pk>/members/", CommunityMembersView.as_view(),name="community-members"),
+    path("invites/", PendingInvitesView.as_view(), name="pending-invites"),
+    path("invites/<int:pk>/", RespondToInviteView.as_view(), name="respond-invite"),
+    path("post/<int:post_id>/reports/", ReportPostView.as_view(), name="report-posts"),
 ]

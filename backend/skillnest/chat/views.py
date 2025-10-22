@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from accounts.models import User
 from creator.models import Community
-from .models import CommunityChatRoom, CommunityMessage, CommunityMessageRead
+from .models import CommunityChatRoom, CommunityMessage
 from .serializers import (
     CommunityChatRoomSerializer,
     CommunityMessageSerializer,
@@ -126,7 +126,7 @@ def mark_message_read(request, community_id, message_id):
     community = get_object_or_404(Community, id=community_id)
     message = get_object_or_404(CommunityMessage, id=message_id, room=community.chat_room)
 
-    CommunityMessageRead.objects.get_or_create(user=request.user, message=message)
+    # CommunityMessageRead.objects.get_or_create(user=request.user, message=message)
     return Response({"message": "Message marked as read"})
 
 

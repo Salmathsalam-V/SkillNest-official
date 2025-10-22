@@ -19,7 +19,7 @@ import ResetPasswordForm from './Learners/ResetPasswordHome';
 import CreateExtraDetails from './Creator/CreateExtraDetails';
 import { CreatorData } from './Admin/CreatorData';
 import { Toaster } from 'sonner';
-import MessagesTable from './Admin/UserMessage';
+import AdminContactMessages from './Admin/UserMessage';
 import { CreatorsListPublic } from './Creator/CreatorsList';
 import { CreatorDetailpage } from './Creator/CreatorDetailpage';
 import { CommunityList } from './Creator/CommunityList';
@@ -28,6 +28,7 @@ import { LearnerListPublic } from './Learners/LearnerListPublic';
 import { CommunityListLearner } from './Learners/CommunityListLearner';
 import { CommunityPageLearner } from './Learners/CommunityPageLearner';
 import {CommunityListAdmin} from './Admin/CommunityListAdmin';
+import {ReportsPage} from './Admin/PostReports';
 // import { AuthProvider } from './contexts/useAuth';
 // import { PrivateRoutes } from './components/private_routes/PrivateRoutes'
 
@@ -56,7 +57,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordForm />} />
             <Route path="/ceate-extradata" element={<CreateExtraDetails />} />
             <Route path="/creators-view/:id" element={<CreatorData />} />
-            <Route path="/messages" element={<MessagesTable />} />
+            <Route path="/messages" element={<AdminContactMessages />} />
             <Route path="/creators-list" element={<CreatorsListPublic />}/>
             <Route path="/creators/:id" element={<CreatorDetailpage />}/>
             <Route path="/creator/communities" element={<CommunityList />} />
@@ -65,6 +66,8 @@ function App() {
             <Route path="/learner/communities" element={<CommunityListLearner />} />
             <Route path="/learner/communities/:communityId" element={<CommunityPageLearner />} />
             <Route path="/admin/communities" element={<CommunityListAdmin />} />
+            <Route path="/reports" element={<ReportsPage />} />
+
           </Routes>
         {/* <PrivateRoutes></PrivateRoutes> */}
         {/* </AuthProvider> */}

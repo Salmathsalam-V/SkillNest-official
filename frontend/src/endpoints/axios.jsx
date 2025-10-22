@@ -120,6 +120,21 @@ const call_refresh=async (error, func ) =>{
   return false
 }
 
+export const googleLogin = async (code) => {
+  try {
+    const response = await axios.post(
+      "google-login/",
+      { code }
+    );
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Google login error", error.response?.data || error.message);
+    return { success: false };
+  }
+};
+
+
+
 export const get_post = async ()=>{
   try{
     const response = await axios.get(POST_URL,
@@ -157,21 +172,6 @@ export const get_learners = async () => {
     return [];
   }
 };
-
-export const googleLogin = async (code) => {
-  try {
-    const response = await axios.post(
-      "http://localhost:8000/api/dj-rest-auth/google/",
-      { code },
-      { withCredentials: true }
-    );
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error("Google login error", error.response?.data || error.message);
-    return { success: false };
-  }
-};
-
 
 
 export const get_user = async () => {
@@ -390,7 +390,7 @@ export const registerUser = async (formData) => {
 
 export const imageUpload = async (formData) => {
   try {
-    const res = await api.post("/upload-image/",   
+    const res = await axios.post("http://127.0.0.1:8000/api/upload-image/",   
       formData,
       {
         headers: { "Content-Type": "multipart/form-data" },
@@ -595,6 +595,54 @@ export const deletePost = async (postId) => {
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Error deleting post:", err);
+    return { success: false, error: err };
+  }
+};
+
+export const fetchInvites = async () => {
+  try {
+    const res = await apiClient.get("creator/invites/");
+    console.log("Fetched Invites:", res.data.results);
+    return res.data.results;
+  } catch (err) {
+    console.error("Error fetching invites:", err);
+  }
+};
+
+
+export const respondToInvite = async (inviteId, action) => {
+  const res = await apiClient.patch(`creator/invites/${inviteId}/`, { action });
+  return res.data;
+};
+
+// export const postReports = async (postId, reportData) => {
+//   try {
+//     const res = await axios.post(`/creator/post/${postId}/reports/`, reportData); 
+//     console.log("Report post response data from axios:", res.data);
+//     return { success: true};
+//   } catch (err) {
+//     console.error("Failed to report post:", err);
+//     return { success: false, error: err };
+//   }
+// };
+export const postReports = async (postId, reportData) => {
+  try {
+    const res = await apiClient.post(`creator/post/${postId}/reports/`, reportData);
+    console.log("Report post response:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to report post:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+
+export const postReportsView = async () => {
+  try {
+    const res = await apiClient.get('admin/post/reports');
+    console.log("Report post response:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to report post:", err.response?.data || err);
     return { success: false, error: err };
   }
 };

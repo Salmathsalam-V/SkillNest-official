@@ -56,16 +56,14 @@ class Course(models.Model):
             raise ValueError("Only creators can create posts.")
         super().save(*args, **kwargs)
 
-class QA_Post(models.Model):
-    course= models.ForeignKey(Course, on_delete=models.CASCADE, related_name='qa_course')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='qa_course')
-    question = models.TextField()
-    answer = models.TextField(blank=True, null=True)
+class ReportPost(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reports')
+    reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_posts')
+    reason = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Q&A for {self.course.post.caption} by {self.user.username}"
-
+        return f"Report by {self.reported_by.username} on Post {self.post.id}"
 
 # Community
 class Community(models.Model):
@@ -86,3 +84,17 @@ class Community(models.Model):
 
     def __str__(self):
         return self.name
+    
+class CommunityInvite(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name="invites")
+    invited_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_invites")
+    invited_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_invites")
+    status = models.CharField(
+        max_length=20,
+        choices=[("pending", "Pending"), ("accepted", "Accepted"), ("declined", "Declined")],
+        default="pending"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Invite to {self.invited_user.email} for {self.community.name} by {self.invited_by.email}"
