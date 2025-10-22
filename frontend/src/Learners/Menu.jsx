@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, MessageCircle } from "lucide-react";
-import { toggleLike,createComment,toggleCommentLike } from '../endpoints/axios';
+import { toggleLike,createComment,toggleCommentLike,postReports } from "@/endpoints/axios";
 import { toast } from 'sonner';
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import AdminLayout from "@/components/Layouts/AdminLayout";
 import { Loader }  from '@/components/Layouts/Loader';
+import { Menu } from "@headlessui/react"; // at top of file
+import { MoreHorizontal } from "lucide-react"; // 3-dot icon
+
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
   const [commentText, setCommentText] = useState({});
@@ -120,6 +123,22 @@ const handleCommentLikeToggle = async (postId, commentId) => {
   }
 };
 
+const handleReportPost = async (postId) => {
+  const reason = prompt("Why are you reporting this post?");
+  if (!reason?.trim()) return;
+
+  try {
+    const reportData = { reason }; // ✅ only reason
+    const data = await postReports(postId, reportData);
+    if (data.success) toast.success("Post reported successfully");
+  } catch (err) {
+    console.error("Report post failed:", err);
+    toast.error("Failed to report post");
+  }
+};
+
+
+
   if (loading) return <Loader text="Loading posts..." />; // or redirect to login
 
   // ✅ Decide layout
@@ -174,8 +193,28 @@ const handleCommentLikeToggle = async (postId, commentId) => {
                   >
                     <MessageCircle className="w-5 h-5" />
                   </Button>
-                </div>
+                  <Menu as="div" className="relative inline-block text-left">
+        <Menu.Button className="p-1 rounded-full hover:bg-gray-200">
+          <MoreHorizontal className="w-5 h-5" />
+        </Menu.Button>
 
+        <Menu.Items className="absolute right-0 mt-2 w-28 bg-white border rounded-md shadow-lg focus:outline-none z-50">
+          <Menu.Item>
+            {({ active }) => (
+              <button
+                className={`${
+                  active ? "bg-gray-100" : ""
+                } block w-full text-left px-4 py-2 text-sm text-gray-700`}
+                onClick={() => handleReportPost(post.id)}
+              >
+                Report
+              </button>
+            )}
+          </Menu.Item>
+        </Menu.Items>
+      </Menu>
+                </div>
+  
                 {/* Show only first comment */}
                 <div className="w-full">
                   {post.comments?.length > 0 ? (

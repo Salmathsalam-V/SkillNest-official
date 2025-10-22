@@ -1,11 +1,11 @@
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer
+from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer,ReportPostSerializer
 from .models import Post,Comment,Community,Course
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, viewsets
-from . models import Creator,CommunityInvite
+from . models import Creator,CommunityInvite,ReportPost
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
 from accounts.authentication import JWTCookieAuthentication
@@ -367,3 +367,13 @@ class RespondToInviteView(generics.UpdateAPIView):
 
         invite.save()
         return Response(CommunityInviteSerializer(invite).data, status=status.HTTP_200_OK)
+    
+class ReportPostView(generics.ListCreateAPIView):
+    serializer_class = ReportPostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return all reports for a given post"""
+        post_id = self.kwargs['post_id']
+        return ReportPost.objects.filter(post_id=post_id).order_by('-created_at')
+

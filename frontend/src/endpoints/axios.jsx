@@ -614,3 +614,35 @@ export const respondToInvite = async (inviteId, action) => {
   const res = await apiClient.patch(`creator/invites/${inviteId}/`, { action });
   return res.data;
 };
+
+// export const postReports = async (postId, reportData) => {
+//   try {
+//     const res = await axios.post(`/creator/post/${postId}/reports/`, reportData); 
+//     console.log("Report post response data from axios:", res.data);
+//     return { success: true};
+//   } catch (err) {
+//     console.error("Failed to report post:", err);
+//     return { success: false, error: err };
+//   }
+// };
+export const postReports = async (postId, reportData) => {
+  try {
+    const res = await apiClient.post(`creator/post/${postId}/reports/`, reportData);
+    console.log("Report post response:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to report post:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+
+export const postReportsView = async () => {
+  try {
+    const res = await apiClient.get('admin/post/reports');
+    console.log("Report post response:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to report post:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};

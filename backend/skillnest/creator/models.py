@@ -56,6 +56,14 @@ class Course(models.Model):
             raise ValueError("Only creators can create posts.")
         super().save(*args, **kwargs)
 
+class ReportPost(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reports')
+    reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_posts')
+    reason = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Report by {self.reported_by.username} on Post {self.post.id}"
 
 # Community
 class Community(models.Model):

@@ -1,5 +1,6 @@
 from django.urls import path
 from . views import CreatorDetailView, LearnerDetailView, LearnerListView,CreatorListView,CreatorData,ContactUsView,CommunityListView,CommunityMembersView
+from . views import ReportPostView
 # Adimn.urls.py
 
 urlpatterns = [
@@ -12,5 +13,6 @@ urlpatterns = [
     path('contact-us/', ContactUsView.as_view(), name='contact-us'),
     path('communities/', CommunityListView.as_view(), name='community-list'),
     path("communities/<int:pk>/members/", CommunityMembersView.as_view(),name="community-members"),
+    path("post/reports", ReportPostView.as_view(),name="post-reports"),
 
 ]

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Post, Comment, Course
 from accounts.models import User, Creator
-from .models import Community,CommunityInvite
+from .models import Community,CommunityInvite,ReportPost
 from django.contrib.auth import get_user_model
 import logging
 logger = logging.getLogger(__name__)
@@ -131,3 +131,25 @@ class CommunityInviteSerializer(serializers.ModelSerializer):
         model = CommunityInvite
         fields = ["id", "community_name", "invited_by_username", "status", "created_at"]
         read_only_fields = ["id", "community_name", "invited_by_username", "created_at"]
+
+class ReportPostSerializer(serializers.ModelSerializer):
+    post_caption = serializers.CharField(source="post.caption", read_only=True)
+    post_image = serializers.URLField(source="post.image", read_only=True)
+    reported_by_username = serializers.CharField(source="reported_by.username", read_only=True)
+    reported_by_profile = serializers.URLField(source="reported_by.profile", read_only=True)
+
+    class Meta:
+        model = ReportPost
+        fields = [
+            'id',
+            'post',
+            'post_image', 
+            'post_caption',   
+            'reported_by',
+            'reported_by_username',
+            'reported_by_profile',
+            'reason',
+            'created_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'reported_by', 'post', 'reported_by_username', 'reported_by_profile','post_image', 'post_caption']
+        # ✅ Add 'post' and 'reported_by' here

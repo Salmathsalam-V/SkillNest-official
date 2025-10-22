@@ -13,8 +13,8 @@ from rest_framework import status
 from .serializers import ContactUsSerializer
 from .models import ContactUs
 from rest_framework import generics
-from creator.models import Community
-from creator.serializers import CommunitySerializer 
+from creator.models import Community,ReportPost
+from creator.serializers import CommunitySerializer ,ReportPostSerializer
 from django.shortcuts import get_object_or_404
 
 
@@ -117,3 +117,12 @@ class CommunityMembersView(APIView):
         community = get_object_or_404(Community, pk=pk)
         members = community.members.all().values("id", "username", "email")
         return Response(list(members))
+
+class ReportPostView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        """Get all reported posts for admin view"""
+        reports = ReportPost.objects.select_related('post', 'reported_by').order_by('-created_at')
+        serializer = ReportPostSerializer(reports, many=True)
+        return Response(serializer.data)
