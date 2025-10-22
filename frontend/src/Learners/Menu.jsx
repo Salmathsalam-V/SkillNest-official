@@ -22,7 +22,7 @@ export default function PostsPage() {
   const [openPost, setOpenPost] = useState(null);
   const user = useSelector((state) => state.user.user); // get user from redux
   const userType = user?.user_type;
-
+  console.log("User type:", user);
   useEffect(() => {
     const fetchPosts = async () => {
       try {

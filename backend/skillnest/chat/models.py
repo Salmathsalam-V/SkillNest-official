@@ -84,20 +84,6 @@ class CommunityMessage(models.Model):
     def __str__(self):
         return f"[{self.room.community.name}] {self.sender.username}: {self.content[:40]}"
 
-class CommunityMessageRead(models.Model):
-    """
-    Track who has read which message in a CommunityChatRoom
-    """
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.ForeignKey(
-        CommunityMessage,
-        on_delete=models.CASCADE,
-        related_name='read_by'
-    )
-    read_at = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        unique_together = ['user', 'message']
 
 class UserPresence(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="presence")

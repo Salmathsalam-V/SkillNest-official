@@ -85,9 +85,6 @@ class LoginView(APIView):
                         status=status.HTTP_403_FORBIDDEN
                     )
 
-                
-
-
             access_token = data['access']
             refresh_token = data['refresh']
 
@@ -174,8 +171,8 @@ class RefreshTokenView(APIView):
             response.set_cookie(
                 key=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'],
                 value=access_token,
-                httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
-                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+                samesite=settings.AUTH_COOKIE_SAMESITE,
                 max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
                 path='/'
             )
@@ -203,23 +200,42 @@ class GoogleLoginAPIView(APIView):
 
     def post(self, request):
         token = request.data.get("token")
-        idinfo = id_token.verify_oauth2_token(
+        logger.info(f"Received Google token: {token}")
+        try:
+            idinfo = id_token.verify_oauth2_token(
             token,
             requests.Request(),
             "768158657502-ia2b2gh1gd3o69rm7ehh1rhtvfe2aapi.apps.googleusercontent.com"
-        )
+            )
+        except Exception as e:
+            logger.error(f"Google token verification failed: {e}")
+            return Response({"error": "Invalid Google token"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Extract Google profile info
         email = idinfo["email"]
         name = idinfo.get("name", "")
-
+        logger.info(f"Google ID info: email={email}, name={name}")
         User = get_user_model()
+        logger.info("Before User.objects.get_or_create",User)
+
         user, created = User.objects.get_or_create(
             email=email,
-            defaults={"username": email, "first_name": name}
+            defaults={"username": email, "first_name": name, "user_type": "learner", "status": True }
         )
 
+        if created:
+            user.status = True
+            user.save(update_fields=["status"])
+            logger.info(f"New Google user created: {user.email} as learner, type={user.user_type}")
+        else:
+            logger.info(f"Existing Google user logged in: {user.email}, type={user.user_type}")
+
         refresh = RefreshToken.for_user(user)
+        logger.info("After RefreshToken.for_user")
         access = refresh.access_token
+        logger.info("After access token generation, user authenticated",user.user_type)
         redirect_url = '/creatorhome' if user.user_type == 'creator' else '/learnerhome'
+
         response = JsonResponse({
             "message": "Login successful",
             "user": {
@@ -227,30 +243,33 @@ class GoogleLoginAPIView(APIView):
                 "username": user.username,
                 "fullname": user.first_name,
                 "user_type": user.user_type,
-
+                "id": user.id,
+                "status": user.status,
             },
             "redirect_url": redirect_url
 
         })
-    
+        access_token = str(access)
+        refresh_token = str(refresh)
+        logger.info(f"Generated tokens for Google login: access_token={access_token}, refresh_token={refresh_token}")
         # Secure cookies for tokens
         response.set_cookie(
-            key='access_token',
-            value=str(access),
-            httponly=True,
-            secure=False,  # ✅ Allow for HTTP during local dev
-            samesite='None', 
-            path='/'
-        )
+                key='access_token',
+                value=access_token,
+                httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+                secure=settings.AUTH_COOKIE_SECURE,
+                samesite=settings.AUTH_COOKIE_SAMESITE,
+                path='/'
+            )
         response.set_cookie(
             key='refresh_token',
-            value=str(refresh),
-            httponly=True,
-            secure=False,  # ✅ Allow for HTTP during local dev
-            samesite='None',  
+            value=refresh_token,
+            httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+            secure=settings.AUTH_COOKIE_SECURE,
+            samesite=settings.AUTH_COOKIE_SAMESITE,
             path='/'
         )
-
+        logger.info(f"Google login cookies set successfully {response.cookies}")
         return response
     
 def generate_otp():
@@ -337,6 +356,7 @@ def search_users(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@authentication_classes([])
 @parser_classes([MultiPartParser, FormParser])
 def upload_image(request):
     file = request.FILES.get('file')
