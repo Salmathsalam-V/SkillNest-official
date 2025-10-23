@@ -32,3 +32,11 @@ class ContactUsSerializer(serializers.ModelSerializer):
 #         user = self.context['request'].user
 #         validated_data['user'] = user
 #         return ContactUs.objects.create(**validated_data)
+
+class DashboardStatsSerializer(serializers.Serializer):
+    total_users = serializers.IntegerField()
+    creators = serializers.IntegerField()
+    learners = serializers.IntegerField()
+    communities = serializers.IntegerField()
+    user_growth = serializers.ListField()
+    community_growth = serializers.ListField()
