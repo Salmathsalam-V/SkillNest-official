@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { registerUser } from '@/endpoints/axios';
+import { registerUser,imageUpload } from '@/endpoints/axios';
 
 export const CreateLearner = () => {
     const navigate=useNavigate()
@@ -14,7 +14,9 @@ export const CreateLearner = () => {
     password: "",
     fullname: "",
     user_type: "learner", // default selected
+    profile: "",
     });
+    const [profile,setProfile] = useState()
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,14 +25,34 @@ export const CreateLearner = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+        formData['profile'] = profile
+        console.log(formData)
         const res = await registerUser (formData);
         toast.success("Registered successfully");
         navigate('/listlearner')
         } catch (err) {
         console.error("Registration error:", err);
-        toast.error("Registered successfully");
+        
+        toast.error("Registered Failed");
         }
     };
+      const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'skillnest_profile'); 
+    
+        try {
+          const res = await imageUpload(
+                formData,
+              );
+          console.log(res.data.url);
+          setProfile(res.data.url);  
+        } catch (err) {
+          console.error("Image upload failed:", err);
+          toast.error("Image upload failed");
+        }
+      };
     
 
   return (
@@ -42,17 +64,16 @@ export const CreateLearner = () => {
               <Input name="email" type="email" placeholder="Email" onChange={handleChange} />
               <Input name="password" type="password" placeholder="Password" onChange={handleChange} />
               <Input name="fullname" placeholder="Full Name" onChange={handleChange} />
-              
-              <select
-                name="user_type"
-                value={formData.user_type}
-                onChange={handleChange}
-                className="border border-gray-300 rounded-md px-3 py-2 w-full"
-              >
-                <option value="learner">Learner</option>
-                <option value="creator">Creator</option>
-              </select>
-        
+              <Input type="hidden" name="user_type" value="learner" />
+              <Input type="file" accept="image/*" onChange={handleImageUpload} />
+              {profile && (
+                <img
+                  src={profile}
+                  alt="Profile preview"
+                  className="w-24 h-24 rounded-full mt-2"
+                />
+              )}
+
               <Button type="submit">Create</Button>
             </form>
     </Layout>

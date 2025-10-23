@@ -204,7 +204,13 @@ class ToggleLikeView(APIView):
             # Not liked → like
             post.likes.add(user)
             liked = True
-
+        if user != post.user:  # don’t notify yourself
+            create_notification(
+                sender=user,
+                recipient=post.user,
+                notif_type='like',
+                post=post
+            )
         return Response({
             "success": True,
             "liked": liked,
@@ -376,4 +382,8 @@ class ReportPostView(generics.ListCreateAPIView):
         """Return all reports for a given post"""
         post_id = self.kwargs['post_id']
         return ReportPost.objects.filter(post_id=post_id).order_by('-created_at')
+    def perform_create(self, serializer):
+        post_id = self.kwargs['post_id']
+        post = get_object_or_404(Post, id=post_id)
+        serializer.save(post=post, reported_by=self.request.user)
 

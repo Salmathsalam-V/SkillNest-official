@@ -638,6 +638,7 @@ export const respondToInvite = async (inviteId, action) => {
 // };
 export const postReports = async (postId, reportData) => {
   try {
+    console.log("before api call")
     const res = await apiClient.post(`creator/post/${postId}/reports/`, reportData);
     console.log("Report post response:", res.data);
     return { success: true, data: res.data };

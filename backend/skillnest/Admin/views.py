@@ -201,7 +201,7 @@ class LatestPostsView(APIView):
         posts = (
             Post.objects
             .select_related('user')  
-            .order_by('-created_at')[:10]
+            .order_by('-created_at')[:9]
         )
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data)

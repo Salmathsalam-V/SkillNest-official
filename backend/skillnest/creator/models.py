@@ -1,4 +1,5 @@
 from django.db import models
+from django.shortcuts import get_object_or_404
 from accounts.models import Creator, User
 import datetime
 
@@ -62,6 +63,12 @@ class ReportPost(models.Model):
     reason = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def perform_create(self, serializer):
+        """Attach the post and user when creating a report"""
+        post_id = self.kwargs['post_id']
+        post = get_object_or_404(Post, id=post_id)
+        serializer.save(post=post, reported_by=self.request.user)
+        
     def __str__(self):
         return f"Report by {self.reported_by.username} on Post {self.post.id}"
 
