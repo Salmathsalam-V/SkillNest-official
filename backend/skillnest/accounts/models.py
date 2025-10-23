@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -13,6 +14,7 @@ class User(AbstractUser):
         ('creator', 'Creator'),
     )
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return self.email
 

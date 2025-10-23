@@ -56,7 +56,7 @@ export const ReportsPage = () => {
             <CardContent>
               <img
                 src={report.post_image}
-                alt={report.post_title}
+                alt={report.post_caption}
                 className="rounded-lg w-full h-40 object-cover mb-3"
               />
               <div className="flex items-center gap-3 mb-2">

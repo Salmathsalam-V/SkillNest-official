@@ -13,9 +13,16 @@ from rest_framework import status
 from .serializers import ContactUsSerializer
 from .models import ContactUs
 from rest_framework import generics
-from creator.models import Community,ReportPost
-from creator.serializers import CommunitySerializer ,ReportPostSerializer
+from creator.models import Community,ReportPost,Post
+from creator.serializers import CommunitySerializer ,ReportPostSerializer,PostSerializer
 from django.shortcuts import get_object_or_404
+from .serializers import DashboardStatsSerializer
+
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class LearnerListView(ListAPIView):
@@ -125,4 +132,64 @@ class ReportPostView(APIView):
         """Get all reported posts for admin view"""
         reports = ReportPost.objects.select_related('post', 'reported_by').order_by('-created_at')
         serializer = ReportPostSerializer(reports, many=True)
+        return Response(serializer.data)
+
+class DashboardStatsView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        # 1️⃣ Basic counts
+        total_users = User.objects.count()
+        creators = User.objects.filter(user_type='creator').count()
+        learners = User.objects.filter(user_type='learner').count()
+        communities = Community.objects.count()
+        logger.info(f"Total Users: {total_users}, Creators: {creators}, Learners: {learners}, Communities: {communities}")
+        # 2️⃣ User growth (last 30 days)
+        user_growth = (
+            User.objects
+            .annotate(date=TruncDate('date_joined'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
+
+        # 3️⃣ Community growth (last 30 days)
+        community_growth = (
+            Community.objects
+            .annotate(date=TruncDate('created_at'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
+        logger.info(f"User Growth Data: {user_growth}")
+        logger.info(f"Community Growth Data: {community_growth}")
+        # Format data for frontend
+        data = {
+            "total_users": total_users,
+            "creators": creators,
+            "learners": learners,
+            "communities": communities,
+            "user_growth": [
+                {"date": item["date"].strftime("%Y-%m-%d"), "count": item["count"]}
+                for item in user_growth
+            ],
+            "community_growth": [
+                {"date": item["date"].strftime("%Y-%m-%d"), "count": item["count"]}
+                for item in community_growth
+            ],
+        }
+
+        serializer = DashboardStatsSerializer(data)
+        return Response(data)
+
+class LatestPostsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        posts = (
+            Post.objects
+            .select_related('user')  
+            .order_by('-created_at')[:10]
+        )
+        serializer = PostSerializer(posts, many=True)
         return Response(serializer.data)
