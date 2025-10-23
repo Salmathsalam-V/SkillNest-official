@@ -52,7 +52,7 @@ const handleDelete = async (id) => {
   const res = await deleteLearner(id);
   if (res.success) {
     setLearners(prev => prev.filter(learner => learner.id !== id));
-    toast.error("Learner deleted successfully");
+    toast.success("Learner deleted successfully");
   } else {
     console.error("Error deleting learner:", res.error);
     toast.error("Failed to delete learner");

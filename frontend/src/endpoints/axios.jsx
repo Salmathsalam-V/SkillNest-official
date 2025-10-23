@@ -361,9 +361,20 @@ export const getCommunities = async () => {
     return res.data;
 
   } catch (err) {
-    console.error("Error fetching users:", err);
+    console.error("Error fetching community:", err);
   }
 };
+export const deleteCommunities = async (communityId) => {
+  try {
+    
+    const res = await apiClient.delete(`admin/admin-community/${communityId}/`);
+    return res.data;
+
+  } catch (err) {
+    console.error("Error deleting community:", err);
+  }
+};
+
 
 export const getCommunityMembers = async (communityId) => {
   try {

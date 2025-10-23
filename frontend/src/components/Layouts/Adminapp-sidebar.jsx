@@ -57,6 +57,12 @@ export const AppSidebar = () => {
           Creators
         </Button>
       </Link>
+      <Link to="/posts-admin">
+        <Button variant="outline" className="w-full justify-start gap-2">
+          <MessageSquareText className="h-5 w-5" />
+          Posts
+        </Button>
+      </Link>
       <Link to="/messages">
         <Button variant="outline" className="w-full justify-start gap-2">
           <MessageSquareText className="h-5 w-5" />

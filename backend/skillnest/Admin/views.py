@@ -114,12 +114,24 @@ class ContactUsView(APIView):
 
 class CommunityListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
-    queryset = Community.objects.all().prefetch_related('members', 'creator')
-    serializer_class = CommunitySerializer
+
+    def get(self, request):
+        communities = Community.objects.all().prefetch_related('members', 'creator')
+        serializer = CommunitySerializer(communities, many=True)
+        return Response(serializer.data)
+
+    def delete(self, request, pk=None):
+        community_id = request.query_params.get("id") or pk
+        logger.info(f"Attempting to delete community with ID: {community_id}")
+        try:
+            community = Community.objects.get(id=community_id)
+            community.delete()
+            return Response({"message": "Community deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        except Community.DoesNotExist:
+            return Response({"error": "Community not found."}, status=status.HTTP_404_NOT_FOUND)
     
 class CommunityMembersView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
-
     def get(self, request, pk):
         community = get_object_or_404(Community, pk=pk)
         members = community.members.all().values("id", "username", "email")
