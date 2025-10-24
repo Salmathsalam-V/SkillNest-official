@@ -27,8 +27,16 @@ export function NotificationDropdown({notifications}) {
                 className="p-3 text-sm hover:bg-gray-100 border-b border-gray-100"
               >
                 <span className="font-semibold">{n.sender}</span>{" "}
-                {n.notif_type} your post
-                {/* {n.type === "follow" && "followed you"} */}
+                {/* {n.notif_type} your post */}
+                 {n.notif_type === "like"
+                  ? "liked your post"
+                   : n.notif_type === "comment"
+                  ? "commented on your post"
+                  : n.notif_type === "comment_like"
+                  ? "liked comment on your post"
+                  : n.notif_type === "follow"
+                  ? "followed you"
+                  : ""}
                 <div className="text-xs text-gray-400">
                   {new Date(n.created_at).toLocaleString()}
                 </div>
