@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import PostView, PostDetailView, CommentListCreateView, CommentDetailView,CreatorPostsView,CreatorCoursesView,CommunityMembersView
-from .views import ToggleFollowView,ToggleLikeView,ReplyListCreateView,toggle_comment_like,CommunityListCreateView,CommunityDetailView,UserListView
-from .views import PendingInvitesView,RespondToInviteView,ReportPostView
+from .views import ToggleFollowView,ToggleLikeView,ReplyListCreateView,toggle_comment_like,CommunityListCreateView,CommunityDetailView,UserListView,AllUserListView
+from .views import PendingInvitesView,RespondToInviteView,ReportPostView,CommunityDeleteView
 
 
 
@@ -19,8 +19,10 @@ urlpatterns = [
     path("posts/<int:post_id>/comments/<int:comment_id>/like/", toggle_comment_like, name="comment-like"),
     path("creators/<int:creator_id>/courses/", CreatorCoursesView.as_view(), name="creator-courses"),
     path("communities/", CommunityListCreateView.as_view(), name="community-list-create"),
+    path("communities/<int:pk>/delete/", CommunityDeleteView.as_view(), name="community-delete"),
     path("creator/communities/community/<int:pk>/", CommunityDetailView.as_view(), name="community-detail"),
     path("users/", UserListView.as_view(), name="user-list"),
+    path("all-users/", AllUserListView.as_view(), name="all-user-list"),
     path("communities/<int:pk>/members/", CommunityMembersView.as_view(),name="community-members"),
     path("invites/", PendingInvitesView.as_view(), name="pending-invites"),
     path("invites/<int:pk>/", RespondToInviteView.as_view(), name="respond-invite"),

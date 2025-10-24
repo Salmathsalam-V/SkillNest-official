@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { setUser } from '../Redux/userSlice';
 import { toast } from 'sonner';
 import { Loader } from "@/components/Layouts/Loader";
+import { updateLearner } from "../endpoints/axios";
 
 const Profile = () => {
 //   const [userdata, setUser] = useState(null);
@@ -33,13 +34,13 @@ const Profile = () => {
 
   if (!user) {
     setLoading(false);
-    const handleEditClick = (learner) => {
-    setEditingLearner({ ...learner }); // Clone to avoid direct state mutation
-    setIsEditOpen(true);
-  };
   }
-  if (loading) return <Loader text="Loading learner profile..." />; // or redirect to login
+  if (!loading) return <Loader text="Loading learner profile..." />; // or redirect to login
 
+   const handleEditClick = (learner) => {
+      setEditingLearner({ ...learner }); // Clone to avoid direct state mutation
+      setIsEditOpen(true);
+    };
   useEffect(() => {
   const fetchLearner = async () => {
     try {
@@ -66,7 +67,8 @@ const Profile = () => {
 const handleUpdateLearner = async (e) => {
   e.preventDefault();
   try {
-    const res = await axios.patch(`http://localhost:8000/api/admin/learners/${editingLearner.id}/`, editingLearner);
+    // const res = await axios.patch(`http://localhost:8000/api/admin/learners/${editingLearner.id}/`, editingLearner);
+    const res = await updateLearner(editingLearner.id, editingLearner);
     toast.success("Learner updated successfully");
     setLearner(res.data); // update local state
     setIsEditOpen(false);
@@ -74,7 +76,7 @@ const handleUpdateLearner = async (e) => {
   } catch (err) {
     console.error("Update error:", err);
     toast.error("Failed to update learner");
-    isEditOpen(false); // close modal on error
+    setIsEditOpen(false); // close modal on error
   }
 };
 

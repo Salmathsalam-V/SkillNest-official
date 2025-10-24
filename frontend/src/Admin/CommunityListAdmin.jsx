@@ -8,7 +8,9 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import AdminLayout from "@/components/Layouts/AdminLayout";
-import {getCommunities,getCommunityMembers} from "../endpoints/axios";
+import {getCommunities,getCommunityMembers,deleteCommunities } from "../endpoints/axios";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export function CommunityListAdmin() {
   const [communities, setCommunities] = useState([]);
@@ -19,7 +21,8 @@ export function CommunityListAdmin() {
 useEffect(() => {
   const loadCommunities = async () => {
     try {
-      const data = await getCommunities();      // no destructuring
+      const data = await getCommunities();  
+      console.log("Fetched communities data:", data);
       setCommunities(Array.isArray(data) ? data : data.results || []);
       console.log("Communities fetched:", data);
     } catch (error) {
@@ -46,6 +49,18 @@ useEffect(() => {
             setLoading(false);
           }
     };
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this community?")) return;
+
+    try {
+      const data = await deleteCommunities(id);;
+      setCommunities((prev) => prev.filter((c) => c.id !== id));
+      toast.success("Community deleted successfully!");
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete community.");
+    }
+  };
 
   if (loading) return <p className="p-4">Loading...</p>;
 
@@ -104,6 +119,14 @@ useEffect(() => {
                       )}
                     </DialogContent>
                   </Dialog>
+                   {/* 🗑️ DELETE BUTTON */}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(c.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" /> Delete
+                    </Button>
                 </TableCell>
               </TableRow>
             ))}

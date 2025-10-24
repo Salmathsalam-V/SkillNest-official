@@ -85,15 +85,7 @@ const AdminContactMessages = () => {
                 <span className="font-semibold">Message:</span> {msg.content}
               </p>
 
-              <div className="mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toast.info("Reply feature coming soon")}
-                >
-                  Reply
-                </Button>
-              </div>
+              
             </CardContent>
           </Card>
         ))}

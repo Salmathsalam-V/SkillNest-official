@@ -135,6 +135,8 @@ class CommunityInviteSerializer(serializers.ModelSerializer):
 class ReportPostSerializer(serializers.ModelSerializer):
     post_caption = serializers.CharField(source="post.caption", read_only=True)
     post_image = serializers.URLField(source="post.image", read_only=True)
+    post_author = serializers.URLField(source="post.user.email", read_only=True)
+    post_author_profile = serializers.URLField(source="post.user.profile", read_only=True)
     reported_by_username = serializers.CharField(source="reported_by.username", read_only=True)
     reported_by_profile = serializers.URLField(source="reported_by.profile", read_only=True)
 
@@ -145,11 +147,13 @@ class ReportPostSerializer(serializers.ModelSerializer):
             'post',
             'post_image', 
             'post_caption',   
+            'post_author',
+            'post_author_profile',
             'reported_by',
             'reported_by_username',
             'reported_by_profile',
             'reason',
             'created_at'
         ]
-        read_only_fields = ['id', 'created_at', 'reported_by', 'post', 'reported_by_username', 'reported_by_profile','post_image', 'post_caption']
+        read_only_fields = ['id', 'created_at', 'reported_by', 'post', 'reported_by_username', 'reported_by_profile','post_image', 'post_caption','post_author_profile','post_author']
         # ✅ Add 'post' and 'reported_by' here

@@ -179,7 +179,7 @@ const handleAddMember = async (identifier) => {
     const res = await addMember(communityId, identifier); // just string
     setMembers(res.members); // res.data is the CommunitySerializer output
     setNewMember("");
-    toast.success("Member added");
+    toast.success("Send invitation to member");
     setMembersModalOpen(false); 
     setSearchResults([]);
   } catch (err) {
@@ -482,7 +482,7 @@ useEffect(() => {
 
           {/* Member List */}
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {members.length > 0 ? (
+            {members?.length > 0 ? (
               members.map((member) => (
                 <div
                   key={member.email}
@@ -494,7 +494,7 @@ useEffect(() => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleRemoveMember(member.email)} // or member.id
+                    onClick={() => handleRemoveMember(member.email)}
                   >
                     <X className="h-4 w-4 text-red-500" />
                   </Button>
@@ -504,6 +504,7 @@ useEffect(() => {
               <p className="text-sm text-gray-500 text-center">No members yet.</p>
             )}
           </div>
+
 
 
           {/* Add Member */}

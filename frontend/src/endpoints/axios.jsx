@@ -266,6 +266,18 @@ export const createCommunity  = async (name, description, members) => {
     console.error("Error creating communities:", err);
   }
 };
+export const deleteCommunity = async (id) => {
+  try {
+    const res = await apiClient.delete(`creator/communities/${id}/delete/`, {
+      withCredentials: true, // if using cookie-based JWT
+    });
+    return res.data; // { detail: "Community deleted successfully" }
+  } catch (err) {
+    console.error("Error deleting community:", err);
+    throw err;
+  }
+};
+
 
 export const fetchUsers = async () => {
   try {
@@ -276,7 +288,24 @@ export const fetchUsers = async () => {
   }
 };
 
+export const fetchAllUsers = async () => {
+  try {
+    let allUsers = [];
+    let nextUrl = `${BASE_URL}creator/all-users/?limit=100&offset=0`; 
+    // Adjust endpoint name if needed
 
+    while (nextUrl) {
+      const res = await axios.get(nextUrl, { withCredentials: true });
+      allUsers = [...allUsers, ...res.data.results];
+      nextUrl = res.data.next; // DRF pagination gives next page URL
+    }
+
+    return allUsers;
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    return [];
+  }
+};
 
 
 export const fetchChatRoom = (communityId) =>
@@ -361,9 +390,20 @@ export const getCommunities = async () => {
     return res.data;
 
   } catch (err) {
-    console.error("Error fetching users:", err);
+    console.error("Error fetching community:", err);
   }
 };
+export const deleteCommunities = async (communityId) => {
+  try {
+    
+    const res = await apiClient.delete(`admin/admin-community/${communityId}/`);
+    return res.data;
+
+  } catch (err) {
+    console.error("Error deleting community:", err);
+  }
+};
+
 
 export const getCommunityMembers = async (communityId) => {
   try {
@@ -627,6 +667,7 @@ export const respondToInvite = async (inviteId, action) => {
 // };
 export const postReports = async (postId, reportData) => {
   try {
+    console.log("before api call")
     const res = await apiClient.post(`creator/post/${postId}/reports/`, reportData);
     console.log("Report post response:", res.data);
     return { success: true, data: res.data };
