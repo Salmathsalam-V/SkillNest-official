@@ -62,12 +62,12 @@ import { useSelector } from 'react-redux';
             Pages
           </Button>
         </Link>
-        <Link to="">
+        {/* <Link to="">
           <Button variant="outline" className="w-full justify-start gap-2">
             <MessageSquareText className="h-5 w-5" />
             Chat
           </Button>
-        </Link>
+        </Link> */}
         <Link to={`/creator/communities`}>
           <Button variant="outline" className="w-full justify-start gap-2">
             <PencilLine className="h-5 w-5" />

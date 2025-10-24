@@ -30,6 +30,7 @@ import { CommunityPageLearner } from './Learners/CommunityPageLearner';
 import {CommunityListAdmin} from './Admin/CommunityListAdmin';
 import {ReportsPage} from './Admin/PostReports';
 import { PostsPage } from './Admin/PostsPage';
+import { CreatorDetails } from './Learners/CreatorDetails';
 // import { AuthProvider } from './contexts/useAuth';
 // import { PrivateRoutes } from './components/private_routes/PrivateRoutes'
 
@@ -69,6 +70,7 @@ function App() {
             <Route path="/admin/communities" element={<CommunityListAdmin />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/posts-admin" element={ <PostsPage />} />
+            <Route path="/creator-details" element={<CreatorDetails />} />
 
           </Routes>
         {/* <PrivateRoutes></PrivateRoutes> */}

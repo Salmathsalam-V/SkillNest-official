@@ -1,18 +1,16 @@
-import React, { use, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import CreatorLayout from '@/components/Layouts/CreatorLayout';
-import LearnerLayout from '@/components/Layouts/LearnerLayout';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,DialogDescription } from "@/components/ui/dialog";
 import { Heart, MessageCircle } from "lucide-react";
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { toggleFollow,toggleLike,createComment,toggleCommentLike,get_course, creatorData, getCreatorPosts } from '../endpoints/axios';
-import { useSelector } from 'react-redux';
-import axios from 'axios';
-export function CreatorDetailpage() {
+import LearnerLayout from '@/components/Layouts/LearnerLayout';
+
+export const CreatorDetails=()=>{ {
   const { id } = useParams();
   const [creator, setCreator] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,12 +19,7 @@ export function CreatorDetailpage() {
   const [courses, setCourses] = useState([]);
   const [posts, setPosts] = useState([]);
   const [commentText, setCommentText] = useState({});
-  const [nextPage, setNextPage] = useState(0); // offset tracker
-  const [hasMore, setHasMore] = useState(true);
-  const pageSize = 6;
 
-  const user = useSelector((state) => state.user.user);
-  const userType = user?.user_type;
   useEffect(() => {
     const fetchCreator = async () => {
       try {
@@ -48,7 +41,29 @@ export function CreatorDetailpage() {
     fetchCreator();
   }, [id]);
 
+    useEffect(() => {
+  const fetchCreatorData = async () => {
+    try {
+      const resPosts = await getCreatorPosts(id);
+      console.log("Posts fetched:", resPosts.data);
+      setPosts(resPosts.data || []);
+      console.log("creatoriid : ", id);
+      try{
+        const resCourses = await get_course(id);
+        setCourses(resCourses);
+        console.log("Courses fetched:", courses,resCourses[0]);
 
+      }
+      catch(err){
+        console.error("Error fetching courses:", err);
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching creator posts/courses:", err);
+    }
+  };
+  fetchCreatorData();
+}, [id]);
 
  
 const handleFollowToggle = async () => {
@@ -149,56 +164,11 @@ const handleCommentLikeToggle = async (postId, commentId) => {
   }
 };
 
-const fetchCreatorData = async (offset = 0) => {
-  try {
-    const res = await axios.get(
-      `http://localhost:8000/api/creator/creators/${id}/posts/?limit=${pageSize}&offset=${offset}`,
-      { withCredentials: true }
-    );
-    setPosts(offset === 0 ? res.data.results : (prev) => [...prev, ...res.data.results]);
-    setNextPage(offset + pageSize);
-    setHasMore(!!res.data.next); // DRF gives `next` link if more pages exist
-    const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
-    setCourses(resCourses.data.results || []);
-    setLoading(false);
-  } catch (err) {
-    console.error("Error fetching posts:", err);
-  }
-};
-useEffect(() => {
-  setPosts([]);      
-  setNextPage(0);
-  setHasMore(true);
-  fetchCreatorData(0);
-}, [id]);
-
-// Infinite scroll
-useEffect(() => {
-  let fetching = false;
-
-  const handleScroll = async () => {
-    if (
-      !fetching &&
-      hasMore && // optional check, only fetch if more pages exist
-      window.innerHeight + window.scrollY >= document.body.offsetHeight - 500
-    ) {
-      fetching = true;
-      await fetchCreatorData(nextPage);
-      fetching = false;
-    }
-  };
-
-  window.addEventListener("scroll", handleScroll);
-  return () => window.removeEventListener("scroll", handleScroll);
-}, [nextPage, hasMore]);
-
   if (loading) return <p className="text-center py-10">Loading...</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
-  console.log("Rendering creator detail page for:", userType);
-  const Layout = userType === "creator" ? CreatorLayout : LearnerLayout;
 
   return (
-    <Layout>
+    <LearnerLayout>
     <div className="max-w-6xl mx-auto p-6">
       {/* Banner */}
      <div
@@ -267,10 +237,7 @@ useEffect(() => {
                         className="w-full h-48 object-cover"
                       />
                     )}
-                    {/* Post Caption */}
-                    <div className="p-1 ml-1 font-semibold">
-                    {post.caption}
-                    </div>
+
                     <div className="p-3 space-y-2">
                       {/* Like & Comment Buttons */}
                       <div className="flex items-center justify-between w-full">
@@ -338,14 +305,6 @@ useEffect(() => {
                     </div>
                   </Card>
                 ))}
-                {hasMore && (
-                  <div className="flex justify-center mt-6">
-                    <Button onClick={() => fetchCreatorData(nextPage)}>
-                      Load More
-                    </Button>
-                  </div>
-                )}
-              
               </div>
             ) : (
               <p className="text-muted-foreground text-center mt-6">No posts available.</p>
@@ -353,7 +312,7 @@ useEffect(() => {
 
             {/* Popup for comments (reuse same as PostsPage) */}
             <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
-              <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Comments</DialogTitle>
                 </DialogHeader>
@@ -501,7 +460,8 @@ useEffect(() => {
         </TabsContent>
       </Tabs>
     </div>
-    </Layout>
+    </LearnerLayout>
   );
 }
 
+}

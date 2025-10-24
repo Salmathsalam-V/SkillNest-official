@@ -7,10 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom, imageUpload } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom, imageUpload,getMembers } from "../endpoints/axios";
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import { toast } from "sonner";
 import chatService from "../services/chatService";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+    DialogDescription,
+} from "@/components/ui/dialog"; 
 
 export const CommunityPageLearner = () => {
   const { communityId } = useParams();
@@ -21,6 +29,8 @@ export const CommunityPageLearner = () => {
   const [pendingFile, setPendingFile] = useState(null);
   const [previewURL, setPreviewURL] = useState("");
   const messagesEndRef = useRef(null);
+  const [members, setMembers] = useState([]);
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
 
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
@@ -124,6 +134,15 @@ useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  const loadMembers = async () => {
+    try {
+      const data = await getMembers(communityId); // pass it here
+      setMembers(data.members || []);
+      console.log("Members loaded:", data);
+    } catch (err) {
+      console.error("Failed to load members:", err);
+    }
+  };
   if (!community) return <p>Loading community...</p>;
 
   return (
@@ -281,6 +300,38 @@ useEffect(() => {
           <Button onClick={() => handleSend()}>Send</Button>
         </div>
       </div>
+              {/* Members Modal */}
+      <Dialog open={membersModalOpen}
+         onOpenChange={(open) => {setMembersModalOpen(open);
+          if (open) loadMembers()}}>
+        <DialogTrigger asChild>
+          <Button variant="outline">Community Members</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Community Members</DialogTitle>
+          </DialogHeader>
+
+          {/* Member List */}
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {members.length > 0 ? (
+              members.map((member) => (
+                <div
+                  key={member.email}
+                  className="flex items-center justify-between bg-gray-100 p-2 rounded-lg"
+                >
+                  <span>
+                    {member.username} ({member.email})
+                  </span>
+      
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center">No members yet.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </LearnerLayout>
   );
 };
