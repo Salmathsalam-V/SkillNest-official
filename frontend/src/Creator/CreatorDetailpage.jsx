@@ -5,13 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CreatorLayout from '@/components/Layouts/CreatorLayout';
 import LearnerLayout from '@/components/Layouts/LearnerLayout';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,DialogDescription } from "@/components/ui/dialog";
-import { Heart, MessageCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle,DialogFooter,DialogDescription } from "@/components/ui/dialog";
+import { Heart, MessageCircle, MoreHorizontal } from "lucide-react";
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { toggleFollow,toggleLike,createComment,toggleCommentLike,get_course, creatorData, getCreatorPosts } from '../endpoints/axios';
+import { toggleFollow,toggleLike,createComment,toggleCommentLike,get_course, creatorData,postReports  } from '../endpoints/axios';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
+import { Menu } from "@headlessui/react";
+
 export function CreatorDetailpage() {
   const { id } = useParams();
   const [creator, setCreator] = useState(null);
@@ -24,6 +26,9 @@ export function CreatorDetailpage() {
   const [nextPage, setNextPage] = useState(0); // offset tracker
   const [hasMore, setHasMore] = useState(true);
   const pageSize = 6;
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [currentReportPostId, setCurrentReportPostId] = useState(null);
 
   const user = useSelector((state) => state.user.user);
   const userType = user?.user_type;
@@ -192,6 +197,30 @@ useEffect(() => {
   return () => window.removeEventListener("scroll", handleScroll);
 }, [nextPage, hasMore]);
 
+const handleOpenReportModal = (postId) => {
+  setCurrentReportPostId(postId);
+  setReportReason("");
+  setIsReportModalOpen(true);
+};
+
+const handleReportSubmit = async () => {
+  if (!reportReason.trim()) {
+    toast.error("Please enter a reason for reporting.");
+    return;
+  }
+  try {
+    const data = await postReports(currentReportPostId, { reason: reportReason });
+    if (data.success) {
+      toast.success("Post reported successfully");
+      setIsReportModalOpen(false);
+    }
+  } catch (err) {
+    console.error("Report post failed:", err);
+    toast.error("Failed to report post");
+  }
+};
+
+
   if (loading) return <p className="text-center py-10">Loading...</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
   console.log("Rendering creator detail page for:", userType);
@@ -296,6 +325,24 @@ useEffect(() => {
                         >
                           <MessageCircle className="w-5 h-5" />
                         </Button>
+                        <Menu as="div" className="relative inline-block text-left">
+  <Menu.Button className="p-1 rounded-full hover:bg-gray-200">
+    <MoreHorizontal className="w-5 h-5" />
+  </Menu.Button>
+  <Menu.Items className="absolute right-0 mt-2 w-28 bg-white border rounded-md shadow-lg focus:outline-none z-50">
+    <Menu.Item>
+      {({ active }) => (
+        <button
+          className={`${active ? "bg-gray-100" : ""} block w-full text-left px-4 py-2 text-sm text-gray-700`}
+          onClick={() => handleOpenReportModal(post.id)}
+        >
+          Report
+        </button>
+      )}
+    </Menu.Item>
+  </Menu.Items>
+</Menu>
+
                       </div>
 
                       {/* First Comment */}
@@ -399,7 +446,7 @@ useEffect(() => {
                       )}
 
                     </div>
-
+                    
                     {/* Add Comment */}
                     <div className="flex items-center gap-2 mt-3">
                       <Textarea
@@ -500,7 +547,32 @@ useEffect(() => {
           <p className="text-muted-foreground text-center mt-6">No reviews yet.</p>
         </TabsContent>
       </Tabs>
+      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Report Post</DialogTitle>
+    </DialogHeader>
+    <div className="space-y-3">
+      <p className="text-sm text-gray-600">
+        Please describe why you are reporting this post:
+      </p>
+      <Textarea
+        placeholder="Enter reason..."
+        value={reportReason}
+        onChange={(e) => setReportReason(e.target.value)}
+      />
     </div>
+    <DialogFooter className="mt-4 flex justify-end space-x-2">
+      <Button variant="outline" onClick={() => setIsReportModalOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleReportSubmit}>Submit</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+    </div>
+    
     </Layout>
   );
 }
