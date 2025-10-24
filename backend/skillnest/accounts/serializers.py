@@ -19,13 +19,13 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        if not self.instance and User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists. Please use a different one.")
         return value
 
 
     def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
+        if not self.instance and User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Username already exists. Please choose another username.")
         return value
 
