@@ -222,6 +222,14 @@ class UserListView(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+class AllUserListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        # Example: return only active users
+        return User.objects.filter(is_active=True)
+     
 # List + Create
 class CommunityListCreateView(generics.ListCreateAPIView):
     serializer_class = CommunitySerializer
@@ -234,8 +242,15 @@ class CommunityListCreateView(generics.ListCreateAPIView):
         ).distinct().order_by('-created_at')
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
+    
+class CommunityDeleteView(generics.DestroyAPIView):
+    queryset = Community.objects.all()
+    serializer_class = CommunitySerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-
+    def get_queryset(self):
+        # Only allow creator to delete
+        return Community.objects.filter(creator=self.request.user)
 # Retrieve + Update + Delete
 class CommunityDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommunitySerializer

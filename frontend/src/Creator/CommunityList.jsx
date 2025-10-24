@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchCommunities, createCommunity, fetchUsers } from "../endpoints/axios";
+import { fetchCommunities, createCommunity, fetchAllUsers,deleteCommunity } from "../endpoints/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +13,7 @@ import { DialogHeader } from "@/components/ui/dialog";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Loader }  from '@/components/Layouts/Loader';
 import { toast } from "sonner";
-
+import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal";
 
 export const CommunityList = () => {
   const [communities, setCommunities] = useState([]);
@@ -26,6 +26,7 @@ export const CommunityList = () => {
   const [next, setNext] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false); // modal state
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState(null);
 
   const navigate = useNavigate();
   const LIMIT = 6;
@@ -41,8 +42,9 @@ export const CommunityList = () => {
           setCommunities((prev) => [...prev, ...data.results]);
         }
         setNext(data.next);
-        const userRes = await fetchUsers();
-        setUsers(userRes || []);
+        // const userRes = await fetchUsers();
+        // console.log("Fetched users for members in community:", userRes);
+        // setUsers(userRes || []);
       } catch (err) {
         console.error("Error fetching communities:", err);
       } finally {
@@ -51,6 +53,18 @@ export const CommunityList = () => {
     };
     loadData();
   }, [offset]);
+useEffect(() => {
+  const loadAllUsers = async () => {
+    try {
+      const userRes = await fetchAllUsers(); // ✅ now fetches ALL pages
+      console.log("Fetched users for members in community:", userRes);
+      setUsers(userRes || []);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    }
+  };
+  loadAllUsers();
+}, []);
 
   const handleLoadMore = () => {
     if (next) {
@@ -101,6 +115,34 @@ export const CommunityList = () => {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+// const handleDelete = async (id) => {
+//   if (!window.confirm("Are you sure you want to delete this community?")) return;
+
+//   try {
+//     await deleteCommunity(id); // use the Axios function
+//     setCommunities((prev) => prev.filter((c) => c.id !== id));
+//     toast.success("Community deleted successfully");
+//   } catch (err) {
+//     toast.error("Failed to delete community");
+//   }
+// };
+const handleDeleteClick = (id) => {
+  setDeleteId(id); // opens modal
+};
+
+const confirmDelete = async () => {
+  try {
+    await deleteCommunity(deleteId);
+    setCommunities(prev => prev.filter(c => c.id !== deleteId));
+    toast.success("Community deleted successfully");
+  } catch (err) {
+    toast.error("Failed to delete community");
+  } finally {
+    setDeleteId(null);
+  }
+};
+
   if (loading) return <Loader text="Loading communities..." />; // or redirect to login
 
   return (
@@ -113,24 +155,31 @@ export const CommunityList = () => {
         {communities.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {communities.map((community) => (
-              <Card key={community.id} className="shadow-lg rounded-2xl">
-                <CardContent className="p-4">
-                  <h2 className="text-lg font-semibold">{community.name}</h2>
-                  <p className="text-sm text-gray-600">{community.description}</p>
-                  <p className="text-xs text-gray-400">
-                    Members: {community.members?.length || 0}
-                  </p>
-                </CardContent>
-                {/* Navigate to community page with ID */}
-               <Button
-                  onClick={() => navigate(`/creator/communities/${community.id}`)}
-                  variant="custom"
-                >
-                  View
-                </Button>
+  <Card key={community.id} className="shadow-lg rounded-2xl">
+    <CardContent className="p-4">
+      <h2 className="text-lg font-semibold">{community.name}</h2>
+      <p className="text-sm text-gray-600">{community.description}</p>
+      <p className="text-xs text-gray-400">
+        Members: {community.members?.length || 0}
+      </p>
+    </CardContent>
+    <div className="flex gap-2 p-2">
+      <Button
+        onClick={() => navigate(`/creator/communities/${community.id}`)}
+        variant="custom"
+      >
+        View
+      </Button>
+      <Button
+        onClick={() => handleDeleteClick(community.id)}
+        variant="destructive"
+      >
+        Delete
+      </Button>
+    </div>
+  </Card>
+))}
 
-              </Card>
-            ))}
           </div>
         ) : (
           <p>No communities created yet.</p>
@@ -147,7 +196,11 @@ export const CommunityList = () => {
         </div>
 
 
-
+        <DeleteConfirmModal 
+          open={!!deleteId} 
+          onClose={() => setDeleteId(null)} 
+          onConfirm={confirmDelete} 
+        />
 
        {/* Create Community Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
