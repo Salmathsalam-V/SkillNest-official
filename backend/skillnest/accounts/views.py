@@ -28,6 +28,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, permissions
 from .models import Creator
 
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
 import cloudinary.uploader
 from rest_framework.decorators import parser_classes,authentication_classes
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -135,14 +138,17 @@ class LogoutView(APIView):
             samesite='None',
         )
         return response
-
+@method_decorator(csrf_exempt, name='dispatch')
 class RefreshTokenView(APIView):
     """ Generate new access token with refresh token if access token is expired."""
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
+        logger.debug("RefreshTokenView called")
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-        logger.debug(f"Refresh token from cookies: {refresh_token}")
+        access_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'])
+        logger.debug(f"Refresh token from cookies: {refresh_token} , old access token: {access_token}")
         logger.debug(f"All cookies: {request.COOKIES}")
         logger.debug(f"Cookie key being used: {settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']}")
         
@@ -156,33 +162,40 @@ class RefreshTokenView(APIView):
         try:
             # Validate the token
             token = RefreshToken(refresh_token)
-            print(f"Token validated successfully")
+            logger.info(f"Token validated successfully: {token.payload.get("token_type")}")
             
             # Generate new access token
             access_token = str(token.access_token)
-            print(f"New access token generated")
+            logger.info(f"New access token generated : {access_token}")
 
             response = Response(
-                {"message": "New access token established."}, 
+                {"message": "New access token established.","access": access_token,}, 
                 status=status.HTTP_200_OK
             )
+            response.delete_cookie(
+                key=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'],
+                path="/",                     # must match original cookie
+                domain="127.0.0.1",           # must match original cookie domain
+                samesite=settings.AUTH_COOKIE_SAMESITE,
+                secure=False
+            )
 
-            # Set access token in cookie
             response.set_cookie(
                 key=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'],
                 value=access_token,
+                secure=False,
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 samesite=settings.AUTH_COOKIE_SAMESITE,
                 max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
                 path='/'
             )
 
-            print("Access token cookie set successfully")
+            logger.info("Access token cookie set successfully")
             return response
 
         except TokenError as e:
-            print(f"Token error: {e}")
-            print(f"Token error type: {type(e)}")
+            logger.debug(f"Token error: {e}")
+            logger.debug(f"Token error type: {type(e)}")
             return Response(
                 {"detail": f"Session expired. Please log in again. Error: {str(e)}"}, 
                 status=status.HTTP_401_UNAUTHORIZED

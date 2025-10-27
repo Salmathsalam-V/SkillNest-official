@@ -88,7 +88,8 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:8000",
-     "http://localhost:3000",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -96,10 +97,10 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
      "http://localhost:3000",
 ]
-# SESSION_COOKIE_SECURE = False  # ⚠️ True in production
-# CSRF_COOKIE_SECURE = False     # ⚠️ True in production
-# SESSION_COOKIE_SAMESITE = "Lax"
-# CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = False  # ⚠️ True in production
+CSRF_COOKIE_SECURE = False     # ⚠️ True in production
+SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "None"
 # SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 REST_FRAMEWORK = {
      'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -113,8 +114,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=50),
-    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=100),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=100),
+    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=200),
     'BLACKLIST_AFTER_ROTATION': True,
     'ROTATE_REFRESH_TOKENS': False,
     'AUTH_HEADER_TYPES': ('Bearer',),

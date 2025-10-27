@@ -14,7 +14,10 @@ const CreateExtraDetails = () => {
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [background, setBackground] = useState('');
+  const [background, setBackground] = useState('')
+  const [publicProfile1, setProfileUrl1] = useState('');
+  const [publicProfile2, setProfileUrl2] = useState('');
+  
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
@@ -30,6 +33,8 @@ const handleSubmit = async (e) => {
       category: selectedCategory,
       description,
       background,
+      // publicProfile1,
+      // publicProfile2
     });
 
     if (res.success) {
@@ -93,6 +98,26 @@ const handleSubmit = async (e) => {
                 />
               )}
             </div>
+            {/* <div>
+              <Label>Public Profile URL</Label>
+              <Input
+                type="url"
+                placeholder="Enter your public profile link..."
+                value={publicProfile1}
+                onChange={(e) => setProfileUrl1(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label>Public Profile URL</Label>
+              <Input
+                type="url"
+                placeholder="Enter your public profile link..."
+                value={publicProfile2}
+                onChange={(e) => setProfileUrl2(e.target.value)}
+                required
+              />
+            </div> */}
 
             <div>
               <Label>Description</Label>

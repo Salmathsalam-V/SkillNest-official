@@ -25,57 +25,66 @@ const refreshClient = axios.create({
 
 // Auto refresh access token request logic 
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    console.log('API Error:', error.response?.status, error.response?.data);
-    
+  (response) => response,   //succesfull response passthrough
+  async (error) => {        //error response handling
     const originalRequest = error.config;
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
-      console.log('Attempting token refresh...');
-      console.log('Original request URL:', originalRequest.url);
-      console.log('Original request headers:', originalRequest.headers);
-      console.log('Original request data:', originalRequest.data);
-      console.log('Refresh token from :', document.cookie);
-      
+
       try {
-        // Check if we have cookies before attempting refresh
-        
-        alert(`Document cookies: ${document.cookie}`);
-        console.log('Document cookies before refresh from axios apiClient :');
-        const res = await call_refresh(error, () => apiClient(originalRequest));
-        if (res){
-          console.log("Request retried successfully after refresh");
-          return res
-        }
-        const refreshResponse = await refreshClient.post(REFRESH_URL, {
-          // refresh : refreshToken,
-        }, { 
-          withCredentials: true 
-        });
+        console.log("Attempting token refresh...");
+        await refreshClient.post(REFRESH_URL, {}, { withCredentials: true });
 
-        
-        console.log("Token refreshed successfully", refreshResponse.data);
-
-        // Retry the original request
+        console.log("Token refreshed successfully. Retrying request...");
         return apiClient(originalRequest);
-        
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError.response?.data);
-        
+        console.error("Token refresh failed:", refreshError.response?.data);
+
         if (!isSessionExpiredHandle) {
           isSessionExpiredHandle = true;
-          alert("Session expired. Please log in again in session expiry",refreshError);
-          window.location.href = '/login';
+          alert("Session expired. Please log in again."); //need better UX and clear cookies
+          window.location.href = "/login";
         }
+
         return Promise.reject(refreshError);
       }
     }
-    console.log('Non-auth error or already retried:', error);
+
     return Promise.reject(error);
   }
 );
+
+
+// export const refresh_token = async () => {
+//   try {
+//     console.log("Refreshing token...");
+//     const response = 
+//     await axios.post(
+//       REFRESH_URL,
+//       {},
+//       { withCredentials: true }
+//     );
+
+//     // optionally: return the token or a success flag
+//     return response.data.refreshed === true;
+//   } catch (error) {
+//     console.error("Token refresh failed", error);
+//     return false;
+//   }
+// };
+// const call_refresh=async (error, func ) =>{
+//   if (error.response && error.response.status === 401){
+//     console.log("Calling refresh")
+//     const tokenRefreshed = await refresh_token();
+//     console.log("Token refreshed:", tokenRefreshed)
+//     if (tokenRefreshed){
+//       const retryResponse = await func();
+//       return retryResponse.data
+//     }
+//   }
+//   return false
+// }
 
 export const login = async (email, password) => {
   try {
@@ -90,35 +99,6 @@ export const login = async (email, password) => {
     return { success: false, error: error.response?.data || error.message };
   }
 };
-
-
-export const refresh_token = async () => {
-  try {
-    await axios.post(
-      REFRESH_URL,
-      {},
-      { withCredentials: true }
-    );
-
-    // optionally: return the token or a success flag
-    return response.data.refreshed === true;
-  } catch (error) {
-    console.error("Token refresh failed", error);
-    return false;
-  }
-};
-const call_refresh=async (error, func ) =>{
-  if (error.response && error.response.status === 401){
-    console.log("Calling refresh")
-    const tokenRefreshed = await refresh_token();
-    console.log("Token refreshed:", tokenRefreshed)
-    if (tokenRefreshed){
-      const retryResponse = await func();
-      return retryResponse.data
-    }
-  }
-  return false
-}
 
 export const googleLogin = async (code) => {
   try {
@@ -544,16 +524,11 @@ export const deleteLearner = async (learnerId) => {
   }
 };
 
-//  Update learner from admin
 export const updateLearner = async (learnerId, updatedData) => {
-  try {
-    const res = await apiClient.patch(`/admin/learners/${learnerId}/`, updatedData);
-    return { success: true, data: res.data };
-  } catch (err) {
-    console.error("Error updating learner:", err);
-    return { success: false, error: err };
-  }
+  const res = await apiClient.patch(`/admin/learners/${learnerId}/`, updatedData);
+  return { success: true, data: res.data };
 };
+
 
 //  Fetch all contact messages
 export const getContactMessages = async () => {
@@ -624,9 +599,18 @@ export const updateCreatorProfile = async (creatorId, payload) => {
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to update creator profile:", err);
-    return { success: false, error: err };
+
+    if (err.response?.data) {
+      return {
+        success: false,
+        errors: err.response.data.errors || err.response.data,
+      };
+    }
+
+    return { success: false, errors: { general: "Unknown error occurred" } };
   }
 };
+
 export const deletePost = async (postId) => {
   try {
     const res = await apiClient.delete(`/creator/creators/posts/${postId}/`, {

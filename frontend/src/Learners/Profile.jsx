@@ -77,6 +77,7 @@ const Profile = () => {
       });
 
       const url = res.data.url;
+
       setEditingLearner((prev) => ({ ...prev, profile: url }));
       toast.success("Profile image uploaded");
     } catch (error) {
@@ -88,22 +89,26 @@ const Profile = () => {
   };
 
   // ✅ Save learner update
-  const handleUpdateLearner = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await updateLearner(editingLearner.id, editingLearner);
-      if (res.success) {
-        toast.success("Profile updated successfully");
-        setLearner(res.data);
-        setIsEditOpen(false);
-        dispatch(setUser(res.data));
-      } else {
-        toast.error("Failed to update profile");
+const handleUpdateLearner = async (e) => {
+  e.preventDefault();
+
+  try {
+    const res = await updateLearner(editingLearner.id, editingLearner);
+    toast.success("Profile updated successfully");
+    setLearner(res.data);
+    setIsEditOpen(false);
+    dispatch(setUser(res.data));
+  } catch (err) {
+    if (err.response?.status === 400 && err.response?.data) {
+      const errors = err.response.data;
+      for (const [field, messages] of Object.entries(errors)) {
+        toast.error(`${field}: ${Array.isArray(messages) ? messages.join(", ") : messages}`);
       }
-    } catch (err) {
-      toast.error("Failed to update learner");
+    } else {
+      toast.error("Something went wrong while updating profile.");
     }
-  };
+  }
+};
 
   return (
     <LearnerLayout>

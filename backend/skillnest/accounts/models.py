@@ -23,6 +23,8 @@ class Creator(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='creator_profile')
     category = models.CharField(max_length=100)
     description = models.TextField()
+    publicProfile1 = models.URLField(blank=True, null=True)
+    publicProfile2 = models.URLField(blank=True, null=True)
     background = models.URLField(blank=True, null=True)
     followers = models.ManyToManyField('User', symmetrical=False, blank=True, related_name='following')
     APPROVE_CHOICES = [

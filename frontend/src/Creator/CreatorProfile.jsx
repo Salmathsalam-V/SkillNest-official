@@ -145,18 +145,31 @@ const submitPost = async () => {
     setEditData({ ...editData, [e.target.name]: e.target.value });
   };
 
-  const handleSaveChanges = async () => {
-    try {
-      const res = await updateCreatorProfile(id, editData);
+const handleSaveChanges = async () => {
+  try {
+    const res = await updateCreatorProfile(id, editData);
+
+    if (res.success && res.data?.success) {
       toast.success("Profile updated successfully");
       setIsEditOpen(false);
-      if (res.data.success) {
-        setCreator({ ...creator, ...editData });
+      setCreator({ ...creator, ...editData });
+    } else {
+      // ✅ Handle backend validation errors
+      if (res.errors) {
+        for (const [field, message] of Object.entries(res.errors)) {
+          const msg = Array.isArray(message) ? message.join(", ") : message;
+          toast.error(`${field}: ${msg}`);
+        }
+      } else {
+        toast.error("Failed to update creator profile");
       }
-    } catch (error) {
-      console.error("Update failed:", error);
     }
-  };
+  } catch (error) {
+    console.error("Update failed:", error);
+    toast.error("Something went wrong while updating profile");
+  }
+};
+
   const handleBackgroundUpload = async (e) => {
     const file = e.target.files[0];
     const formData = new FormData();
