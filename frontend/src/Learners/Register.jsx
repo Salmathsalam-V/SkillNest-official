@@ -14,7 +14,12 @@ import { imageUpload, registerUser } from "@/endpoints/axios";
 
 // ✅ validation schema
 const schema = Yup.object().shape({
-  username: Yup.string().required("Username is required"),
+  username: Yup.string()
+    .required("Username is required")
+    .matches(
+      /^[A-Za-z0-9_.]+$/,
+      "Username can only contain letters, digits, underscores (_), and dots (.), with no spaces"
+    ),
   fullname: Yup.string().required("Full name is required"),
   email: Yup.string()
     .email("Invalid email format")
@@ -26,11 +31,11 @@ const schema = Yup.object().shape({
   password: Yup.string()
     .required("Password is required")
     .min(6, "Password must be at least 6 characters"),
-  user_type: Yup.string().oneOf(
-    ["learner", "creator"],
-    "Select a valid account type"
-  ),
+  user_type: Yup.string()
+    .oneOf(["learner", "creator"], "Select a valid account type")
+    .required("Account type is required"),
 });
+
 
 export const Register = () => {
   const navigate = useNavigate();

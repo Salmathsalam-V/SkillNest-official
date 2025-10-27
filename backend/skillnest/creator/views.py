@@ -1,7 +1,7 @@
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer,ReportPostSerializer
-from .models import Post,Comment,Community,Course
+from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer,ReportPostSerializer,ReviewSerializer
+from .models import Post,Comment,Community,Course,Review
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, viewsets
@@ -222,13 +222,18 @@ class UserListView(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-class AllUserListView(generics.ListAPIView):
+class AllFollowersListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
 
     def get_queryset(self):
-        # Example: return only active users
-        return User.objects.filter(is_active=True)
+        user = self.request.user
+        creator = Creator.objects.filter(user=user).first()
+        if not creator:
+            # Return empty queryset if not a creator
+            return User.objects.none()
+
+        return creator.followers.all()
      
 # List + Create
 class CommunityListCreateView(generics.ListCreateAPIView):
@@ -402,3 +407,36 @@ class ReportPostView(generics.ListCreateAPIView):
         post = get_object_or_404(Post, id=post_id)
         serializer.save(post=post, reported_by=self.request.user)
 
+class CreatorReviewListCreateView(APIView):
+    """
+    GET: List all reviews for a specific creator.
+    POST: Create a new review for that creator.
+    """
+    permission_classes = [permissions.IsAuthenticated]   
+    # def get_permissions(self):
+    #     if self.request.method == "POST":
+    #         return [IsAuthenticated()]
+    #     return [AllowAny()]
+
+    def get(self, request, creator_id):
+        """Fetch all reviews for a given creator"""
+        creator = get_object_or_404(User, id=creator_id)
+        reviews = Review.objects.filter(creator=creator).order_by("-created_at")
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, creator_id):
+        """Create a review for a specific creator"""
+        logger.info('before post')
+        logger.info(f"POST /reviews by {request.user} (auth={request.user.is_authenticated})")
+        creator = get_object_or_404(User, id=creator_id)
+        serializer = ReviewSerializer(
+            data=request.data,
+            context={"request": request, "creator": creator},
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

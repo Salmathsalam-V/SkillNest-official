@@ -145,18 +145,31 @@ const submitPost = async () => {
     setEditData({ ...editData, [e.target.name]: e.target.value });
   };
 
-  const handleSaveChanges = async () => {
-    try {
-      const res = await updateCreatorProfile(id, editData);
+const handleSaveChanges = async () => {
+  try {
+    const res = await updateCreatorProfile(id, editData);
+
+    if (res.success && res.data?.success) {
       toast.success("Profile updated successfully");
       setIsEditOpen(false);
-      if (res.data.success) {
-        setCreator({ ...creator, ...editData });
+      setCreator({ ...creator, ...editData });
+    } else {
+      // ✅ Handle backend validation errors
+      if (res.errors) {
+        for (const [field, message] of Object.entries(res.errors)) {
+          const msg = Array.isArray(message) ? message.join(", ") : message;
+          toast.error(`${field}: ${msg}`);
+        }
+      } else {
+        toast.error("Failed to update creator profile");
       }
-    } catch (error) {
-      console.error("Update failed:", error);
     }
-  };
+  } catch (error) {
+    console.error("Update failed:", error);
+    toast.error("Something went wrong while updating profile");
+  }
+};
+
   const handleBackgroundUpload = async (e) => {
     const file = e.target.files[0];
     const formData = new FormData();
@@ -395,125 +408,133 @@ const handleCommentLikeToggle = async (postId, commentId) => {
         </div>
 
         {/* Creator Card */}
-        <Card className="mt-6 p-6 flex gap-6 items-center">
+        <Card className="mt-6 p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6 items-center sm:items-start">
+          {/* Profile Image */}
           <img
             src={creator.profile}
             alt="creator"
-            className="w-24 h-24 rounded-full object-cover border-4 border-white shadow"
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow"
           />
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold">@{creator.username}</h2>
-            <p className="text-gray-600 text-sm mb-1">Email: {creator.email}</p>
-            <p className="text-gray-600 text-sm mb-1">Fullname: {creator.fullname}</p>
-            <div className="flex flex-col gap-2">
-          <div className="mt-2">
-            <p className="text-gray-600 text-sm mb-1">Background Image:</p>
-            <img
-              src={creator.background}
-              alt="Background"
-              className="w-full max-w-md h-40 object-cover rounded-md border"
-            />
-          </div>
-          </div>
 
-            <p className="text-gray-600 text-sm mb-1">Category: {creator.category}</p>
-            <p className="text-gray-700">{creator.description}</p>
+          {/* Creator Info */}
+          <div className="flex-1 text-center sm:text-left w-full">
+            <h2 className="text-lg sm:text-xl font-semibold break-words">@{creator.username}</h2>
+            <p className="text-gray-600 text-sm mb-1 break-words">Email: {creator.email}</p>
+            <p className="text-gray-600 text-sm mb-1 break-words">Fullname: {creator.fullname}</p>
+
+
+            <p className="text-gray-600 text-sm mt-3">Category: {creator.category}</p>
+            <p className="text-gray-700 text-sm mt-1">{creator.description}</p>
 
             {/* Edit Button */}
-            <div className="mt-4">
+            <div className="mt-4 flex justify-center sm:justify-start">
               <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" onClick={() => setIsEditOpen(true)}>Edit Profile</Button>
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto text-sm sm:text-base px-4 py-2"
+                    onClick={() => setIsEditOpen(true)}
+                  >
+                    Edit Profile
+                  </Button>
                 </DialogTrigger>
-                  <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
 
+                <DialogContent className="max-h-[80vh] overflow-y-auto w-[90vw] sm:w-full max-w-lg">
                   <DialogHeader>
-                  <DialogTitle>Edit Creator Info</DialogTitle>
-                  <DialogDescription>Update the creator's information below and click Save.</DialogDescription>
-                </DialogHeader>
+                    <DialogTitle>Edit Creator Info</DialogTitle>
+                    <DialogDescription>
+                      Update the creator's information below and click Save.
+                    </DialogDescription>
+                  </DialogHeader>
 
                   <div className="flex flex-col gap-4">
+                    {/* Username */}
                     <Input
                       name="username"
                       placeholder="Username"
                       value={editData.username}
                       onChange={handleInputChange}
                     />
+                    {/* Fullname */}
                     <Input
                       name="fullname"
                       placeholder="Fullname"
                       value={editData.fullname}
                       onChange={handleInputChange}
                     />
+                    {/* Category */}
                     <Input
                       name="category"
                       placeholder="Category"
                       value={editData.category}
                       onChange={handleInputChange}
                     />
-                  {/* Upload Profile Image */}
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="profile-upload">Upload Profile Image</Label>
-                    <Input
-                      id="profile-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfileUpload}
-                    />
-                    {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
-                    {editData.profile && (
-                      <img
-                        src={editData.profile}
-                        alt="Profile preview"
-                        className="w-24 h-24 rounded-full object-cover border mt-2"
+
+                    {/* Upload Profile Image */}
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="profile-upload">Upload Profile Image</Label>
+                      <Input
+                        id="profile-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileUpload}
                       />
-                    )}
-                  </div>
+                      {uploading && (
+                        <p className="text-sm text-muted-foreground">Uploading...</p>
+                      )}
+                      {editData.profile && (
+                        <img
+                          src={editData.profile}
+                          alt="Profile preview"
+                          className="w-20 h-20 rounded-full object-cover border mt-2 self-center sm:self-start"
+                        />
+                      )}
+                    </div>
 
-                  {/* Upload Background Image */}
-                  <div className="flex flex-col gap-2 mt-3">
-                    <Label htmlFor="background-upload">Upload Background</Label>
-                    <Input
-                      id="background-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleBackgroundUpload}
-                    />
-                    {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
-                    {editData.background && (
-                      <img
-                        src={editData.background}
-                        alt="Background preview"
-                        className="w-full max-w-sm h-40 object-cover rounded-md mt-2 border"
+                    {/* Upload Background Image */}
+                    <div className="flex flex-col gap-2 mt-3">
+                      <Label htmlFor="background-upload">Upload Background</Label>
+                      <Input
+                        id="background-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBackgroundUpload}
                       />
-                    )}
-                  </div>
+                      {uploading && (
+                        <p className="text-sm text-muted-foreground">Uploading...</p>
+                      )}
+                      {editData.background && (
+                        <img
+                          src={editData.background}
+                          alt="Background preview"
+                          className="w-full max-w-sm h-32 sm:h-40 object-cover rounded-md mt-2 border self-center sm:self-start"
+                        />
+                      )}
+                    </div>
 
-
-{/* <div className="mt-2">
-  <Label>Or paste background image URL</Label>
-  <Input
-    name="background"
-    placeholder="Background URL"
-    value={editData.background}
-    onChange={handleInputChange}
-  />
-</div> */}
-
+                    {/* Description */}
                     <Textarea
                       name="description"
                       placeholder="Description"
                       value={editData.description}
                       onChange={handleInputChange}
+                      className="min-h-[100px]"
                     />
-                    <Button onClick={handleSaveChanges}>Save Changes</Button>
+
+                    {/* Save Button */}
+                    <Button
+                      onClick={handleSaveChanges}
+                      className="w-full sm:w-auto mt-2 self-center sm:self-start"
+                    >
+                      Save Changes
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
-
             </div>
           </div>
         </Card>
+
 <Dialog open={!!openEditPost} onOpenChange={() => setOpenEditPost(null)}>
   <DialogContent>
     <DialogHeader>

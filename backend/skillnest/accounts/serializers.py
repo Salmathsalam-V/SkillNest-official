@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from . models import Creator
+import re
+
 
 User = get_user_model()
 
@@ -19,14 +21,22 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        if not self.instance and User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists. Please use a different one.")
         return value
 
 
     def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Username already exists. Please choose another username.")
+        # ✅ Only letters, digits, underscores, and dots
+        if not re.match(r'^[A-Za-z0-9_.]+$', value):
+            raise serializers.ValidationError(
+                "Username can only contain letters, digits, underscores (_), and dots (.), with no spaces."
+            )
+
+        # ✅ Check uniqueness (excluding current user)
+        if User.objects.filter(username=value).exclude(id=self.instance.id if self.instance else None).exists():
+            raise serializers.ValidationError("This username already exists. Please choose another one.")
+
         return value
 
     def validate_password(self, value):
@@ -93,7 +103,7 @@ class CreatorSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Creator
-        fields = ['id', 'email', 'category', 'description', 'background','approve']  # Include email
+        fields = ['id', 'email', 'category', 'description', 'background','approve']  # Include email ,'publicProfile1','publicProfile1'
         read_only_fields = ['id','approve']
 
     def validate_category(self, value):
@@ -150,7 +160,19 @@ class CombinedCreatorUserSerializer(serializers.ModelSerializer):
             return obj.creator_profile.followers.count()
         return 0
 
+    def validate_username(self, value):
+        # ✅ Only letters, digits, underscores, and dots
+        if not re.match(r'^[A-Za-z0-9_.]+$', value):
+            raise serializers.ValidationError(
+                "Username can only contain letters, digits, underscores (_), and dots (.), with no spaces."
+            )
 
+        # ✅ Check uniqueness (excluding current user)
+        if User.objects.filter(username=value).exclude(id=self.instance.id if self.instance else None).exists():
+            raise serializers.ValidationError("This username already exists. Please choose another one.")
+
+        return value
+    
     def update(self, instance, validated_data):
         # Extract nested creator_profile data
         creator_data = validated_data.pop('creator_profile', {})

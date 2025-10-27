@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Post, Comment, Course
 from accounts.models import User, Creator
-from .models import Community,CommunityInvite,ReportPost
+from .models import Community,CommunityInvite,ReportPost,Review
 from django.contrib.auth import get_user_model
 import logging
 logger = logging.getLogger(__name__)
@@ -157,3 +157,57 @@ class ReportPostSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'reported_by', 'post', 'reported_by_username', 'reported_by_profile','post_image', 'post_caption','post_author_profile','post_author']
         # ✅ Add 'post' and 'reported_by' here
+
+class ReviewSerializer(serializers.ModelSerializer):
+    # --- Creator Details ---
+    creator_username = serializers.CharField(source="creator.username", read_only=True)
+    creator_email = serializers.EmailField(source="creator.email", read_only=True)
+    creator_profile = serializers.URLField(source="creator.profile", read_only=True)
+
+    # --- Reviewer (User) Details ---
+    user_username = serializers.CharField(source="user.username", read_only=True)
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+    user_profile = serializers.URLField(source="user.profile", read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            "id",
+            "creator",
+            "creator_username",
+            "creator_email",
+            "creator_profile",
+            "user",
+            "user_username",
+            "user_email",
+            "user_profile",
+            "rating",
+            "comment",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "creator",
+            "user",
+            "creator_username",
+            "creator_email",
+            "creator_profile",
+            "user_username",
+            "user_email",
+            "user_profile",
+            "created_at",
+        ]
+
+    def create(self, validated_data):
+        """Attach the current user and creator automatically."""
+        request = self.context.get("request")
+        creator = self.context.get("creator")
+
+        if not request or not creator:
+            raise serializers.ValidationError("Request or creator context missing.")
+
+        return Review.objects.create(
+            user=request.user,
+            creator=creator,
+            **validated_data
+        )
