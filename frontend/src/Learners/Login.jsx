@@ -40,31 +40,39 @@ const Login = () => {
     mode: "onBlur", 
   });
 
-  const onSubmit = async (data) => {
-    try {
-      const res = await login(data.email, data.password);
-      console.log('Login response:', res.error, res.data);
-      if (res?.success) {
-        console.log('User data from login:', res.data.user);
-        dispatch(setUser(res.data.user));
-        const userType = res.data.user.user_type;
-        toast.success(res.data.message || 'Login successful!');
-        if (userType === 'learner') navigate('/learnerhome');
-        else if (userType === 'creator') navigate('/creatorhome');
-        else navigate('/adminhome');
-      }else if (res?.error.error) {
-        console.log('Backend error message:', res.error);
-        toast.error(res.error.error);
-      }else {
-        toast.error('Invalid credentials');
-      }
-    } catch (error) {
-      console.log('Login error:', error);
-      const backendError = error.response?.data?.error;
-      toast.error(backendError || error.message || 'Something went wrong during login.');
-      console.log('Login error:', error);
+const onSubmit = async (data) => {
+  try {
+    const res = await login(data.email, data.password);
+    console.log('Login response:', res);
+
+    if (res.success) {
+      dispatch(setUser(res.data.user));
+      const userType = res.data.user.user_type;
+      toast.success(res.data.message || 'Login successful!');
+
+      if (userType === 'learner') navigate('/learnerhome');
+      else if (userType === 'creator') navigate('/creatorhome');
+      else navigate('/adminhome');
+    } else {
+      // 🧠 Handle different error formats gracefully
+      const errData = res.error;
+      let errorMessage = 'Invalid credentials';
+
+      if (typeof errData === 'string') errorMessage = errData;
+      else if (errData?.detail) errorMessage = errData.detail;
+      else if (errData?.non_field_errors) errorMessage = errData.non_field_errors.join(', ');
+      else if (errData?.error) errorMessage = errData.error;
+
+      toast.error(errorMessage);
+      console.error('Backend error:', errData);
     }
-  };
+  } catch (error) {
+    console.error('Login error (network or unexpected):', error);
+    const backendError = error.response?.data?.error;
+    toast.error(backendError || error.message || 'Something went wrong during login.');
+  }
+};
+
 const handleGoogleLogin = async (credentialResponse) => {
     try {
       const token = credentialResponse.credential;

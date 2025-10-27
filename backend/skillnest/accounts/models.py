@@ -6,9 +6,10 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True)
     fullname = models.CharField(max_length=255)
-    is_delete = models.BooleanField(default=False)
     status = models.BooleanField(default=False)
     profile = models.URLField(blank=True, null=True)
+    is_block = models.BooleanField(default=False)
+    is_delete = models.BooleanField(default=False)
     USER_TYPE_CHOICES = (
         ('learner', 'Learner'),
         ('creator', 'Creator'),

@@ -15,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'fullname', 'user_type','status','profile']
+        fields = ['id', 'username', 'email', 'password', 'fullname', 'user_type','status','profile','is_block']
         extra_kwargs = {
             'password': {'write_only': True},
         }
@@ -52,6 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
             fullname=validated_data['fullname'],
             user_type=validated_data['user_type'],
             profile=validated_data.get('profile'),
+            is_block=False,
             status=False
         )
         return user
@@ -81,6 +82,8 @@ class LoginSerializer(serializers.Serializer):
 
         if not user.is_active:
             raise serializers.ValidationError("User account is disabled.")
+        if user.is_block:
+            raise serializers.ValidationError("You are blocked-contact admin")
 
         refresh = RefreshToken.for_user(user)
 
@@ -152,7 +155,7 @@ class CombinedCreatorUserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'fullname', 'profile', 'user_type', 'status',
-            'category', 'description', 'background', 'approve', 'follower_count'
+            'category', 'description', 'background', 'approve', 'follower_count','is_block'
         ]
 
     def get_follower_count(self, obj):
