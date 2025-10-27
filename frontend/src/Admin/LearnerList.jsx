@@ -88,6 +88,40 @@ const handleDelete = async (id) => {
   }
 };
 
+const handleBlock = async (learnerId) => {
+  try {
+    // Find the creator object from your local state
+    const target = learners.find(l => l.id === learnerId);
+    if (!target) return;
+
+    // Toggle the block status
+    const updatedStatus = !target.is_block;
+
+    // Make API call
+    const res = await updateLearner(learnerId, { is_block: updatedStatus });
+
+    if (res.success) {
+      // Update state locally so UI refreshes immediately
+      setLearners(prev =>
+        prev.map(l =>
+          l.id === learnerId ? { ...l, is_block: updatedStatus } : l
+        )
+      );
+
+      toast.success(
+        updatedStatus ? "User has been blocked" : "Creator has been unblocked"
+      );
+    } else {
+      toast.error("Failed to update block status");
+      console.error("API error:", res.errors);
+    }
+  } catch (err) {
+    console.error("Error in handleBlock:", err);
+    toast.error("Something went wrong while updating block status");
+  }
+};
+
+
   const filteredLearners = useMemo(() => {
     return learners.filter(learner =>
       learner.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -136,10 +170,15 @@ const handleDelete = async (id) => {
                 <TableCell>{learner.username}</TableCell>
                 <TableCell>{learner.fullname}</TableCell>
                 <TableCell>{learner.email}</TableCell>
+                <TableCell>{learner.is_block? "True": "False"}</TableCell>
                 <TableCell className="text-right space-x-2">
                   {/* <Button variant="outline" size="sm" onClick={() => handleEditClick(learner)}>
                     Edit
                   </Button> */}
+                  <Button variant="outline" size="sm"onClick={() => handleBlock(learner.id)}>
+                                        {learner.is_block ? "Unblock" : "Block"}
+                  </Button>
+                  
                   <Button variant="destructive" size="sm" onClick={() => handleDelete(learner.id)}>
                     Delete
                   </Button>

@@ -102,6 +102,13 @@ const handleGoogleLogin = async (credentialResponse) => {
 
     } catch (error) {
       console.error("Google login failed:", error.response?.data || error.message);
+      const errorMessage =
+      error.response?.data?.error ||
+      error.response?.data?.detail ||
+      "Google login failed. Please try again.";
+
+    // Show it to the user
+    toast.error(errorMessage);
     }
   };
   if (loading) return <Loader text="Loading..." />; // or redirect to login
