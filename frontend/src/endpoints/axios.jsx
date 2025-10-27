@@ -268,14 +268,15 @@ export const fetchUsers = async () => {
   }
 };
 
-export const fetchAllUsers = async () => {
+export const fetchAllFollowers = async () => {
   try {
     let allUsers = [];
-    let nextUrl = `${BASE_URL}creator/all-users/?limit=100&offset=0`; 
+    let nextUrl = `${BASE_URL}creator/all-followers/?limit=100&offset=0`; 
     // Adjust endpoint name if needed
 
     while (nextUrl) {
       const res = await axios.get(nextUrl, { withCredentials: true });
+      console.log(res.data)
       allUsers = [...allUsers, ...res.data.results];
       nextUrl = res.data.next; // DRF pagination gives next page URL
     }
@@ -668,6 +669,49 @@ export const postReportsView = async () => {
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to report post:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+
+export const postReviews = async (creatorId, reportData) => {
+  try {
+    console.log("before api call")
+    const res = await apiClient.post(`creator/post/${postId}/reports/`, reportData);
+    console.log("Report post response:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to report post:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+// ✅ Post a new review for a creator
+export const postReview = async (creatorId, reviewData) => {
+  try {
+    console.log("Before posting review...");
+    const res = await apiClient.post(
+      `creator/creators/${creatorId}/reviews/`,
+      reviewData,
+      { withCredentials: true }
+    );
+    console.log("Review post response:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to post review:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+
+export const fetchReviews = async (creatorId) => {
+  try {
+    console.log("Before fetch review...");
+    const res = await apiClient.get(
+      `creator/creators/${creatorId}/reviews`,
+      { withCredentials: true }
+    );
+    console.log("Reviews:", res);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to fetch review:", err.response?.data || err);
     return { success: false, error: err };
   }
 };

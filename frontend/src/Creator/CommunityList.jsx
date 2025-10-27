@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchCommunities, createCommunity, fetchAllUsers,deleteCommunity } from "../endpoints/axios";
+import { fetchCommunities, createCommunity, fetchAllFollowers,deleteCommunity } from "../endpoints/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,7 +56,8 @@ export const CommunityList = () => {
 useEffect(() => {
   const loadAllUsers = async () => {
     try {
-      const userRes = await fetchAllUsers(); // ✅ now fetches ALL pages
+      console.log("before fetch followers")
+      const userRes = await fetchAllFollowers(); // ✅ now fetches ALL pages
       console.log("Fetched users for members in community:", userRes);
       setUsers(userRes || []);
     } catch (err) {

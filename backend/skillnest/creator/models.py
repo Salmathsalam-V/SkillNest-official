@@ -105,3 +105,10 @@ class CommunityInvite(models.Model):
     
     def __str__(self):
         return f"Invite to {self.invited_user.email} for {self.community.name} by {self.invited_by.email}"
+
+class Review(models.Model):
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.PositiveSmallIntegerField(default=0)
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

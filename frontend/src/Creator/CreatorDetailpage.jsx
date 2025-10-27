@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle,DialogFooter,DialogDes
 import { Heart, MessageCircle, MoreHorizontal } from "lucide-react";
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { toggleFollow,toggleLike,createComment,toggleCommentLike,get_course, creatorData,postReports  } from '../endpoints/axios';
+import { toggleFollow,toggleLike,createComment,toggleCommentLike,get_course, creatorData,postReports ,postReview,fetchReviews } from '../endpoints/axios';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { Menu } from "@headlessui/react";
@@ -29,6 +29,9 @@ export function CreatorDetailpage() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [currentReportPostId, setCurrentReportPostId] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
+
 
   const user = useSelector((state) => state.user.user);
   const userType = user?.user_type;
@@ -220,6 +223,40 @@ const handleReportSubmit = async () => {
   }
 };
 
+const fetchCreatorReviews = async () => {
+  try {
+    console.log("before fetch ",id)
+    const res = await fetchReviews(id);
+    setReviews(res.data.results || res.data); // depending on pagination
+  } catch (err) {
+    console.error("Error fetching reviews:", err);
+  }
+};
+
+const handleReviewSubmit = async () => {
+  if (!newReview.rating || !newReview.comment.trim()) {
+    toast.error("Please provide both rating and comment.");
+    return;
+  }
+  try {
+    console.log("Before")
+    const res = await postReview(creator.id,newReview);
+    console.log(res.success);
+    if (res.success) {
+      toast.success("Review submitted!");
+      setNewReview({ rating: 0, comment: "" });
+      fetchCreatorReviews(); // refresh list
+    }
+  } catch (err) {
+    console.error("Failed to post review:", err);
+    toast.error("Failed to submit review");
+  }
+};
+useEffect(() => {
+  fetchCreatorData(0);
+  fetchCreatorReviews();
+}, [id]);
+
 
   if (loading) return <p className="text-center py-10">Loading...</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
@@ -252,28 +289,45 @@ const handleReportSubmit = async () => {
 
 
       {/* Creator Card */}
-      <Card className="mt-6 p-6 flex gap-6 items-center">
-        <img
-          src={creator.profile}
-          alt="creator"
-          className="w-24 h-24 rounded-full object-cover border-4 border-white shadow"
-        />
-        <div className="flex-1">
-     
-          <h2 className="text-xl font-semibold">@{creator.username}</h2>
-          <p className="text-gray-600 text-sm mb-1">Category: {creator.category}</p>
-          <p className="text-gray-700">{creator.description}</p>
-          <p className="text-sm mt-1">{creator.follower_count} followers</p>
+      <Card className="mt-6 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+        {/* Profile Image */}
+        <div className="flex justify-center sm:justify-start">
+          <img
+            src={creator.profile}
+            alt="creator"
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow"
+          />
         </div>
 
-        <Button
-          variant={creator.is_following ? "secondary" : "custom"}
-          onClick={handleFollowToggle} 
-        >
-          {creator.is_following ? "Unfollow" : "Follow"}
-        </Button>
-        <Button variant="custom">Connect</Button>
+        {/* Creator Info */}
+        <div className="flex-1 text-center sm:text-left">
+          <h2 className="text-lg sm:text-xl font-semibold break-words">@{creator.username}</h2>
+          <p className="text-gray-600 text-sm mb-1 break-words">
+            Category: {creator.category}
+          </p>
+          <p className="text-gray-700 text-sm sm:text-base break-words">{creator.description}</p>
+          <p className="text-sm mt-1 text-gray-600">{creator.follower_count} followers</p>
+        </div>
+
+        {/* Buttons Section */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center sm:justify-end w-full sm:w-auto">
+          <Button
+            variant={creator.is_following ? "secondary" : "custom"}
+            onClick={handleFollowToggle}
+            className="w-full sm:w-auto text-sm sm:text-base px-4 py-2"
+          >
+            {creator.is_following ? "Unfollow" : "Follow"}
+          </Button>
+
+          <Button
+            variant="custom"
+            className="w-full sm:w-auto text-sm sm:text-base px-4 py-2"
+          >
+            Connect
+          </Button>
+        </div>
       </Card>
+
 
       {/* Tabs Section */}
       <Tabs defaultValue="posts" className="mt-8">
@@ -544,8 +598,67 @@ const handleReportSubmit = async () => {
 
 
         <TabsContent value="reviews">
-          <p className="text-muted-foreground text-center mt-6">No reviews yet.</p>
-        </TabsContent>
+  <div className="mt-6 space-y-6">
+    {/* Existing Reviews */}
+    {reviews.length > 0 ? (
+      reviews.map((rev) => (
+        <Card key={rev.id} className="p-4 shadow rounded-lg">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="font-semibold">@{rev.user_username}</p>
+              <div className="flex text-yellow-400">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span key={star}>
+                    {star <= rev.rating ? "★" : "☆"}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm text-gray-700 mt-1">{rev.comment}</p>
+            </div>
+            <p className="text-xs text-gray-400">
+              {new Date(rev.created_at).toLocaleDateString()}
+            </p>
+          </div>
+        </Card>
+      ))
+    ) : (
+      <p className="text-center text-gray-500">No reviews yet.</p>
+    )}
+
+    {/* Add New Review Form */}
+    {user && (
+      <Card className="p-4 shadow-md">
+        <h3 className="font-semibold mb-2">Leave a Review</h3>
+        <div className="flex gap-2 mb-3">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span
+              key={star}
+              onClick={() =>
+                setNewReview((prev) => ({ ...prev, rating: star }))
+              }
+              className={`cursor-pointer text-2xl ${
+                star <= newReview.rating ? "text-yellow-400" : "text-gray-300"
+              }`}
+            >
+              ★
+            </span>
+          ))}
+        </div>
+        <Textarea
+          placeholder="Write your review..."
+          value={newReview.comment}
+          onChange={(e) =>
+            setNewReview((prev) => ({ ...prev, comment: e.target.value }))
+          }
+        />
+        <div className="flex justify-end mt-3">
+          <Button onClick={handleReviewSubmit}>Submit Review</Button>
+        </div>
+      </Card>
+    )}
+  </div>
+</TabsContent>
+
       </Tabs>
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
   <DialogContent>
