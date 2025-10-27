@@ -715,3 +715,13 @@ export const fetchReviews = async (creatorId) => {
     return { success: false, error: err };
   }
 };
+
+export const sendContactReply = async (contactId, reply) => {
+  try {
+    const response = await apiClient.post(`admin/contact/${contactId}/reply/`, { reply });
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error sending contact reply:", error.response?.data || error);
+    return { success: false, error: error.response?.data || error.message };
+  }
+};
