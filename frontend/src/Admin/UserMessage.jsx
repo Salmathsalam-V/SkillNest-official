@@ -7,32 +7,34 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminLayout from "@/components/Layouts/AdminLayout";
+import AdminContactReply from "./AdminContactReply";
 
 const AdminContactMessages = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const res = await getContactMessages();
-        if (res.success) {
-          console.log("Fetched messages:", res.data);
-          setMessages(res.data);
-          console.log("Messages set in state:", messages);
-        } else {
-          console.error("Failed to fetch messages:", res.error);
-          toast.error("Failed to load messages");
-        }
-      } catch (err) {
-        console.error("Error fetching contact messages:", err);
-        toast.error("Something went wrong");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMessages();
-  }, []);
+useEffect(() => {
+  fetchMessages();
+}, []);
+
+const fetchMessages = async () => {
+  try {
+    const res = await getContactMessages();
+    if (res.success) {
+      console.log("Fetched messages:", res.data);
+      setMessages(res.data);
+    } else {
+      console.error("Failed to fetch messages:", res.error);
+      toast.error("Failed to load messages");
+    }
+  } catch (err) {
+    console.error("Error fetching contact messages:", err);
+    toast.error("Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (loading) {
     return (
@@ -84,7 +86,22 @@ const AdminContactMessages = () => {
               <p className="text-gray-700 mb-2">
                 <span className="font-semibold">Message:</span> {msg.content}
               </p>
-
+              {msg.is_replied ? (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                    <p className="text-sm font-medium text-green-800">
+                      ✅ Replied:
+                    </p>
+                    <p className="text-gray-700 mt-1">{msg.reply}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {new Date(msg.replied_at).toLocaleString()}
+                    </p>
+                  </div>
+                ) : (
+                  <AdminContactReply
+                    contactId={msg.id}
+                    onReplySent={fetchMessages}
+                  />
+                )}
               
             </CardContent>
           </Card>

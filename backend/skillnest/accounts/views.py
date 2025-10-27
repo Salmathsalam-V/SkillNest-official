@@ -233,9 +233,16 @@ class GoogleLoginAPIView(APIView):
 
         user, created = User.objects.get_or_create(
             email=email,
-            defaults={"username": email, "first_name": name, "user_type": "learner", "status": True }
+            defaults={"username": email, "first_name": name, "user_type": "learner", "status": True ,"is_block": False }
         )
-
+         # ✅ If user exists but is blocked
+        if not created and user.is_block:
+            logger.warning(f"Blocked user attempted Google login: {user.email}")
+            return Response(
+                {"error": "Your account has been blocked. Please contact the admin."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         if created:
             user.status = True
             user.save(update_fields=["status"])

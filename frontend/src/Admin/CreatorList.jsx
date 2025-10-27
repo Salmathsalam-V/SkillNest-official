@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/Layouts/AdminLayout';
 import {
@@ -25,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Loader } from '@/components/Layouts/Loader';
-import { listCreators,updateCreator,deleteCreator } from '../endpoints/axios';
+import { listCreators,updateCreator,deleteCreator,updateCreatorProfile } from '../endpoints/axios';
 
 const CreatorList = () => {
   const [creators, setCreators] = useState([]);
@@ -33,6 +23,7 @@ const CreatorList = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [block, setBlock] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,34 +66,43 @@ const handleDelete = async (id) => {
   navigate(`/creators-view/${id}`);
 };
 
-  const handleEditClick = (creator) => {
-    setEditingCreators({ ...creator });
-    setIsEditOpen(true);
-  };
 
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditingCreators(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+const handleBlock = async (creatorId) => {
+  try {
+    // Find the creator object from your local state
+    const target = creators.find(c => c.id === creatorId);
+    if (!target) return;
 
-  const handleUpdateCreators = async (e) => {
-    e.preventDefault();
-    const res = await updateCreator(editingCreators.id, editingCreators);
+    // Toggle the block status
+    const updatedStatus = !target.is_block;
+
+    // Make API call
+    const res = await updateCreatorProfile(creatorId, { is_block: updatedStatus });
 
     if (res.success) {
+      // Update state locally so UI refreshes immediately
       setCreators(prev =>
-        prev.map(l => (l.id === editingCreators.id ? editingCreators : l))
+        prev.map(c =>
+          c.id === creatorId ? { ...c, is_block: updatedStatus } : c
+        )
       );
-      toast.success("Creator updated successfully");
-      setIsEditOpen(false);
+
+      toast.success(
+        updatedStatus ? "Creator has been blocked" : "Creator has been unblocked"
+      );
     } else {
-      console.error("Update error:", res.error);
-      toast.error("Failed to update creator");
+      toast.error("Failed to update block status");
+      console.error("API error:", res.errors);
     }
-  };
+  } catch (err) {
+    console.error("Error in handleBlock:", err);
+    toast.error("Something went wrong while updating block status");
+  }
+};
+
+
+
+
     if (!loading) return <Loader text="Loading ..." />; // or redirect to login
   
 
@@ -139,7 +139,12 @@ const handleDelete = async (id) => {
                   <TableCell>{creator.fullname}</TableCell>
                   <TableCell>{creator.email}</TableCell>
                   <TableCell>{creator.approve}</TableCell>
+                  <TableCell>{creator.is_block? "True": "False"}</TableCell>
                   <TableCell className="text-right space-x-2">
+                    <Button variant="outline" size="sm"onClick={() => handleBlock(creator.id)}>
+                      {creator.is_block ? "Unblock" : "Block"}
+                    </Button>
+
                      <Button variant="outline" size="sm" onClick={() => handleViewMore(creator.id)}>
                       View more
                     </Button>
@@ -164,41 +169,7 @@ const handleDelete = async (id) => {
 
         <Button variant="custom" onClick={() => navigate('/createcreator')}>Create</Button>
 
-        {/* Edit Modal */}
-        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <form onSubmit={handleUpdateCreators}>
-              <DialogHeader>
-                <DialogTitle>Edit Creator</DialogTitle>
-                <DialogDescription>
-                  Make changes to the creator's info. Click save when you're done.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input id="username" name="username" value={editingCreators?.username || ''} onChange={handleEditChange} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" value={editingCreators?.email || ''} onChange={handleEditChange} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="fullname">Full Name</Label>
-                  <Input id="fullname" name="fullname" value={editingCreators?.fullname || ''} onChange={handleEditChange} />
-                </div>
-              </div>
-
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit">Save changes</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+     
       </div>
     </AdminLayout>
   );

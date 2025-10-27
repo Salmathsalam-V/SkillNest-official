@@ -17,9 +17,10 @@ from creator.models import Community,ReportPost,Post
 from creator.serializers import CommunitySerializer ,ReportPostSerializer,PostSerializer
 from django.shortcuts import get_object_or_404
 from .serializers import DashboardStatsSerializer
-
+from django.utils import timezone
 from django.db.models import Count
 from django.db.models.functions import TruncDate
+from accounts.tasks import send_admin_reply_email
 
 import logging
 logger = logging.getLogger(__name__)
@@ -195,7 +196,7 @@ class DashboardStatsView(APIView):
         return Response(data)
 
 class LatestPostsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request):
         posts = (
@@ -205,3 +206,24 @@ class LatestPostsView(APIView):
         )
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data)
+
+class ContactReplyView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        reply = request.data.get("reply")
+        try:
+            contact = ContactUs.objects.get(pk=pk)
+        except ContactUs.DoesNotExist:
+            return Response({"error": "Message not found."}, status=404)
+
+        # Save reply
+        contact.reply = reply
+        contact.replied_at = timezone.now()
+        contact.is_replied = True
+        contact.save()
+
+        # Send reply email via Celery
+        send_admin_reply_email.delay(contact.user.email, contact.user.fullname, reply)
+
+        return Response({"detail": "Reply sent successfully."})
