@@ -152,7 +152,7 @@ class DashboardStatsView(APIView):
 
     def get(self, request):
         # 1️⃣ Basic counts
-        total_users = User.objects.count()
+        total_users = User.objects.filter(is_superuser=False, is_staff=False).count()
         creators = User.objects.filter(user_type='creator').count()
         learners = User.objects.filter(user_type='learner').count()
         communities = Community.objects.count()
