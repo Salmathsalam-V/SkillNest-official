@@ -318,3 +318,7 @@ CLOUDINARY_STORAGE = {
 }
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+
+RAZORPAY_KEY_ID=os.getenv('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET=os.getenv('RAZORPAY_KEY_SECRET')

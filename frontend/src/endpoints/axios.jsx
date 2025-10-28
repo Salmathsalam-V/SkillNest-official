@@ -564,10 +564,36 @@ export const createCreator = async ({ email, category, description, background }
     });
     return { success: true, data: res.data };
   } catch (err) {
+    if (err.response && err.response.data) {
+      // Django REST Framework sends errors as { field_name: [error message] }
+      const errorData = err.response.data;
+
+      // Try to extract a meaningful message
+      let message = "Something went wrong";
+      if (typeof errorData === "string") {
+        message = errorData;
+      } else if (Array.isArray(errorData.non_field_errors)) {
+        message = errorData.non_field_errors.join(", ");
+      } else if (errorData.email) {
+        message = errorData.email.join(", ");
+      } else if (errorData.detail) {
+        message = errorData.detail;
+      } else if (errorData.category) {
+        message = errorData.category.join(", ");
+      } else if (errorData.non_field_errors) {
+        message = errorData.non_field_errors.join(", ");
+      } else if (errorData[0]) {
+        message = errorData[0];
+      }
+
+      return { success: false, error: message };
+    }
+
     console.error("Failed to create creator:", err);
-    return { success: false, error: err };
+    return { success: false, error: "Network or server error" };
   }
 };
+
 
 // Send a message to admin
 export const sendContactMessage = async ({ content, userId }) => {

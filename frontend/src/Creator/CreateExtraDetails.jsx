@@ -7,65 +7,59 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { imageUpload } from '@/endpoints/axios';
-import { createCreator } from '@/endpoints/axios';
+import { imageUpload, createCreator } from '@/endpoints/axios';
+import PaymentButton from './PaymentButton';
 
 const CreateExtraDetails = () => {
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [background, setBackground] = useState('')
-  const [publicProfile1, setProfileUrl1] = useState('');
-  const [publicProfile2, setProfileUrl2] = useState('');
-  
+  const [background, setBackground] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
   const categories = ['Crochet', 'Baking', 'Crafting', 'Pottery', 'Painting', 'Other'];
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  const selectedCategory = category === "Other" ? customCategory : category;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const selectedCategory = category === 'Other' ? customCategory : category;
 
-  try {
-    const res = await createCreator({
-      email,
-      category: selectedCategory,
-      description,
-      background,
-      // publicProfile1,
-      // publicProfile2
-    });
+    try {
+      const res = await createCreator({
+        email,
+        category: selectedCategory,
+        description,
+        background,
+      });
 
-    if (res.success) {
-      toast.success("Creator created successfully");
-      navigate("/login");
-    } else {
-      toast.error("Failed to create creator");
+      if (res.success) {
+        toast.success('Creator created successfully');
+        setIsSubmitted(true); // ✅ show payment after success
+      } else {
+        toast.error(res.error || 'Failed to create creator');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Something went wrong');
     }
-  } catch (err) {
-    console.error("Error creating creator:", err);
-    toast.error("Something went wrong");
-  }
-};
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'skillnest_profile'); 
+    formData.append('upload_preset', 'skillnest_profile');
 
     try {
-      const res = await imageUpload(
-            formData,
-          );
-      setBackground(res.data.url);  
+      const res = await imageUpload(formData);
+      setBackground(res.data.url);
     } catch (err) {
-      console.error("Image upload failed:", err);
-      toast.error("Image upload failed");
+      console.error('Image upload failed:', err);
+      toast.error('Image upload failed');
     }
   };
-
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">
@@ -73,6 +67,7 @@ const handleSubmit = async (e) => {
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">Become a Creator</CardTitle>
         </CardHeader>
+
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
             <div>
@@ -85,7 +80,9 @@ const handleSubmit = async (e) => {
               >
                 <option value="">Select a category</option>
                 {categories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
                 ))}
               </select>
               {category === 'Other' && (
@@ -98,26 +95,6 @@ const handleSubmit = async (e) => {
                 />
               )}
             </div>
-            {/* <div>
-              <Label>Public Profile URL</Label>
-              <Input
-                type="url"
-                placeholder="Enter your public profile link..."
-                value={publicProfile1}
-                onChange={(e) => setProfileUrl1(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label>Public Profile URL</Label>
-              <Input
-                type="url"
-                placeholder="Enter your public profile link..."
-                value={publicProfile2}
-                onChange={(e) => setProfileUrl2(e.target.value)}
-                required
-              />
-            </div> */}
 
             <div>
               <Label>Description</Label>
@@ -128,6 +105,7 @@ const handleSubmit = async (e) => {
                 required
               />
             </div>
+
             <div>
               <Label>Background Image</Label>
               <Input
@@ -137,13 +115,25 @@ const handleSubmit = async (e) => {
                 required
               />
             </div>
-          {background && (
-            <img src={background} alt="Background preview" className="w-24 h-24 rounded-full mt-2" />
-          )}
 
-            
+            {background && (
+              <img
+                src={background}
+                alt="Background preview"
+                className="w-24 h-24 rounded-full mt-2"
+              />
+            )}
 
-            <Button type="submit" className="w-full">Submit</Button>
+            <Button type="submit" className="w-full">
+              Submit
+            </Button>
+
+            {/* ✅ Only show payment button after successful submission */}
+            {isSubmitted && (
+              <div className="mt-4">
+                <PaymentButton amount={299} email={email} />
+              </div>
+            )}
           </CardContent>
         </form>
       </Card>

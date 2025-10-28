@@ -34,11 +34,14 @@ from django.utils.decorators import method_decorator
 import cloudinary.uploader
 from rest_framework.decorators import parser_classes,authentication_classes
 from rest_framework.parsers import MultiPartParser, FormParser
+import razorpay
+from django.conf import settings
+
 import logging
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
-from .models import User
+from .models import User,Payment
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -394,3 +397,103 @@ def upload_image(request):
     except Exception as e:
         print("Cloudinary upload failed:", e)
         return Response({"error": "Upload failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+class CreateOrderView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            amount = int(request.data.get("amount", 0)) * 100  # Convert ₹ → paise
+            if amount <= 0:
+                return Response({"error": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
+
+            currency = "INR"
+
+            # Initialize Razorpay client
+            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+            # Create Razorpay order
+            payment = client.order.create({
+                'amount': amount,
+                'currency': currency,
+                'payment_capture': '1'
+            })
+
+            # Return order info to frontend
+            return Response({
+                'order_id': payment['id'],
+                'amount': amount,
+                'currency': currency,
+                'key': settings.RAZORPAY_KEY_ID
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response(
+                {"error": f"Error creating order: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class VerifyPaymentView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        data = request.data
+
+        razorpay_order_id = data.get('razorpay_order_id')
+        razorpay_payment_id = data.get('razorpay_payment_id')
+        razorpay_signature = data.get('razorpay_signature')
+
+        if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+            return Response(
+                {"error": "Missing payment details"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+        try:
+            # ✅ Verify payment signature
+            client.utility.verify_payment_signature({
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': razorpay_payment_id,
+                'razorpay_signature': razorpay_signature
+            })
+            email = data.get("email")
+            amount= data.get("amount")
+            user = None
+
+            if email:
+                try:
+                    user = User.objects.get(email=email)
+                except User.DoesNotExist:
+                    return Response({"error": "User not found"}, status=400)
+
+            logger.debug("after verification :{user}")
+            #  Save to database
+            Payment.objects.create(
+                user=user,
+                order_id=razorpay_order_id,
+                payment_id=razorpay_payment_id,
+                status="success",
+                amount=amount,
+            )
+
+            return Response(
+                {"status": "Payment verified successfully"},
+                status=status.HTTP_200_OK
+            )
+
+        except razorpay.errors.SignatureVerificationError:
+            logger.debug(razorpay.errors.SignatureVerificationError)
+            return Response(
+                {"error": "Payment verification failed (invalid signature)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            logger.debug(e)
+            return Response(
+                {"error": f"Unexpected error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
