@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.generics import ListAPIView
 from accounts.serializers import UserSerializer,CombinedCreatorUserSerializer
-from accounts.models import User
+from accounts.models import User,Payment
 from rest_framework.permissions import AllowAny, IsAuthenticated,IsAdminUser
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
@@ -10,7 +10,7 @@ from accounts.authentication import JWTCookieAuthentication
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
 from rest_framework import status
-from .serializers import ContactUsSerializer
+from .serializers import ContactUsSerializer,PaymentSerializer
 from .models import ContactUs
 from rest_framework import generics
 from creator.models import Community,ReportPost,Post
@@ -227,3 +227,11 @@ class ContactReplyView(APIView):
         send_admin_reply_email.delay(contact.user.email, contact.user.fullname, reply)
 
         return Response({"detail": "Reply sent successfully."})
+
+class AdminPaymentListView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        payments = Payment.objects.select_related('user').order_by('-created_at')
+        serializer = PaymentSerializer(payments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
