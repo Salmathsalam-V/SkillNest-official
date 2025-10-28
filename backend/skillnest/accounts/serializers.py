@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from . models import Creator
+from . models import Creator,Payment
 import re
 
 
@@ -150,18 +150,24 @@ class CombinedCreatorUserSerializer(serializers.ModelSerializer):
 
     # Extra read-only fields
     follower_count = serializers.SerializerMethodField()
+    has_paid = serializers.SerializerMethodField() 
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'fullname', 'profile', 'user_type', 'status',
-            'category', 'description', 'background', 'approve', 'follower_count','is_block'
+            'category', 'description', 'background', 'approve', 'follower_count','is_block', 'has_paid'  
         ]
 
     def get_follower_count(self, obj):
         if hasattr(obj, "creator_profile"):
             return obj.creator_profile.followers.count()
         return 0
+    
+    def get_has_paid(self, obj):
+        """Check if the user has a successful payment."""
+        return Payment.objects.filter(user=obj, status='success').exists()
+
 
     def validate_username(self, value):
         # ✅ Only letters, digits, underscores, and dots
