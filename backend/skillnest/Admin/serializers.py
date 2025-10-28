@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import ContactUs
-
+from accounts.models import Payment
 class ContactUsSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
@@ -50,3 +50,10 @@ class DashboardStatsSerializer(serializers.Serializer):
     communities = serializers.IntegerField()
     user_growth = serializers.ListField()
     community_growth = serializers.ListField()
+
+class PaymentSerializer(serializers.ModelSerializer):
+    user_email = serializers.CharField(source="user.email", read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = ['id', 'user_email', 'order_id', 'payment_id', 'amount', 'status', 'created_at']

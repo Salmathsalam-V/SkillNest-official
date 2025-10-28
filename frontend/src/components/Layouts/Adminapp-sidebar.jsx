@@ -81,6 +81,12 @@ export const AppSidebar = () => {
           Community
         </Button>
       </Link>
+      <Link to="/admin-payments">
+        <Button variant="outline" className="w-full justify-start gap-2">
+          <MessageSquareText className="h-5 w-5" />
+          Payments
+        </Button>
+      </Link>
       <Button variant="outline" className="w-full justify-start gap-2" onClick={handleLogout}>
           <LogOut className="h-5 w-5" />
           Logout

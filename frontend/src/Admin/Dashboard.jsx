@@ -165,7 +165,21 @@ useEffect(() => {
           </ResponsiveContainer>
         </CardContent>
       </Card>
-
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Growth</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={stats.payment_growth}>
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip formatter={(value) => [`₹${value}`, "Revenue"]} />
+              <Line type="monotone" dataKey="amount" stroke="#f59e0b" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
       {/* Latest Posts */}
       <div className="space-y-4">
         <CardHeader><CardTitle>Latest Posts</CardTitle></CardHeader>

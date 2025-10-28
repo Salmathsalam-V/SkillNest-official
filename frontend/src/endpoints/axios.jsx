@@ -751,3 +751,17 @@ export const sendContactReply = async (contactId, reply) => {
     return { success: false, error: error.response?.data || error.message };
   }
 };
+
+export const listPayments = async () => {
+  try {
+    const res = await apiClient.get("/admin/payments/");
+    console.log("Payments list response:", res.data);
+    return { success: true, data: res.data || [] };
+  } catch (err) {
+    console.error("Error fetching payments:", err);
+    return {
+      success: false,
+      error: err.response?.data?.error || "Failed to fetch payments",
+    };
+  }
+};
