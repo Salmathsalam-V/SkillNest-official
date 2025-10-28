@@ -174,8 +174,15 @@ class DashboardStatsView(APIView):
             .annotate(count=Count('id'))
             .order_by('date')
         )
+        payment_growth = (
+            Payment.objects
+            .annotate(date=TruncDate('created_at'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
         logger.info(f"User Growth Data: {user_growth}")
-        logger.info(f"Community Growth Data: {community_growth}")
+        logger.info(f"Community Growth Data: {community_growth} , payment ;{payment_growth}")
         # Format data for frontend
         data = {
             "total_users": total_users,
@@ -189,6 +196,10 @@ class DashboardStatsView(APIView):
             "community_growth": [
                 {"date": item["date"].strftime("%Y-%m-%d"), "count": item["count"]}
                 for item in community_growth
+            ],
+            "payment_growth":[
+                {"date": item["date"].strftime("%Y-%m-%d"), "count": item["count"]}
+                for item in payment_growth
             ],
         }
 
