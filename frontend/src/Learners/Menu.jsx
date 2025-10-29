@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Heart, MessageCircle, MoreHorizontal } from "lucide-react";
 import {
   toggleLike,
@@ -35,6 +36,7 @@ export default function PostsPage() {
   const [reportReason, setReportReason] = useState("");
   const [currentPostId, setCurrentPostId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
   const user = useSelector((state) => state.user.user);
   const userType = user?.user_type;
   const LIMIT = 6;
@@ -42,9 +44,14 @@ export default function PostsPage() {
   const fetchingRef = useRef(false);
   const nextRef = useRef(null);
 
-  const filteredPosts = posts.filter((post) =>
-    post.caption?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+const filteredPosts = posts
+  .filter((post) => post.caption?.toLowerCase().includes(searchTerm.toLowerCase()))
+  .filter((post) => {
+    if (filterType === "course") return post.is_course === true;
+    if (filterType === "normal") return post.is_course === false;
+    return true;
+  });
+
 
   useEffect(() => {
     fetchPosts();
@@ -209,16 +216,28 @@ export default function PostsPage() {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto mt-10 px-4">
-        {/* 🔍 Search bar */}
-        <div className="flex justify-center mb-6">
-          <input
-            type="text"
-            placeholder="Search posts by caption..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        {/* 🔍 Search + Filter */}
+<div className="flex flex-col sm:flex-row justify-center sm:justify-between items-center mb-6 gap-3">
+  <input
+    type="text"
+    placeholder="Search posts by caption..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+
+  <Select value={filterType} onValueChange={setFilterType}>
+    <SelectTrigger className="w-40">
+      <SelectValue placeholder="Filter by type" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="all">All Posts</SelectItem>
+      <SelectItem value="course">Courses</SelectItem>
+      <SelectItem value="normal">Normal Posts</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+
 
         {/* Posts grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

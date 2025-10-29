@@ -35,6 +35,7 @@ import cloudinary.uploader
 from rest_framework.decorators import parser_classes,authentication_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 import razorpay
+from django.db import transaction
 from django.conf import settings
 
 import logging
@@ -459,40 +460,50 @@ class VerifyPaymentView(APIView):
                 'razorpay_payment_id': razorpay_payment_id,
                 'razorpay_signature': razorpay_signature
             })
+
             email = data.get("email")
-            amount= data.get("amount")
+            amount = data.get("amount")
             user = None
 
             if email:
                 try:
                     user = User.objects.get(email=email)
                 except User.DoesNotExist:
-                    return Response({"error": "User not found"}, status=400)
+                    return Response({"error": "User not found"}, status=status.HTTP_400_BAD_REQUEST)
 
-            logger.debug("after verification :{user}")
-            #  Save to database
-            Payment.objects.create(
-                user=user,
-                order_id=razorpay_order_id,
-                payment_id=razorpay_payment_id,
-                status="success",
-                amount=amount,
-            )
+            # ✅ Save Payment record safely
+            with transaction.atomic():
+                Payment.objects.create(
+                    user=user,
+                    order_id=razorpay_order_id,
+                    payment_id=razorpay_payment_id,
+                    status="success",
+                    amount=amount,
+                )
 
-            return Response(
-                {"status": "Payment verified successfully"},
-                status=status.HTTP_200_OK
-            )
+                # ✅ Upgrade user if learner → creator
+                if user and user.user_type == "learner":
+                    user.user_type = "creator"
+                    user.save()
+                    logger.info(user)
+
+                    # Create Creator profile only if not exists
+                    Creator.objects.get_or_create(user=user)
+                    message = "Payment verified successfully! You’ve been upgraded to Creator. Please wait for admin approval before logging in."
+                else:
+                    message = "Payment verified successfully."
+                logger.info(message)
+            return Response({"status": message}, status=status.HTTP_200_OK)
 
         except razorpay.errors.SignatureVerificationError:
-            logger.debug(razorpay.errors.SignatureVerificationError)
+            logger.exception("Signature verification failed")
             return Response(
                 {"error": "Payment verification failed (invalid signature)"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         except Exception as e:
-            logger.debug(e)
+            logger.exception("Unexpected error during payment verification")
             return Response(
                 {"error": f"Unexpected error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

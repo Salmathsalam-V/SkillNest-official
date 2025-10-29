@@ -62,13 +62,12 @@ class CreatorPostsView(ListCreateAPIView):
         serializer.save(user_id=creator_id)  
     
 class CreatorCoursesView(ListAPIView):
-    serializer_class = CourseSerializer
+    serializer_class = PostSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
         creator_id = self.kwargs['creator_id']
-        return Course.objects.filter(user_id=creator_id).select_related("post").order_by("-post__created_at")
-
+        return Post.objects.filter(user_id=creator_id, is_course=True).order_by("-created_at")
 
 # List all comments for a post / Create new comment
 class CommentListCreateView(ListCreateAPIView):
@@ -440,3 +439,10 @@ class CreatorReviewListCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class CreatorFollowersView(APIView):
+    permission_classes = [permissions.IsAuthenticated]   
+    def get(self, request, pk):
+        creator = get_object_or_404(Creator, user=pk)
+        followers = creator.followers.all().values('id', 'username', 'email', 'profile')
+        return Response({"followers": followers})
+
