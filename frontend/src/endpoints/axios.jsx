@@ -765,3 +765,18 @@ export const listPayments = async () => {
     };
   }
 };
+
+export const fetchFollowers = async (creatorId) => {
+  try {
+    console.log("Fetching followers...");
+    const res = await apiClient.get(
+      `creator/creators/${creatorId}/followers/`,
+      { withCredentials: true }
+    );
+    console.log("Followers:", res);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to fetch followers:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};

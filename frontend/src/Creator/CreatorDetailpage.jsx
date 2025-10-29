@@ -533,9 +533,9 @@ useEffect(() => {
                   className="shadow-lg rounded-2xl overflow-hidden"
                 >
                   {/* Course Thumbnail */}
-                  {course.post.image && (
+                  {course.image && (
                     <img
-                      src={course.post.image}
+                      src={course.image}
                       alt="Course"
                       className="w-full h-48 object-cover"
                     />
@@ -543,11 +543,11 @@ useEffect(() => {
 
                   <div className="p-3 space-y-2">
                     {/* Course Title & Caption */}
-                    <h3 className="text-lg font-semibold">{course.post.caption}</h3>
+                    <h3 className="text-lg font-semibold">{course.caption}</h3>
                     
 
                     {/* Rating stars */}
-                    <div className="flex gap-1 mt-2">
+                    {/* <div className="flex gap-1 mt-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <span
                           key={star}
@@ -558,7 +558,7 @@ useEffect(() => {
                           ★
                         </span>
                       ))}
-                    </div>
+                    </div> */}
 
                     {/* Like & Comment Buttons */}
                     <div className="flex items-center justify-between w-full mt-2">
@@ -589,6 +589,7 @@ useEffect(() => {
                 </Card>
               ))}
             </div>
+            
           ) : (
           <p className="text-muted-foreground text-center mt-6">
               No courses yet.

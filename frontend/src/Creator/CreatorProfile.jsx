@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Heart, MessageCircle } from "lucide-react";
-import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost,  createCreatorPost,toggleCommentLike } from '../endpoints/axios';
-import { Loader
+import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost,  createCreatorPost,toggleCommentLike,fetchFollowers } from '../endpoints/axios';
+import { Loader} from '@/components/Layouts/Loader';
+import { Switch } from "@/components/ui/switch";
 
- } from '@/components/Layouts/Loader';
+
 export default function CreatorProfile() {
   const { id } = useParams();
   const [creator, setCreator] = useState(null);
@@ -30,17 +31,20 @@ export default function CreatorProfile() {
   const [openEditPost, setOpenEditPost] = useState(null);
   const [openCommentsPost, setOpenCommentsPost] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newPost, setNewPost] = useState({ caption: "", image: "" });
+  const [newPost, setNewPost] = useState({ caption: "", image: "", is_course: false });
   const [image, setImage] = useState('');
   const [nextPage, setNextPage] = useState(0); // offset tracker
   const [hasMore, setHasMore] = useState(true);
+  const [isFollowersOpen, setIsFollowersOpen] = useState(false);
+  const [followers, setFollowers] = useState([]);
+
   const pageSize = 6;
 
   // merging create and edit post modal
   const [postModal, setPostModal] = useState({
       open: false,
       mode: 'create', // 'create' | 'edit'
-      data: { id: null, caption: '', image: '' },
+      data: { id: null, caption: '', image: '' ,is_course: false},
     });
     const openCreateModal = () =>
   setPostModal({ open: true, mode: 'create', data: { id: null, caption: '', image: '' } });
@@ -85,10 +89,14 @@ const handlePostImageUpload = async (e) => {
 
 const submitPost = async () => {
   const { mode, data } = postModal;
-  const payload = { caption: data.caption, image: data.image };
-
+  const payload = { caption: data.caption, image: data.image, is_course: data.is_course };
+  console.log(payload)
   if (!payload.caption?.trim()) {
     toast.error("Caption is required");
+    return;
+  }
+  if (!payload.image){
+    toast,error("Image required");
     return;
   }
 
@@ -115,12 +123,25 @@ const submitPost = async () => {
 
 //end for merging create and edit post modal
 
+const handleViewFollowers = async () => {
+  try {
+    const res = await fetchFollowers(id);
+    console.log("followers:",res);
+    setFollowers(res.data.followers || []);
+    setIsFollowersOpen(true);
+  } catch (err) {
+    console.error("Error fetching followers:", err);
+    toast.error("Failed to load followers");
+  }
+};
+
   useEffect(() => {
     const fetchCreator = async () => {
       try {
         const response = await axios.get(`http://localhost:8000/api/admin/creators-view/${id}/`);
         if (response.data.success) {
           setCreator(response.data.creator);
+          
           setEditData({
             username: response.data.creator.username,
             category: response.data.creator.category,
@@ -275,7 +296,8 @@ const handleCreatePost = async () => {
       `http://localhost:8000/api/creator/creators/${id}/posts/`,
       {
         ...newPost,
-        image,  
+        image, 
+         is_course: newPost.is_course 
       },
       { withCredentials: true }
     );
@@ -425,6 +447,17 @@ const handleCommentLikeToggle = async (postId, commentId) => {
 
             <p className="text-gray-600 text-sm mt-3">Category: {creator.category}</p>
             <p className="text-gray-700 text-sm mt-1">{creator.description}</p>
+            <p className="text-gray-600 text-sm mb-1">
+              Followers: {creator.follower_count || 0}{" "}
+              <Button
+                variant="link"
+                className="text-blue-600 text-sm p-0 ml-1"
+                onClick={handleViewFollowers}
+              >
+                View
+              </Button>
+            </p>
+
 
             {/* Edit Button */}
             <div className="mt-4 flex justify-center sm:justify-start">
@@ -655,7 +688,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
                         )}
                       </div>
                               
-                      {/* Course Rating (if applicable) */}
+                      {/* Course Rating (if applicable)
                       {post.is_course && (
                         <div className="flex gap-1 mt-2">
                           {[1, 2, 3, 4, 5].map((star) => (
@@ -667,7 +700,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
                             </span>
                           ))}
                         </div>
-                      )}
+                      )} */}
                     </div>
                
                   </Card>
@@ -701,7 +734,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
 {/* merging create and edit post modal */}
 
 <Dialog open={postModal.open} onOpenChange={(v) => (v ? null : closePostModal())}>
-  <DialogContent>
+  <DialogContent className="max-h-[80vh] overflow-y-auto">
     <DialogHeader>
       <DialogTitle>
         {postModal.mode === 'create' ? 'Create New Post' : 'Edit Post'}
@@ -720,6 +753,20 @@ const handleCommentLikeToggle = async (postId, commentId) => {
           }))
         }
       />
+      {/* Is Course Toggle */}
+        <div className="flex items-center justify-between mt-2">
+          <Label htmlFor="is_course">Is this a course?</Label>
+          <Switch
+            id="is_course"
+            checked={postModal.data.is_course}
+            onCheckedChange={(checked) =>
+              setPostModal((prev) => ({
+                ...prev,
+                data: { ...prev.data, is_course: checked },
+              }))
+            }
+          />
+        </div>
 
       {/* Image upload */}
       <div className="space-y-2">
@@ -776,6 +823,18 @@ const handleCommentLikeToggle = async (postId, commentId) => {
           setNewPost((prev) => ({ ...prev, caption: e.target.value }))
         }
       />
+      {/* Is Course Toggle */}
+<div className="flex items-center justify-between">
+  <Label htmlFor="is_course_create">Is this a course?</Label>
+  <Switch
+    id="is_course_create"
+    checked={newPost.is_course}
+    onCheckedChange={(checked) =>
+      setNewPost((prev) => ({ ...prev, is_course: checked }))
+    }
+  />
+</div>
+
 
       {/* Image URL (you’ll replace with upload logic) */}
             <div>
@@ -866,9 +925,9 @@ const handleCommentLikeToggle = async (postId, commentId) => {
                       className="shadow-lg rounded-2xl overflow-hidden"
                     >
                       {/* Course Thumbnail */}
-                      {course.post.image && (
+                      {course.image && (
                         <img
-                          src={course.post.image}
+                          src={course.image}
                           alt="Course"
                           className="w-full h-48 object-cover"
                         />
@@ -876,10 +935,10 @@ const handleCommentLikeToggle = async (postId, commentId) => {
     
                       <div className="p-3 space-y-2">
                         {/* Course Title & Caption */}
-                        <h3 className="text-lg font-semibold">{course.post.caption}</h3>
+                        <h3 className="text-lg font-semibold">{course.caption}</h3>
                         
     
-                        {/* Rating stars */}
+                        {/* Rating stars
                         <div className="flex gap-1 mt-2">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <span
@@ -891,7 +950,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
                               ★
                             </span>
                           ))}
-                        </div>
+                        </div> */}
     
                         {/* Like & Comment Buttons */}
                         <div className="flex items-center justify-between w-full mt-2">
@@ -934,6 +993,40 @@ const handleCommentLikeToggle = async (postId, commentId) => {
           </TabsContent>
         </Tabs>
       </div>
+      <Dialog open={isFollowersOpen} onOpenChange={setIsFollowersOpen}>
+  <DialogContent className="max-h-[80vh] overflow-y-auto max-w-md">
+    <DialogHeader>
+      <DialogTitle>Followers</DialogTitle>
+      <DialogDescription>People following this creator</DialogDescription>
+    </DialogHeader>
+
+    {followers.length > 0 ? (
+      <div className="space-y-3">
+        {followers.map((follower) => (
+          <div
+            key={follower.id}
+            className="p-3 border rounded-lg flex items-center justify-between hover:bg-gray-50 transition"
+          >
+            <div>
+              <p className="font-semibold text-sm">{follower.username}</p>
+              <p className="text-gray-500 text-xs">{follower.email}</p>
+            </div>
+            {follower.profile && (
+              <img
+                src={follower.profile}
+                alt={follower.username}
+                className="w-10 h-10 rounded-full object-cover border"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p className="text-center text-gray-500 py-4">No followers yet.</p>
+    )}
+  </DialogContent>
+</Dialog>
+
     </CreatorLayout>
   );
 }
