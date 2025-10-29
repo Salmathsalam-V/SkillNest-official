@@ -445,3 +445,4 @@ class CreatorFollowersView(APIView):
         creator = get_object_or_404(Creator, user=pk)
         followers = creator.followers.all().values('id', 'username', 'email', 'profile')
         return Response({"followers": followers})
+
