@@ -322,3 +322,7 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 RAZORPAY_KEY_ID=os.getenv('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET=os.getenv('RAZORPAY_KEY_SECRET')
+
+# For production/self-hosting with token auth:
+JITSI_USE_JWT = False  # True when self-hosted token auth enabled
+JITSI_DOMAIN = "meet.jit.si"  # change to meet.domain.com when self-hosted

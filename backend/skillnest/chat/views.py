@@ -11,8 +11,20 @@ from .serializers import (
     CommunityChatRoomSerializer,
     CommunityMessageSerializer,
     UserSerializer,
+    CreateRoomSerializer,
 )
 from rest_framework.pagination import CursorPagination
+import uuid
+import jwt
+from datetime import datetime, timedelta
+from django.conf import settings
+from django.utils import timezone
+from . models import Meeting
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -146,3 +158,88 @@ class CommunityChatMembersView(generics.ListAPIView):
         return User.objects.filter(
             Q(id=community.creator.id) | Q(id__in=community.members.all())
         ).distinct()
+
+class CreateMeetingRoomView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = CreateRoomSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        community_id = serializer.validated_data["community_id"]
+
+        # Optional: check if user belongs to the community
+        # if not CommunityMembership.objects.filter(user=request.user, community_id=community_id).exists():
+        #     return Response({"error": "You are not part of this community."}, status=403)
+
+        # Generate a unique room name
+        room_name = f"community_{community_id}_{uuid.uuid4().hex[:8]}"
+
+        # For dev, use public Jitsi server
+        domain = getattr(settings, "JITSI_DOMAIN", "meet.jit.si")
+
+        # ✅ Skip JWT during dev
+        jwt_token = None
+
+        # Save meeting info in DB
+        meeting = Meeting.objects.create(
+            host=request.user,
+            community_id=community_id,
+            room_name=room_name,
+            domain=domain,
+            created_at=timezone.now()
+        )
+
+        # Add host as participant
+        meeting.participants.add(request.user)
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"community_{community_id}",
+            {
+                "type": "meeting_started",
+                "meeting": {
+                    "roomName": meeting.room_name,
+                    "domain": meeting.domain,
+                    "meeting_id": str(meeting.id),
+                    "host": request.user.username,
+                },
+            },
+        )
+        return Response({
+            "roomName": room_name,
+            "domain": domain,
+            "jwt": jwt_token,  # stays None in dev
+            "meeting_id": str(meeting.id)
+        }, status=status.HTTP_200_OK)
+
+def generate_jitsi_jwt(user, room_name, ttl_seconds=300):
+    """
+    Generates a JWT token for Jitsi authentication (if self-hosted with JWT enabled).
+    """
+    issuer = getattr(settings, "JITSI_APP_ID", None) or getattr(settings, "JITSI_JWT_ISSUER", "my-jitsi-app")
+    secret = getattr(settings, "JITSI_APP_SECRET", None) or getattr(settings, "JITSI_JWT_SECRET", None)
+    if not secret:
+        return None
+
+    now = datetime.utcnow()
+    payload = {
+        "aud": "jitsi",
+        "iss": issuer,
+        "sub": getattr(settings, "JITSI_DOMAIN", "meet.jit.si"),
+        "room": room_name,
+        "exp": now + timedelta(seconds=ttl_seconds),
+        "nbf": now,
+        "context": {
+            "user": {
+                "name": user.get_full_name() or user.username,
+                "email": user.email
+            }
+        }
+    }
+
+    token = jwt.encode(payload, secret, algorithm="HS256")
+    if isinstance(token, bytes):  # PyJWT v2+ returns str, older returns bytes
+        token = token.decode("utf-8")
+
+    return token

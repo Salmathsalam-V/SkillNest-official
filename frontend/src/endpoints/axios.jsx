@@ -780,3 +780,19 @@ export const fetchFollowers = async (creatorId) => {
     return { success: false, error: err };
   }
 };
+
+export const createMeetingRoom = async (communityId) => {
+  try {
+    console.log("Creating meeting room...");
+    const res = await apiClient.post(
+      `chat/create/meet-room/`,
+      { community_id: communityId }
+    );
+    console.log("Meeting room created:", res);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to create meeting room:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+

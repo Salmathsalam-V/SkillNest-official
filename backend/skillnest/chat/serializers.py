@@ -53,3 +53,6 @@ class CommunityMessageSerializer(serializers.ModelSerializer):
             "id": obj.sender.id,
             "username": obj.sender.username,
     }
+
+class CreateRoomSerializer(serializers.Serializer):
+    community_id = serializers.IntegerField(required=True)

@@ -20,7 +20,6 @@ def get_application():
     websocket_patterns = []
     websocket_patterns += notif_routing.websocket_urlpatterns
     websocket_patterns += chat_routing.websocket_urlpatterns
-
     return ProtocolTypeRouter({
         "http": django_asgi_app,
         "websocket": JWTAuthMiddleware(

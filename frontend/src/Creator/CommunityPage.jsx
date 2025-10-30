@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload   } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload ,createMeetingRoom  } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import { toast } from 'sonner';
 import {
@@ -16,13 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-    DialogDescription,
+  DialogDescription,
 } from "@/components/ui/dialog"; 
 import { X } from "lucide-react";
 import chatService from "../services/chatService";
 import { text } from "@fortawesome/fontawesome-svg-core";
 import { Loader }  from '@/components/Layouts/Loader';
-
+import {useJitsi} from '@/components/hooks/useJitsi'
 export const CommunityPage = () => {
   const { communityId } = useParams();
   const [messages, setMessages] = useState([]);
@@ -42,6 +42,8 @@ export const CommunityPage = () => {
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [meetingInfo, setMeetingInfo] = useState(null);
+  const [isMeetingOpen, setIsMeetingOpen] = useState(false);
   
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -307,8 +309,115 @@ useEffect(() => {
   return () => chatService.disconnect();
 }, [community?.uuid]);
 
+const startVideoCall = async () => {
+  try {
+    const res = await createMeetingRoom(communityId);
+    setMeetingInfo(res.data);
+    setIsMeetingOpen(true);
+  } catch (err) {
+    console.error("Error starting meeting:", err);
+    toast.error("Failed to start meeting");
+  }
+};
 
+useEffect(() => {
+  if (isMeetingOpen && meetingInfo) {
+  const container = document.getElementById("jitsi-container");
+
+  if (!container) {
+    console.warn("Jitsi container not found yet");
+    return;
+  }
+
+  const domain = meetingInfo.domain || "meet.jit.si";
+  const isModerator =
+  community?.created_by?.id === userId ||
+  community?.community?.creator?.id === userId;
+
+const options = {
+  roomName: meetingInfo.roomName,
+  parentNode: container,
+  width: "100%",
+  height: "100%",
+  userInfo: {
+    displayName: user?.username || "Guest",
+    email: user?.email || "",
+  },
+  configOverwrite: {
+    disableSimulcast: false,
+    prejoinPageEnabled: false,
+    startWithAudioMuted: false,
+  },
+  interfaceConfigOverwrite: {
+    SHOW_JITSI_WATERMARK: false,
+    HIDE_INVITE_MORE_HEADER: true,
+  },
+};
+
+  try {
+    // ✅ Initialize Jitsi API
+      const api = new window.JitsiMeetExternalAPI(domain, options);
+
+      // ✅ Grant moderator privileges
+      if (isModerator) {
+        api.addListener("videoConferenceJoined", () => {
+          console.log("Creator joined — granting moderator controls");
+          api.executeCommand("toggleLobby", true); // optional: enable lobby
+        });
+      }
+    api.addListener("readyToClose", () => {
+      api.dispose();
+      setIsMeetingOpen(false);
+    });
+  } catch (err) {
+    console.error("Failed to initialize Jitsi:", err);
+  }
+}
+}, [isMeetingOpen, meetingInfo]);
+
+useEffect(() => {
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(`${protocol}://127.0.0.1:8000/ws/community/${communityId}/meeting/`);
+ws.onopen = () => console.log("✅ connected!");
+ws.onmessage = (e) => console.log("msg:", e.data);
+ws.onclose = (e) => console.log("❌ closed:", e);
+  console.log("WebSocket object from meet service:", ws);
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === "meeting_started") {
+      toast.info(`📢 ${data.meeting.host} started a video call`);
+      setMeetingInfo(data.meeting); // ✅ just store meeting info
+    }
+
+  };
+  // ws.onclose = () => console.log("WebSocket closed for meet");
+  // return () => ws.close();
+}, [communityId]);
+
+if (!window.JitsiMeetExternalAPI) {
+  console.error("Jitsi Meet API script not loaded!");
+  return;
+}
   // if (!community) return <p>Loading community...</p>;
+useEffect(() => {
+  if (!meetingInfo?.roomName) return;
+
+  const container = document.getElementById("jitsi-container");
+  if (!container) {
+    console.warn("Jitsi container not found — delaying init");
+    return;
+  }
+
+  const domain = meetingInfo.domain || "meet.jit.si";
+  const options = {
+    roomName: meetingInfo.roomName,
+    parentNode: container,
+    userInfo: { displayName: user?.username || "Guest" },
+  };
+
+  const api = new JitsiMeetExternalAPI(domain, options);
+  return () => api?.dispose();
+}, [meetingInfo]);
 
   if (!community) return <Loader text="Loading Chats..." />; 
   
@@ -332,6 +441,25 @@ useEffect(() => {
             <h2 className="text-lg font-semibold">{community.name}</h2>
             <p className="text-sm text-gray-500">  by {community.community?.creator?.username || community.created_by?.username}
             </p>
+            {(community?.created_by?.id === userId ||
+              community?.community?.creator?.id === userId) && (
+              <Button onClick={startVideoCall} className="ml-auto">
+                🎥 Start Video Call
+              </Button>
+            )}
+            {/* Show join button for participants when a meeting is active */}
+              {meetingInfo && !isMeetingOpen &&
+                (community?.created_by?.id !== userId &&
+                community?.community?.creator?.id !== userId) && (
+                  <Button
+                    onClick={() => setIsMeetingOpen(true)}
+                    className="ml-auto bg-green-600 hover:bg-green-700"
+                  >
+                    🚀 Join Ongoing Call
+                  </Button>
+              )}
+
+
           </div>
         </CardContent>
       </Card>
@@ -533,6 +661,15 @@ useEffect(() => {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={isMeetingOpen} onOpenChange={setIsMeetingOpen}>
+        <DialogContent className="max-w-5xl w-full h-[80vh] p-0">
+          <DialogHeader>
+            <DialogTitle>Community Video Call</DialogTitle>
+          </DialogHeader>
+          <div id="jitsi-container" className="w-full h-full rounded-lg overflow-hidden"></div>
+        </DialogContent>
+      </Dialog>
+
     </CreatorLayout>   
   );
 };

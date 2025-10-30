@@ -190,3 +190,43 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
             "username": event["username"],
             "status": event["status"],
         }))
+
+class CommunityMeetConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        try:
+            self.community_id = self.scope["url_route"]["kwargs"]["community_id"]
+            self.group_name = f"community_{self.community_id}"
+            logger.info("{self.group_name}")
+            # Join the community group
+            await self.channel_layer.group_add(self.group_name, self.channel_name)
+            logger.info("After channel layer in community consumer")
+            await self.accept()
+            logger.info("after accept")
+        except Exception as e:
+            logger.exception(f"❌ WS connect failed: {e}")
+            await self.close()
+    async def disconnect(self, close_code):
+        logger.info("disconnecting")
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    # Receive message from WebSocket
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message_type = data.get("type")
+        logger.info("receive")
+        if message_type == "start_meeting":
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "meeting_started",
+                    "meeting": data.get("meeting"),
+                }
+            )
+
+    # Send to group
+    async def meeting_started(self, event):
+        logger.info("meeting started")
+        await self.send(text_data=json.dumps({
+            "type": "meeting_started",
+            "meeting": event["meeting"],
+        }))
