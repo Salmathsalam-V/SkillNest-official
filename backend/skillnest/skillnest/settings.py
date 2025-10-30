@@ -96,6 +96,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:5173",
      "http://localhost:3000",
+     "http://127.0.0.1:3000",
 ]
 SESSION_COOKIE_SECURE = False  # ⚠️ True in production
 CSRF_COOKIE_SECURE = False     # ⚠️ True in production
@@ -323,6 +324,6 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 RAZORPAY_KEY_ID=os.getenv('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET=os.getenv('RAZORPAY_KEY_SECRET')
 
-# For production/self-hosting with token auth:
-JITSI_USE_JWT = False  # True when self-hosted token auth enabled
-JITSI_DOMAIN = "meet.jit.si"  # change to meet.domain.com when self-hosted
+
+ZEGO_APP_ID=os.getenv('ZEGO_APP_ID')
+ZEGO_SERVER_SECRET=os.getenv('ZEGO_SERVER_SECRET')

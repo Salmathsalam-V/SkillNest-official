@@ -24,6 +24,13 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from .utils.zego_token import generate_zego_token
+import uuid
+import json
+import hmac
+import hashlib
+import base64
+import time
 
 import logging
 logger = logging.getLogger(__name__)
@@ -159,87 +166,109 @@ class CommunityChatMembersView(generics.ListAPIView):
             Q(id=community.creator.id) | Q(id__in=community.members.all())
         ).distinct()
 
+
+# In your Django views.py or wherever you have CreateMeetingRoomView
+
+
+
+def generate_kit_token(app_id: int, server_secret: str, room_id: str, user_id: str, username: str):
+    """Generate ZegoUIKitPrebuilt Kit Token"""
+    
+    # Token expiration
+    effective_time_in_seconds = 3600
+    expire_time = int(time.time()) + effective_time_in_seconds
+    
+    # Payload for Kit Token
+    payload = {
+        "app_id": app_id,
+        "user_id": user_id,
+        "room_id": room_id,
+        "privilege": {
+            1: 1,  # Login privilege
+            2: 1   # Publish privilege
+        },
+        "expire_time": expire_time
+    }
+    
+    # Convert to JSON string
+    payload_json = json.dumps(payload, separators=(',', ':'))
+    
+    # Base64 encode
+    payload_base64 = base64.b64encode(payload_json.encode()).decode()
+    
+    # Create signature
+    signature = hmac.new(
+        server_secret.encode(),
+        payload_base64.encode(),
+        hashlib.sha256
+    ).digest()
+    
+    signature_base64 = base64.b64encode(signature).decode()
+    
+    # Combine to create final token
+    kit_token = f"04{payload_base64}.{signature_base64}"
+    
+    return kit_token
+
+
 class CreateMeetingRoomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         serializer = CreateRoomSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        serializer.is_valid(raise_exception=True)
         community_id = serializer.validated_data["community_id"]
 
-        # Optional: check if user belongs to the community
-        # if not CommunityMembership.objects.filter(user=request.user, community_id=community_id).exists():
-        #     return Response({"error": "You are not part of this community."}, status=403)
-
-        # Generate a unique room name
         room_name = f"community_{community_id}_{uuid.uuid4().hex[:8]}"
 
-        # For dev, use public Jitsi server
-        domain = getattr(settings, "JITSI_DOMAIN", "meet.jit.si")
+        # ✅ Generate Kit Token instead of regular token
+        kit_token = generate_kit_token(
+            app_id=1551231778,
+            server_secret='b5760c71682586e629b772f8fa71570f',
+            room_id=room_name,
+            user_id=str(request.user.id),
+            username=request.user.username
+        )
 
-        # ✅ Skip JWT during dev
-        jwt_token = None
-
-        # Save meeting info in DB
         meeting = Meeting.objects.create(
             host=request.user,
             community_id=community_id,
             room_name=room_name,
-            domain=domain,
-            created_at=timezone.now()
+            domain="zegocloud",
+            created_at=timezone.now(),
         )
 
-        # Add host as participant
-        meeting.participants.add(request.user)
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"community_{community_id}",
-            {
-                "type": "meeting_started",
-                "meeting": {
-                    "roomName": meeting.room_name,
-                    "domain": meeting.domain,
-                    "meeting_id": str(meeting.id),
-                    "host": request.user.username,
-                },
-            },
-        )
         return Response({
             "roomName": room_name,
-            "domain": domain,
-            "jwt": jwt_token,  # stays None in dev
-            "meeting_id": str(meeting.id)
+            "appID": 1551231778,
+            "token": kit_token,  # ✅ Kit Token
+            "meeting_id": str(meeting.id),
         }, status=status.HTTP_200_OK)
 
-def generate_jitsi_jwt(user, room_name, ttl_seconds=300):
-    """
-    Generates a JWT token for Jitsi authentication (if self-hosted with JWT enabled).
-    """
-    issuer = getattr(settings, "JITSI_APP_ID", None) or getattr(settings, "JITSI_JWT_ISSUER", "my-jitsi-app")
-    secret = getattr(settings, "JITSI_APP_SECRET", None) or getattr(settings, "JITSI_JWT_SECRET", None)
-    if not secret:
-        return None
 
-    now = datetime.utcnow()
-    payload = {
-        "aud": "jitsi",
-        "iss": issuer,
-        "sub": getattr(settings, "JITSI_DOMAIN", "meet.jit.si"),
-        "room": room_name,
-        "exp": now + timedelta(seconds=ttl_seconds),
-        "nbf": now,
-        "context": {
-            "user": {
-                "name": user.get_full_name() or user.username,
-                "email": user.email
-            }
-        }
-    }
+# class CreateMeetingRoomView(APIView):
+#     permission_classes = [permissions.IsAuthenticated]
 
-    token = jwt.encode(payload, secret, algorithm="HS256")
-    if isinstance(token, bytes):  # PyJWT v2+ returns str, older returns bytes
-        token = token.decode("utf-8")
+#     def post(self, request):
+#         serializer = CreateRoomSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         community_id = serializer.validated_data["community_id"]
 
-    return token
+#         room_name = f"community_{community_id}_{uuid.uuid4().hex[:8]}"
+
+#         token = generate_zego_token(str(request.user.id), room_name)
+
+#         meeting = Meeting.objects.create(
+#             host=request.user,
+#             community_id=community_id,
+#             room_name=room_name,
+#             domain="zegocloud",
+#             created_at=timezone.now(),
+#         )
+
+#         return Response({
+#             "roomName": room_name,
+#             "appID": 1551231778,
+#             "token": token,
+#             "meeting_id": str(meeting.id),
+#         }, status=status.HTTP_200_OK)

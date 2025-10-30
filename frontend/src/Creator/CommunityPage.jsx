@@ -22,7 +22,8 @@ import { X } from "lucide-react";
 import chatService from "../services/chatService";
 import { text } from "@fortawesome/fontawesome-svg-core";
 import { Loader }  from '@/components/Layouts/Loader';
-import {useJitsi} from '@/components/hooks/useJitsi'
+import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
+
 export const CommunityPage = () => {
   const { communityId } = useParams();
   const [messages, setMessages] = useState([]);
@@ -44,7 +45,8 @@ export const CommunityPage = () => {
   const [loading, setLoading] = useState(true);
   const [meetingInfo, setMeetingInfo] = useState(null);
   const [isMeetingOpen, setIsMeetingOpen] = useState(false);
-  
+  const meetingSocketRef = useRef(null);
+
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -309,115 +311,161 @@ useEffect(() => {
   return () => chatService.disconnect();
 }, [community?.uuid]);
 
+
+
+// ✅ Separate WebSocket connection logic
+useEffect(() => {
+  if (!communityId) return;
+
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(
+    `${protocol}://127.0.0.1:8000/ws/community/${communityId}/meeting/`
+  );
+    meetingSocketRef.current = ws;
+  ws.onopen = () => {
+    console.log("✅ Meeting WebSocket connected!");
+  };
+
+   ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log("📩 Meeting WebSocket message:", data);
+      if (data.type === "meeting_started") {
+        toast.info(`📢 ${data.meeting.host} started a video call`);
+        setMeetingInfo(data.meeting);
+      }
+    } catch (err) {
+      console.error("Failed to parse meeting message:", err);
+    }
+  };
+
+
+  ws.onerror = (error) => {
+    console.error("Meeting WebSocket error:", error);
+  };
+
+  ws.onclose = (event) => {
+    console.log("Meeting WebSocket closed:", event.code, event.reason);
+  };
+
+  // ✅ Cleanup function
+  return () => {
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      console.log("Closing meeting WebSocket...");
+      ws.close();
+    }
+  };
+}, [communityId]); // ✅ Only re-run when communityId changes
+
+
+// ✅ Remove the duplicate useEffect that was causing issues
+// Delete this:
+// useEffect(() => {
+//   if (isMeetingOpen && meetingInfo) {
+//     startZegoCall(meetingInfo);
+//   }
+// }, [isMeetingOpen, meetingInfo]);
+
+
+// ✅ Update startVideoCall to call startZegoCall directly
 const startVideoCall = async () => {
   try {
     const res = await createMeetingRoom(communityId);
-    setMeetingInfo(res.data);
+    const meetingData = res.data;
+    setMeetingInfo(meetingData);
     setIsMeetingOpen(true);
+    
+    // ✅ Start Zego call immediately after opening dialog
+    setTimeout(() => startZegoCall(), 100); // Small delay to ensure DOM is ready
+    const socket = meetingSocketRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const payload = JSON.stringify({
+        type: "start_meeting",
+        meeting: meetingData,
+      });
+      socket.send(payload);
+      console.log("📤 Sent start_meeting event:", payload);
+    } else {
+      console.warn("⚠️ Meeting WebSocket not open yet.");
+    }
   } catch (err) {
-    console.error("Error starting meeting:", err);
+    console.error("Failed to start meeting:", err);
     toast.error("Failed to start meeting");
   }
 };
 
-useEffect(() => {
-  if (isMeetingOpen && meetingInfo) {
-  const container = document.getElementById("jitsi-container");
 
-  if (!container) {
-    console.warn("Jitsi container not found yet");
-    return;
-  }
-
-  const domain = meetingInfo.domain || "meet.jit.si";
-  const isModerator =
-  community?.created_by?.id === userId ||
-  community?.community?.creator?.id === userId;
-
-const options = {
-  roomName: meetingInfo.roomName,
-  parentNode: container,
-  width: "100%",
-  height: "100%",
-  userInfo: {
-    displayName: user?.username || "Guest",
-    email: user?.email || "",
-  },
-  configOverwrite: {
-    disableSimulcast: false,
-    prejoinPageEnabled: false,
-    startWithAudioMuted: false,
-  },
-  interfaceConfigOverwrite: {
-    SHOW_JITSI_WATERMARK: false,
-    HIDE_INVITE_MORE_HEADER: true,
-  },
-};
-
+// ✅ Update startZegoCall to not create another meeting room
+const startZegoCall = async () => {
   try {
-    // ✅ Initialize Jitsi API
-      const api = new window.JitsiMeetExternalAPI(domain, options);
-
-      // ✅ Grant moderator privileges
-      if (isModerator) {
-        api.addListener("videoConferenceJoined", () => {
-          console.log("Creator joined — granting moderator controls");
-          api.executeCommand("toggleLobby", true); // optional: enable lobby
-        });
-      }
-    api.addListener("readyToClose", () => {
-      api.dispose();
-      setIsMeetingOpen(false);
-    });
-  } catch (err) {
-    console.error("Failed to initialize Jitsi:", err);
-  }
-}
-}, [isMeetingOpen, meetingInfo]);
-
-useEffect(() => {
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(`${protocol}://127.0.0.1:8000/ws/community/${communityId}/meeting/`);
-ws.onopen = () => console.log("✅ connected!");
-ws.onmessage = (e) => console.log("msg:", e.data);
-ws.onclose = (e) => console.log("❌ closed:", e);
-  console.log("WebSocket object from meet service:", ws);
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.type === "meeting_started") {
-      toast.info(`📢 ${data.meeting.host} started a video call`);
-      setMeetingInfo(data.meeting); // ✅ just store meeting info
+    // ✅ Use existing meetingInfo if available, otherwise create new room
+    let roomData;
+    if (meetingInfo) {
+      roomData = meetingInfo;
+      console.log("Using existing meeting info:", roomData);
+    } else {
+      const res = await createMeetingRoom(communityId);
+      roomData = res.data;
+      console.log("Created new meeting room:", roomData);
     }
 
-  };
-  // ws.onclose = () => console.log("WebSocket closed for meet");
-  // return () => ws.close();
-}, [communityId]);
+    const { roomName, appID } = roomData;
 
-if (!window.JitsiMeetExternalAPI) {
-  console.error("Jitsi Meet API script not loaded!");
-  return;
-}
-  // if (!community) return <p>Loading community...</p>;
-useEffect(() => {
-  if (!meetingInfo?.roomName) return;
+    if (!roomName || !appID) {
+      console.error("Missing required fields:", roomData);
+      toast.error("Failed to initialize video call");
+      return;
+    }
 
-  const container = document.getElementById("jitsi-container");
-  if (!container) {
-    console.warn("Jitsi container not found — delaying init");
-    return;
+    console.log("Joining room:", roomName, "with userID:", userId);
+
+    // ✅ Generate Kit Token client-side
+    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+      Number(appID),
+      "b5760c71682586e629b772f8fa71570f",
+      roomName,
+      String(userId),
+      user?.username || "Guest User"
+    );
+
+    console.log("Generated Kit Token:", kitToken.substring(0, 20) + "...");
+
+    // ✅ Check if container exists
+    const container = document.getElementById("zego-container");
+    if (!container) {
+      console.error("Zego container not found!");
+      toast.error("Video container not ready");
+      return;
+    }
+
+    // ✅ Create ZegoUIKitPrebuilt instance
+    const zp = ZegoUIKitPrebuilt.create(kitToken);
+    
+    // ✅ Join the room
+    zp.joinRoom({
+      container: container,
+      scenario: {
+        mode: ZegoUIKitPrebuilt.VideoConference,
+      },
+      showPreJoinView: true,
+      showScreenSharingButton: true,
+      showTurnOffRemoteCameraButton: true,
+      showTurnOffRemoteMicrophoneButton: true,
+      showRemoveUserButton: true,
+      onLeaveRoom: () => {
+        console.log("User left the room");
+        setIsMeetingOpen(false);
+        setMeetingInfo(null);
+      },
+    });
+    
+    toast.success("Joined video call!");
+  } catch (err) {
+    console.error("Error starting Zego call:", err);
+    toast.error("Failed to start video call");
   }
+};
 
-  const domain = meetingInfo.domain || "meet.jit.si";
-  const options = {
-    roomName: meetingInfo.roomName,
-    parentNode: container,
-    userInfo: { displayName: user?.username || "Guest" },
-  };
-
-  const api = new JitsiMeetExternalAPI(domain, options);
-  return () => api?.dispose();
-}, [meetingInfo]);
 
   if (!community) return <Loader text="Loading Chats..." />; 
   
@@ -458,6 +506,7 @@ useEffect(() => {
                     🚀 Join Ongoing Call
                   </Button>
               )}
+
 
 
           </div>
@@ -666,9 +715,10 @@ useEffect(() => {
           <DialogHeader>
             <DialogTitle>Community Video Call</DialogTitle>
           </DialogHeader>
-          <div id="jitsi-container" className="w-full h-full rounded-lg overflow-hidden"></div>
+          <div id="zego-container" className="w-full h-full rounded-lg overflow-hidden"></div>
         </DialogContent>
       </Dialog>
+
 
     </CreatorLayout>   
   );

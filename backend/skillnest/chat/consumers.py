@@ -196,15 +196,18 @@ class CommunityMeetConsumer(AsyncWebsocketConsumer):
         try:
             self.community_id = self.scope["url_route"]["kwargs"]["community_id"]
             self.group_name = f"community_{self.community_id}"
-            logger.info("{self.group_name}")
-            # Join the community group
+            logger.info(f"🟢 CONNECT: {self.group_name}")
+
+            user = self.scope.get("user")
+            logger.info(f"User in connect: {user} | Authenticated: {getattr(user, 'is_authenticated', False)}")
+
             await self.channel_layer.group_add(self.group_name, self.channel_name)
-            logger.info("After channel layer in community consumer")
             await self.accept()
-            logger.info("after accept")
+            logger.info("✅ Accepted WebSocket connection")
         except Exception as e:
             logger.exception(f"❌ WS connect failed: {e}")
             await self.close()
+
     async def disconnect(self, close_code):
         logger.info("disconnecting")
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
