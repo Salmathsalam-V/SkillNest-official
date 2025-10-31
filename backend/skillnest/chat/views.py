@@ -11,8 +11,27 @@ from .serializers import (
     CommunityChatRoomSerializer,
     CommunityMessageSerializer,
     UserSerializer,
+    CreateRoomSerializer,
 )
 from rest_framework.pagination import CursorPagination
+import uuid
+import jwt
+from datetime import datetime, timedelta
+from django.conf import settings
+from django.utils import timezone
+from . models import Meeting
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from .utils.zego_token import generate_zego_token
+import uuid
+import json
+import hmac
+import hashlib
+import base64
+import time
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -146,3 +165,110 @@ class CommunityChatMembersView(generics.ListAPIView):
         return User.objects.filter(
             Q(id=community.creator.id) | Q(id__in=community.members.all())
         ).distinct()
+
+
+# In your Django views.py or wherever you have CreateMeetingRoomView
+
+
+
+def generate_kit_token(app_id: int, server_secret: str, room_id: str, user_id: str, username: str):
+    """Generate ZegoUIKitPrebuilt Kit Token"""
+    
+    # Token expiration
+    effective_time_in_seconds = 3600
+    expire_time = int(time.time()) + effective_time_in_seconds
+    
+    # Payload for Kit Token
+    payload = {
+        "app_id": app_id,
+        "user_id": user_id,
+        "room_id": room_id,
+        "privilege": {
+            1: 1,  # Login privilege
+            2: 1   # Publish privilege
+        },
+        "expire_time": expire_time
+    }
+    
+    # Convert to JSON string
+    payload_json = json.dumps(payload, separators=(',', ':'))
+    
+    # Base64 encode
+    payload_base64 = base64.b64encode(payload_json.encode()).decode()
+    
+    # Create signature
+    signature = hmac.new(
+        server_secret.encode(),
+        payload_base64.encode(),
+        hashlib.sha256
+    ).digest()
+    
+    signature_base64 = base64.b64encode(signature).decode()
+    
+    # Combine to create final token
+    kit_token = f"04{payload_base64}.{signature_base64}"
+    
+    return kit_token
+
+
+class CreateMeetingRoomView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = CreateRoomSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        community_id = serializer.validated_data["community_id"]
+
+        room_name = f"community_{community_id}_{uuid.uuid4().hex[:8]}"
+
+        # ✅ Generate Kit Token instead of regular token
+        kit_token = generate_kit_token(
+            app_id=1551231778,
+            server_secret='b5760c71682586e629b772f8fa71570f',
+            room_id=room_name,
+            user_id=str(request.user.id),
+            username=request.user.username
+        )
+
+        meeting = Meeting.objects.create(
+            host=request.user,
+            community_id=community_id,
+            room_name=room_name,
+            domain="zegocloud",
+            created_at=timezone.now(),
+        )
+
+        return Response({
+            "roomName": room_name,
+            "appID": 1551231778,
+            "token": kit_token,  # ✅ Kit Token
+            "meeting_id": str(meeting.id),
+        }, status=status.HTTP_200_OK)
+
+
+# class CreateMeetingRoomView(APIView):
+#     permission_classes = [permissions.IsAuthenticated]
+
+#     def post(self, request):
+#         serializer = CreateRoomSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         community_id = serializer.validated_data["community_id"]
+
+#         room_name = f"community_{community_id}_{uuid.uuid4().hex[:8]}"
+
+#         token = generate_zego_token(str(request.user.id), room_name)
+
+#         meeting = Meeting.objects.create(
+#             host=request.user,
+#             community_id=community_id,
+#             room_name=room_name,
+#             domain="zegocloud",
+#             created_at=timezone.now(),
+#         )
+
+#         return Response({
+#             "roomName": room_name,
+#             "appID": 1551231778,
+#             "token": token,
+#             "meeting_id": str(meeting.id),
+#         }, status=status.HTTP_200_OK)

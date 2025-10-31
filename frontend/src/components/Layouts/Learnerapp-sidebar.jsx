@@ -59,27 +59,22 @@ export const AppSidebar = () => {
         <Link to="/">
           <Button variant="outline" className="w-full justify-start gap-2">
             <BookOpen className="h-5 w-5" />
-            Pages
+            Posts
           </Button>
         </Link>
-        <Link to="/">
+        {/* <Link to="/">
           <Button variant="outline" className="w-full justify-start gap-2">
             <FileText className="h-5 w-5" />
             Posts
           </Button>
-        </Link>
+        </Link> */}
         <Link to="/learner/communities">
           <Button variant="outline" className="w-full justify-start gap-2">
             <MessageSquareText className="h-5 w-5" />
             Community
           </Button>
         </Link>
-        <Link to="">
-          <Button variant="outline" className="w-full justify-start gap-2">
-            <PencilLine className="h-5 w-5" />
-            Feedback
-          </Button>
-        </Link>
+        
 
         {/* Logout */}
         <Button

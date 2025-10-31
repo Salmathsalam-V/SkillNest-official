@@ -207,7 +207,7 @@ class DashboardStatsView(APIView):
         return Response(data)
 
 class LatestPostsView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         posts = (

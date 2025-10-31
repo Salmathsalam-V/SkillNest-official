@@ -17,7 +17,7 @@ export function NotificationDropdown({notifications}) {
 
       {/* Dropdown list */}
       {open && (
-        <div className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto rounded-lg bg-white shadow-lg border border-gray-200">
+        <div className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto rounded-lg bg-white shadow-lg border border-gray-200 z-[9999]">
           {notifications.length === 0 ? (
             <div className="p-4 text-gray-500 text-sm">No notifications</div>
           ) : (

@@ -780,3 +780,51 @@ export const fetchFollowers = async (creatorId) => {
     return { success: false, error: err };
   }
 };
+
+export const createMeetingRoom = async (communityId) => {
+  try {
+    console.log("Creating meeting room...");
+    const res = await apiClient.post(
+      `chat/create/meet-room/`,
+      { community_id: communityId }
+    );
+    console.log("Meeting room created:", res);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to create meeting room:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+
+export const createFeedback = async (communityId, creatorId, userId, feedbackText) => {
+  try {
+    console.log("Sending feedback...");
+
+    const res = await apiClient.post(
+      `creator/feedback/${communityId}/`,
+      {
+        community: communityId,
+        creator: creatorId,
+        user: userId,
+        feedback: feedbackText,
+      },
+      { withCredentials: true }
+    );
+
+    console.log("✅ Feedback sent:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("❌ Failed to send feedback:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+
+export const fetchFeedbacks = async (communityId) => {
+  try {
+    const res = await apiClient.get(`creator/feedback/${communityId}/`);
+    return res.data;
+  } catch (err) {
+    console.error("Failed to fetch feedbacks:", err.response?.data || err);
+    throw err;
+  }
+};

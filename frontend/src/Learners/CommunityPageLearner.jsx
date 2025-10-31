@@ -19,6 +19,8 @@ import {
   DialogTrigger,
     DialogDescription,
 } from "@/components/ui/dialog"; 
+import { FeedbackListModal } from "@/Creator/FeedbackListModal";
+
 
 export const CommunityPageLearner = () => {
   const { communityId } = useParams();
@@ -31,6 +33,7 @@ export const CommunityPageLearner = () => {
   const messagesEndRef = useRef(null);
   const [members, setMembers] = useState([]);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
@@ -330,8 +333,22 @@ useEffect(() => {
               <p className="text-sm text-gray-500 text-center">No members yet.</p>
             )}
           </div>
+          
+
         </DialogContent>
       </Dialog>
+      <Button
+          variant="outline"
+          onClick={() => setShowFeedbackModal(true)}
+        >
+          View My Feedback
+        </Button>
+            <FeedbackListModal
+              open={showFeedbackModal}
+              onOpenChange={setShowFeedbackModal}
+              communityId={communityId}
+            />
+
     </LearnerLayout>
   );
 };

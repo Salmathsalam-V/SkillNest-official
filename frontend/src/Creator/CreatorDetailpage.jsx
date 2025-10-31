@@ -319,12 +319,12 @@ useEffect(() => {
             {creator.is_following ? "Unfollow" : "Follow"}
           </Button>
 
-          <Button
+          {/* <Button
             variant="custom"
             className="w-full sm:w-auto text-sm sm:text-base px-4 py-2"
           >
             Connect
-          </Button>
+          </Button> */}
         </div>
       </Card>
 
@@ -424,7 +424,7 @@ useEffect(() => {
                       </div>
 
                       {/* Course Rating (if applicable) */}
-                      {post.is_course && (
+                      {/* {post.is_course && (
                         <div className="flex gap-1 mt-2">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <span
@@ -435,7 +435,7 @@ useEffect(() => {
                             </span>
                           ))}
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </Card>
                 ))}

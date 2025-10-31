@@ -59,7 +59,7 @@ import { useSelector } from 'react-redux';
         <Link to="/">
           <Button variant="outline" className="w-full justify-start gap-2">
             <BookOpen className="h-5 w-5" />
-            Pages
+            Posts
           </Button>
         </Link>
         {/* <Link to="">

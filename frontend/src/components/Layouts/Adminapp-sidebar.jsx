@@ -66,7 +66,7 @@ export const AppSidebar = () => {
       <Link to="/messages">
         <Button variant="outline" className="w-full justify-start gap-2">
           <MessageSquareText className="h-5 w-5" />
-          Chat
+          Messages
         </Button>
       </Link>
       <Link to="/reports">
