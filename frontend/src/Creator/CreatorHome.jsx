@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { logout } from "../endpoints/axios";
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,11 @@ import { useSelector } from 'react-redux';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { sendContactMessage } from '@/endpoints/axios';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,DialogDescription } from "@/components/ui/dialog";
+import axios from "axios";
+import { Heart, MessageCircle } from "lucide-react";
+
 const communities = [
   { id: 1, name: "Batch Alpha - Fabindia", description: "Active Learning Group", messages: 3 },
   { id: 2, name: "Batch Beta - Zudio", description: "Python Enthusiasts", messages: 1 },
@@ -30,11 +35,31 @@ export const CreatorHome = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const user = useSelector((state) => state.user.user);
-
-  const handleLogout = async () => {
-    const success = await logout();
-    if (success) navigate('/login');
+  const [posts, setPosts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [openPost, setOpenPost] = useState(null);
+useEffect(() => {
+      fetchPosts(1);
+}, []);
+  const fetchPosts = async () => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:8000/api/admin/posts/latest`, { withCredentials: true });
+      console.log("Fetched posts:", res.data);
+      setPosts([...res.data]);
+    } catch (err) {
+      console.error("Posts fetch error:", err);
+    }
   };
+useEffect(() => {
+    // Now 'posts' holds the fully updated array!
+    console.log("Updated posts state in useEffect:", posts);
+}, [posts]);
+  const loadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchPosts(next);
+  };
+
 const handleContactUs = async () => {
   if (!message.trim()) {
     toast.error("Please write a message before sending.");
@@ -82,24 +107,145 @@ const handleContactUs = async () => {
 
       {/* Communities */}
       <div className="mb-10">
-        <h2 className="text-xl font-semibold mb-4">Your Communities</h2>
-        <div className="space-y-4">
-          {communities.map((c) => (
-            <div key={c.id} className="bg-white shadow rounded-lg p-4 flex justify-between items-center">
-              <div>
-                <h3 className="font-bold">{c.name}</h3>
-                <p className="text-sm text-gray-600">{c.description}</p>
+            {/* Latest Posts */}
+              <div className="space-y-4">
+                <CardHeader><CardTitle>Latest Posts</CardTitle></CardHeader>
+                
+                {posts.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                        {posts.map((post) => (
+                          <Card key={post.id} className="shadow-lg rounded-2xl overflow-hidden">
+                            {/* Post Image */}
+                            {post.image && (
+                              <img
+                                src={post.image}
+                                alt="Post"
+                                className="w-full h-48 object-cover"
+                              />
+                            )}
+                            <strong   className="p-3 text-lg font-semibold"> {post.caption}</strong>  
+        
+                            <div className="p-3 space-y-2">
+                              {/* Like & Comment Buttons */}
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                  <Button variant="ghost" size="sm" className="p-0" >
+                                    {post.is_liked ? (
+                                    <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                                    ) : (
+                                      <Heart className="w-5 h-5 text-gray-500" />
+                                    )}
+                                  </Button>
+                                  <span className="text-sm">{post.like_count} likes</span>
+        
+        
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDeletePost(post.id)}
+          >
+            Delete
+          </Button>
+        
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-0"
+                                  onClick={() => setOpenPost(post)}
+                                >
+                                  <MessageCircle className="w-5 h-5" />
+                                </Button>
+        
+                              </div>
+        
+                              {/* First Comment */}
+                              <div>
+                                {post.comments?.length > 0 ? (
+                                  <>
+                                    <p className="text-sm">
+                                      <span className="font-semibold">
+                                        {post.comments[0].user?.username}:
+                                      </span>{" "}
+                                      {post.comments[0].content}
+                                    </p>
+                                    {post.comments.length > 1 && (
+                                      <button
+                                        onClick={() => setOpenPost(post)}
+                                        className="text-xs text-gray-500 hover:underline"
+                                      >
+                                        View more comments
+                                      </button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <p className="text-xs text-gray-400">No comments yet.</p>
+                                )}
+                              </div>
+                                      
+                            
+                            </div>
+                       
+                          </Card>
+                          
+                        ))}
+        
+        
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center mt-6">No posts available.</p>
+                    )}
+                {/* <div className="text-center">
+                  <Button onClick={loadMore}>Load More</Button>
+                </div> */}
               </div>
-              {c.messages > 0 && (
-                <span className="bg-gradient-to-r from-[#FF6B6B] via-[#4ECDC4] to-[#45B7D1] text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {c.messages} New Message{c.messages > 1 ? "s" : ""}
-                </span>
+                          {/* Comments modal (like PostsPage) */}
+          <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
+            <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Comments</DialogTitle>
+              </DialogHeader>
+              {openPost && (
+                <div className="space-y-3">
+                  {openPost.image && <img src={openPost.image} alt="Post" className="rounded-lg w-full mb-2" />}
+                  <p className="text-gray-700">{openPost.caption}</p>
+        
+                  {/* All comments */}
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {openPost.comments?.length > 0 ? (
+                      openPost.comments.map((comment) => (
+                        <div key={comment.id} className="border-b pb-1 flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-semibold">{comment.user?.username}</p>
+                            <p className="text-sm text-gray-600">{comment.content}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="p-0"
+                            >
+                              {comment.is_liked ? (
+                                <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                              ) : (
+                                <Heart className="w-4 h-4 text-gray-500" />
+                              )}
+                            </Button>
+                            <span className="text-xs">{comment.like_count}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-400">No comments yet.</p>
+                    )}
+                  </div>
+        
+                </div>
               )}
-            </div>
-          ))}
-        </div>
+            </DialogContent>
+          </Dialog>
         <div className="flex justify-center mt-6">
-          <Button variant="outline">See All</Button>
+          <Button variant="outline" onClick={()=>navigate('/')}>See All</Button>
         </div>
       </div>
       {/* About Us Section */}

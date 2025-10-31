@@ -796,3 +796,35 @@ export const createMeetingRoom = async (communityId) => {
   }
 };
 
+export const createFeedback = async (communityId, creatorId, userId, feedbackText) => {
+  try {
+    console.log("Sending feedback...");
+
+    const res = await apiClient.post(
+      `creator/feedback/${communityId}/`,
+      {
+        community: communityId,
+        creator: creatorId,
+        user: userId,
+        feedback: feedbackText,
+      },
+      { withCredentials: true }
+    );
+
+    console.log("✅ Feedback sent:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("❌ Failed to send feedback:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+
+export const fetchFeedbacks = async (communityId) => {
+  try {
+    const res = await apiClient.get(`creator/feedback/${communityId}/`);
+    return res.data;
+  } catch (err) {
+    console.error("Failed to fetch feedbacks:", err.response?.data || err);
+    throw err;
+  }
+};

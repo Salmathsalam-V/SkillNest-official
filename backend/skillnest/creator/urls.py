@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import PostView, PostDetailView, CommentListCreateView, CommentDetailView,CreatorPostsView,CreatorCoursesView,CommunityMembersView
-from .views import ToggleFollowView,ToggleLikeView,ReplyListCreateView,toggle_comment_like,CommunityListCreateView,CommunityDetailView,UserListView
+from .views import PostView, PostDetailView, CommentListCreateView, CommentDetailView,CreatorPostsView,CreatorCoursesView,CommunityMembersView,FeedbackDetailView
+from .views import ToggleFollowView,ToggleLikeView,ReplyListCreateView,toggle_comment_like,CommunityListCreateView,CommunityDetailView,UserListView,FeedbackListCreateView
 from .views import PendingInvitesView,RespondToInviteView,ReportPostView,CommunityDeleteView,AllFollowersListView,CreatorReviewListCreateView,CreatorFollowersView
 
 
@@ -28,6 +28,8 @@ urlpatterns = [
     path("invites/<int:pk>/", RespondToInviteView.as_view(), name="respond-invite"),
     path("post/<int:post_id>/reports/", ReportPostView.as_view(), name="report-posts"),
     path('creators/<int:creator_id>/reviews/', CreatorReviewListCreateView.as_view(), name='creator-reviews'),
-    path('creators/<int:pk>/followers/', CreatorFollowersView.as_view(), name="creator-followers")
+    path('creators/<int:pk>/followers/', CreatorFollowersView.as_view(), name="creator-followers"),
+    path('feedback/<int:community_id>/', FeedbackListCreateView.as_view(), name="feedbacks"),
+    path("feedback/detail/<int:pk>/", FeedbackDetailView.as_view(), name="feedback-detail"),
 
 ]

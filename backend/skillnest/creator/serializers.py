@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post, Comment, Course
+from .models import Post, Comment, Course,Feedback
 from accounts.models import User, Creator
 from .models import Community,CommunityInvite,ReportPost,Review
 from django.contrib.auth import get_user_model
@@ -211,3 +211,14 @@ class ReviewSerializer(serializers.ModelSerializer):
             creator=creator,
             **validated_data
         )
+    
+class FeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Feedback
+        fields = ['id', 'creator', 'user', 'feedback', 'created_at']
+        read_only_fields = ['id', 'created_at']
+    
+    def create(self, validated_data):
+        community = self.context.get("community")
+        validated_data.pop("community", None)
+        return Feedback.objects.create(community=community, **validated_data)

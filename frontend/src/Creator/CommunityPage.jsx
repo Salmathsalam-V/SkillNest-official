@@ -23,6 +23,10 @@ import chatService from "../services/chatService";
 import { text } from "@fortawesome/fontawesome-svg-core";
 import { Loader }  from '@/components/Layouts/Loader';
 import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
+import { Textarea } from "@/components/ui/textarea";
+import {FeedbackModal} from '../Creator/FeedbackModal'
+import { FeedbackListModal } from "../Creator/FeedbackListModal";
+
 
 export const CommunityPage = () => {
   const { communityId } = useParams();
@@ -46,6 +50,8 @@ export const CommunityPage = () => {
   const [meetingInfo, setMeetingInfo] = useState(null);
   const [isMeetingOpen, setIsMeetingOpen] = useState(false);
   const meetingSocketRef = useRef(null);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackListModalOpen, setFeedbackListModalOpen] = useState(false);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -322,6 +328,7 @@ useEffect(() => {
     `${protocol}://127.0.0.1:8000/ws/community/${communityId}/meeting/`
   );
     meetingSocketRef.current = ws;
+    console.log("ws",ws)
   ws.onopen = () => {
     console.log("✅ Meeting WebSocket connected!");
   };
@@ -331,19 +338,18 @@ useEffect(() => {
       const data = JSON.parse(event.data);
       console.log("📩 Meeting WebSocket message:", data);
       if (data.type === "meeting_started") {
-        toast.info(`📢 ${data.meeting.host} started a video call`);
+        console.log(data);
+        console.log(community)
+        toast.info(`📢 ${userId} started a video call`);
         setMeetingInfo(data.meeting);
       }
     } catch (err) {
       console.error("Failed to parse meeting message:", err);
     }
   };
-
-
   ws.onerror = (error) => {
     console.error("Meeting WebSocket error:", error);
   };
-
   ws.onclose = (event) => {
     console.log("Meeting WebSocket closed:", event.code, event.reason);
   };
@@ -465,6 +471,13 @@ const startZegoCall = async () => {
     toast.error("Failed to start video call");
   }
 };
+
+useEffect(() => {
+  if (isMeetingOpen && meetingInfo) {
+    console.log("🔹 Joining ongoing meeting:", meetingInfo);
+    startZegoCall(); // ✅ call function to join
+  }
+}, [isMeetingOpen, meetingInfo]);
 
 
   if (!community) return <Loader text="Loading Chats..." />; 
@@ -709,7 +722,42 @@ const startZegoCall = async () => {
             )}
           </div>
         </DialogContent>
+      {/* Feedback options */}
+      {(community?.created_by?.id === userId ||
+        community?.community?.creator?.id === userId) ? (
+        <Button
+          variant="outline"
+          className="ml-2"
+          onClick={() => setFeedbackModalOpen(true)}
+        >
+          💬 Send Feedback
+        </Button>
+      ) : (
+        <Button
+          variant="outline"
+          className="ml-2"
+          onClick={() => setFeedbackListModalOpen(true)}
+        >
+          📋 View Feedback
+        </Button>
+      )}
+
       </Dialog>
+     
+      <FeedbackModal
+        open={feedbackModalOpen}
+        onOpenChange={setFeedbackModalOpen}
+        communityId={communityId}
+        members={members}
+        creatorId={userId}
+        userId={userId}
+        />
+        <FeedbackListModal
+          open={feedbackListModalOpen}
+          onOpenChange={setFeedbackListModalOpen}
+          communityId={communityId}
+        />
+
       <Dialog open={isMeetingOpen} onOpenChange={setIsMeetingOpen}>
         <DialogContent className="max-w-5xl w-full h-[80vh] p-0">
           <DialogHeader>
@@ -718,6 +766,7 @@ const startZegoCall = async () => {
           <div id="zego-container" className="w-full h-full rounded-lg overflow-hidden"></div>
         </DialogContent>
       </Dialog>
+
 
 
     </CreatorLayout>   

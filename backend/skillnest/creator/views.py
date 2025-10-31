@@ -1,7 +1,7 @@
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer,ReportPostSerializer,ReviewSerializer
-from .models import Post,Comment,Community,Course,Review
+from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer,ReportPostSerializer,ReviewSerializer,FeedbackSerializer
+from .models import Post,Comment,Community,Course,Review,Feedback
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, viewsets
@@ -446,3 +446,67 @@ class CreatorFollowersView(APIView):
         followers = creator.followers.all().values('id', 'username', 'email', 'profile')
         return Response({"followers": followers})
 
+class FeedbackListCreateView(APIView):
+    """
+    GET: List all feedbacks for a specific community.
+    POST: Create new feedback for that community.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, community_id):
+        """Fetch only feedbacks by the logged-in user for this community"""
+        community = get_object_or_404(Community, id=community_id)
+        feedbacks = Feedback.objects.filter(
+            community=community,
+            user=request.user  # 👈 Only user's feedbacks
+        ).order_by("-created_at")
+        serializer = FeedbackSerializer(feedbacks, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, community_id):
+        """Create a feedback entry for a community"""
+        logger.info(f"POST /feedback by {request.user} (auth={request.user.is_authenticated})")
+
+        community = get_object_or_404(Community, id=community_id)
+        serializer = FeedbackSerializer(
+            data=request.data,
+            context={"request": request, "community": community},
+        )
+
+        if serializer.is_valid():
+            serializer.save(creator=request.user)  # 👈 Associate logged user
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        logger.error(f"Feedback creation failed: {serializer.errors}")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class FeedbackDetailView(APIView):
+    """
+    GET: Retrieve a specific feedback
+    PUT: Update feedback
+    DELETE: Delete feedback
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self, pk):
+        return get_object_or_404(Feedback, pk=pk)
+
+    def get(self, request, pk):
+        feedback = self.get_object(pk)
+        serializer = FeedbackSerializer(feedback)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        feedback = self.get_object(pk)
+        serializer = FeedbackSerializer(feedback, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        feedback = self.get_object(pk)
+        feedback.delete()
+        return Response({"detail": "Feedback deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
