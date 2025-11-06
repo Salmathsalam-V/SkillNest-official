@@ -210,7 +210,6 @@ def generate_kit_token(app_id: int, server_secret: str, room_id: str, user_id: s
     
     return kit_token
 
-
 class CreateMeetingRoomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -219,9 +218,27 @@ class CreateMeetingRoomView(APIView):
         serializer.is_valid(raise_exception=True)
         community_id = serializer.validated_data["community_id"]
 
-        room_name = f"community_{community_id}_{uuid.uuid4().hex[:8]}"
+        # ✅ 1. Check for an existing active meeting in this community
+        existing = Meeting.objects.filter(community_id=community_id, is_active=True).first()
+        if existing:
+            logger.info(f"Active meeting already exists: {existing.room_name}")
+            kit_token = generate_kit_token(
+                app_id=1551231778,
+                server_secret='b5760c71682586e629b772f8fa71570f',
+                room_id=existing.room_name,
+                user_id=str(request.user.id),
+                username=request.user.username
+            )
+            return Response({
+                "roomName": existing.room_name,
+                "appID": 1551231778,
+                "token": kit_token,
+                "meeting_id": str(existing.id),
+                "already_active": True,
+            }, status=status.HTTP_200_OK)
 
-        # ✅ Generate Kit Token instead of regular token
+        # ✅ 2. Otherwise, create a new meeting
+        room_name = f"community_{community_id}_{uuid.uuid4().hex[:8]}"
         kit_token = generate_kit_token(
             app_id=1551231778,
             server_secret='b5760c71682586e629b772f8fa71570f',
@@ -236,15 +253,76 @@ class CreateMeetingRoomView(APIView):
             room_name=room_name,
             domain="zegocloud",
             created_at=timezone.now(),
+            is_active=True,  # ✅ ensure this is marked active
         )
 
+        logger.info(f"New meeting created: {meeting.room_name}")
         return Response({
             "roomName": room_name,
             "appID": 1551231778,
-            "token": kit_token,  # ✅ Kit Token
+            "token": kit_token,
             "meeting_id": str(meeting.id),
+            "already_active": False,
         }, status=status.HTTP_200_OK)
 
+    # ✅ PATCH method to end meeting
+    def patch(self, request):
+        meeting_id = request.data.get("meeting_id")
+        logger.warning(f"Ending meeting for room: {meeting_id}")
+
+        if not meeting_id:
+            return Response({"error": "meeting_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            meeting = Meeting.objects.get(pk=meeting_id)
+        except Meeting.DoesNotExist:
+            return Response({"error": "Meeting not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not meeting.is_active:
+            return Response({"message": "Meeting already ended"}, status=status.HTTP_200_OK)
+
+        meeting.is_active = False
+        meeting.ended_at = timezone.now()
+        meeting.save()
+        # channel_layer = get_channel_layer()
+        # async_to_sync(channel_layer.group_send)(
+        #     f"community_{meeting.community_id}_meeting",
+        #     {
+        #         "type": "meeting_ended",
+        #         "meeting_id": str(meeting.id),
+        #     },
+        # )
+        logger.warning(f"Meeting {meeting_id} ended at {meeting.ended_at}")
+        return Response({
+            "message": "Meeting ended successfully",
+            "meeting_id": str(meeting.id),
+            "is_active": meeting.is_active
+        }, status=status.HTTP_200_OK)
+
+class ActiveMeetingView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, community_id):
+        logger.info(f"Checking active meeting for community: {community_id}")
+        logger.info(f"All meeting objects: {list(Meeting.objects.filter(community_id=community_id).values())}")
+        meeting = (
+            Meeting.objects
+            .filter(community_id=community_id, is_active=True)
+            .order_by("-created_at")
+            .first()
+        )
+        if not meeting:
+            return Response({"active_meeting": None}, status=status.HTTP_200_OK)
+
+        return Response({
+            "active_meeting": {
+                "meeting_id": str(meeting.id),
+                "roomName": meeting.room_name,
+                "appID": 1551231778,
+                "is_active": meeting.is_active,
+                "host": meeting.host.username,
+            }
+        }, status=status.HTTP_200_OK)
 
 # class CreateMeetingRoomView(APIView):
 #     permission_classes = [permissions.IsAuthenticated]
@@ -272,3 +350,5 @@ class CreateMeetingRoomView(APIView):
 #             "token": token,
 #             "meeting_id": str(meeting.id),
 #         }, status=status.HTTP_200_OK)
+
+

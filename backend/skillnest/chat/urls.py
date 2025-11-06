@@ -1,5 +1,5 @@
 from django.urls import path
-from . views import CommunityChatRoomDetailView, CommunityMessagesView, send_community_message, CommunityChatMembersView, CreateMeetingRoomView     
+from . views import CommunityChatRoomDetailView, CommunityMessagesView, send_community_message, CommunityChatMembersView, CreateMeetingRoomView,ActiveMeetingView     
 
 app_name = "chat"
 
@@ -10,4 +10,6 @@ urlpatterns = [
     # path("communities/<int:community_id>/messages/<int:message_id>/read/", mark_message_read, name="mark-community-message-read"),
     path("communities/<int:community_id>/members/", CommunityChatMembersView.as_view(), name="community-chat-members"),
     path("create/meet-room/", CreateMeetingRoomView.as_view(), name="create-room"),
+    path("active-meeting/<int:community_id>/", ActiveMeetingView.as_view(), name="active-meeting"),
+
 ]

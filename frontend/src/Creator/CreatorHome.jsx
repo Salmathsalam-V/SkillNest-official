@@ -105,7 +105,6 @@ const handleContactUs = async () => {
         <p>Level up your designs with <strong>Canva Pro FREE for Creators</strong>. Access premium templates and share your creativity!</p>
       </div>
 
-      {/* Communities */}
       <div className="mb-10">
             {/* Latest Posts */}
               <div className="space-y-4">
@@ -139,14 +138,7 @@ const handleContactUs = async () => {
                                   <span className="text-sm">{post.like_count} likes</span>
         
         
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleDeletePost(post.id)}
-          >
-            Delete
-          </Button>
-        
+          
                                 </div>
                                 <Button
                                   variant="ghost"

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload ,createMeetingRoom  } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload ,createMeetingRoom,editMeetingRoom,getActiveMeeting   } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import { toast } from 'sonner';
 import {
@@ -231,6 +231,7 @@ const handleRemoveMember = async (identifier) => {
   useEffect(() => {
     loadChatRoom();
     loadMessages();
+    checkActiveMeeting();
   }, [communityId]);
 
   useEffect(() => {
@@ -338,8 +339,8 @@ useEffect(() => {
       const data = JSON.parse(event.data);
       console.log("📩 Meeting WebSocket message:", data);
       if (data.type === "meeting_started") {
-        console.log(data);
-        console.log(community)
+        console.log("data",data);
+        
         toast.info(`📢 ${userId} started a video call`);
         setMeetingInfo(data.meeting);
       }
@@ -389,6 +390,7 @@ const startVideoCall = async () => {
         type: "start_meeting",
         meeting: meetingData,
       });
+      console.log("payload",payload);
       socket.send(payload);
       console.log("📤 Sent start_meeting event:", payload);
     } else {
@@ -458,17 +460,34 @@ const startZegoCall = async () => {
       showTurnOffRemoteCameraButton: true,
       showTurnOffRemoteMicrophoneButton: true,
       showRemoveUserButton: true,
-      onLeaveRoom: () => {
+
+      onLeaveRoom: async () => {
         console.log("User left the room");
         setIsMeetingOpen(false);
         setMeetingInfo(null);
+
+        // ✅ End meeting in backend if host
+        console.log("Before checking host:roomData",meetingInfo,meetingInfo?.meeting_id );
+        const isHost =
+          community?.created_by?.id === userId ||
+          community?.community?.creator?.id === userId;
+        console.log("Is current user host?", isHost);
+        if (isHost && meetingInfo?.meeting_id) {
+          try {
+            console.log("Ending meeting in backend for room:before axios", meetingInfo.meeting_id);
+            await editMeetingRoom(meetingInfo.meeting_id);
+            console.log("✅ Meeting ended successfully in backend");
+          } catch (err) {
+            console.error("❌ Failed to end meeting:", err);
+          }
+        }
       },
     });
+
     
-    toast.success("Joined video call!");
   } catch (err) {
     console.error("Error starting Zego call:", err);
-    toast.error("Failed to start video call");
+    toast.error("Failed to start/end video call");
   }
 };
 
@@ -479,6 +498,22 @@ useEffect(() => {
   }
 }, [isMeetingOpen, meetingInfo]);
 
+const checkActiveMeeting = async () => {
+  try {
+    const res = await getActiveMeeting(communityId);
+    if (res.active_meeting && res.active_meeting.is_active) {
+      console.log("🟢 Active meeting found:", res.active_meeting);
+      setMeetingInfo(res.active_meeting);
+    }
+  } catch (err) {
+    console.error("Failed to check active meeting:", err);
+  }
+};
+
+useEffect(() => {
+  const interval = setInterval(checkActiveMeeting, 15000); // every 15s
+  return () => clearInterval(interval);
+}, []);
 
   if (!community) return <Loader text="Loading Chats..." />; 
   
@@ -510,15 +545,19 @@ useEffect(() => {
             )}
             {/* Show join button for participants when a meeting is active */}
               {meetingInfo && !isMeetingOpen &&
-                (community?.created_by?.id !== userId &&
-                community?.community?.creator?.id !== userId) && (
-                  <Button
-                    onClick={() => setIsMeetingOpen(true)}
-                    className="ml-auto bg-green-600 hover:bg-green-700"
-                  >
-                    🚀 Join Ongoing Call
-                  </Button>
-              )}
+                    (community?.created_by?.id !== userId &&
+                    community?.community?.creator?.id !== userId) && (
+                      <Button
+                        onClick={() => {
+                          setIsMeetingOpen(true);
+                          setTimeout(() => startZegoCall(), 300);
+                        }}
+                        className="ml-auto bg-green-600 hover:bg-green-700"
+                      >
+                        🚀 Join Ongoing Call
+                      </Button>
+                  )}
+
 
 
 
