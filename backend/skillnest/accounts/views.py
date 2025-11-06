@@ -15,6 +15,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from accounts.serializers import UserSerializer, LoginSerializer,CreatorSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from .authentication import JWTCookieAuthentication
+from django.utils import timezone
 
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -100,23 +101,29 @@ class LoginView(APIView):
                 'user': data['user'],
                 'message': 'Login successful'
             }, status=status.HTTP_200_OK)
+            # --- Unified cookie settings ---
+            expires_access = timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+            expires_refresh = timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
 
-            # Set tokens in HttpOnly cookies
-            response.set_cookie(
-                key='access_token',
-                value=access_token,
+            cookie_args = dict(
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 secure=settings.AUTH_COOKIE_SECURE,
                 samesite=settings.AUTH_COOKIE_SAMESITE,
-                path='/'
+                path="/",
+                domain=None,  # set your domain if needed (e.g., '.skillnest.com')
             )
+                # Set tokens in HttpOnly cookies
             response.set_cookie(
-                key='refresh_token',
+            key=settings.SIMPLE_JWT["AUTH_COOKIE_ACCESS"],
+            value=access_token,
+            expires=expires_access,
+            **cookie_args,
+        )
+            response.set_cookie(
+                key=settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"],
                 value=refresh_token,
-                httponly=settings.AUTH_COOKIE_HTTP_ONLY,
-                secure=settings.AUTH_COOKIE_SECURE,
-                samesite=settings.AUTH_COOKIE_SAMESITE,
-                path='/'
+                expires=expires_refresh,
+                **cookie_args,
             )
             return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -142,69 +149,65 @@ class LogoutView(APIView):
             samesite='None',
         )
         return response
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class RefreshTokenView(APIView):
-    """ Generate new access token with refresh token if access token is expired."""
+    """Generate a new access token from refresh token."""
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
         logger.debug("RefreshTokenView called")
-        refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-        access_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'])
-        logger.debug(f"Refresh token from cookies: {refresh_token} , old access token: {access_token}")
-        logger.debug(f"All cookies: {request.COOKIES}")
-        logger.debug(f"Cookie key being used: {settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']}")
-        
-        if refresh_token is None:
-            logger.debug("No refresh token found in cookies")
+        refresh_cookie_name = settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"]
+        access_cookie_name = settings.SIMPLE_JWT["AUTH_COOKIE_ACCESS"]
+
+        refresh_token = request.COOKIES.get(refresh_cookie_name)
+        if not refresh_token:
+            logger.warning("No refresh token found in cookies")
             return Response(
-                {"detail": "Session expired. Please log in again from refresh."}, 
-                status=status.HTTP_401_UNAUTHORIZED
+                {"detail": "Session expired. Please log in again."},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         try:
-            # Validate the token
             token = RefreshToken(refresh_token)
-            logger.info(f"Token validated successfully: {token.payload.get("token_type")}")
-            
-            # Generate new access token
-            access_token = str(token.access_token)
-            logger.info(f"New access token generated : {access_token}")
+            new_access_token = str(token.access_token)
+            logger.info("New access token generated")
 
             response = Response(
-                {"message": "New access token established.","access": access_token,}, 
-                status=status.HTTP_200_OK
-            )
-            response.delete_cookie(
-                key=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'],
-                path="/",                     # must match original cookie
-                domain="127.0.0.1",           # must match original cookie domain
-                samesite=settings.AUTH_COOKIE_SAMESITE,
-                secure=False
+                {"message": "New access token established.", "access": new_access_token},
+                status=status.HTTP_200_OK,
             )
 
-            response.set_cookie(
-                key=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS'],
-                value=access_token,
-                secure=False,
+            # --- Overwrite access cookie safely ---
+            expires_access = timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+            cookie_args = dict(
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
+                secure=settings.AUTH_COOKIE_SECURE,
                 samesite=settings.AUTH_COOKIE_SAMESITE,
-                max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
-                path='/'
+                path="/",
+                domain=None,  # set this if you use custom domain
             )
 
-            logger.info("Access token cookie set successfully")
+            # Delete old one explicitly first
+            response.delete_cookie(key=access_cookie_name, path="/", domain=None)
+            # Then set new one (same attributes to ensure overwrite)
+            response.set_cookie(
+                key=access_cookie_name,
+                value=new_access_token,
+                expires=expires_access,
+                **cookie_args,
+            )
+
+            logger.info("Access token cookie overwritten successfully")
             return response
 
         except TokenError as e:
-            logger.debug(f"Token error: {e}")
-            logger.debug(f"Token error type: {type(e)}")
+            logger.warning(f"Token error: {e}")
             return Response(
-                {"detail": f"Session expired. Please log in again. Error: {str(e)}"}, 
-                status=status.HTTP_401_UNAUTHORIZED
+                {"detail": f"Session expired. Please log in again. Error: {str(e)}"},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
-        
+            
 class ProtectedView(APIView):
     authentication_classes = [JWTCookieAuthentication]
     permission_classes = [IsAuthenticated]

@@ -2,7 +2,9 @@ import axios from 'axios';
 import api from "@/api/axios";
 import { data } from 'react-router-dom';
 import { get } from 'react-hook-form';
-
+import { toast } from 'sonner';
+import { store } from '@/Redux/store';
+import { logoutUser } from '@/Redux/userSlice';
 
 const BASE_URL = 'http://127.0.0.1:8000/api/';
 const LOGIN_URL = `${BASE_URL}login/`;
@@ -35,7 +37,6 @@ apiClient.interceptors.response.use(
       try {
         console.log("Attempting token refresh...");
         await refreshClient.post(REFRESH_URL, {}, { withCredentials: true });
-
         console.log("Token refreshed successfully. Retrying request...");
         return apiClient(originalRequest);
       } catch (refreshError) {
@@ -43,8 +44,18 @@ apiClient.interceptors.response.use(
 
         if (!isSessionExpiredHandle) {
           isSessionExpiredHandle = true;
-          alert("Session expired. Please log in again."); //need better UX and clear cookies
-          window.location.href = "/login";
+          toast.error("Your session has expired. Please log in again.", {
+              position: "top-center",
+              autoClose: 4000,
+            });
+            store.dispatch(logoutUser());
+            document.cookie =
+              "access_token=; Max-Age=0; path=/; sameSite=Lax;";
+            document.cookie =
+              "refresh_token=; Max-Age=0; path=/; sameSite=Lax;";
+           setTimeout(() => {
+            window.location.href = "/login";
+          }, 5000);
         }
 
         return Promise.reject(refreshError);
