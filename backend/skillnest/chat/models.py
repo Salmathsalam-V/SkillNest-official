@@ -96,7 +96,7 @@ class UserPresence(models.Model):
 
 class Meeting(models.Model):
     """
-    Stores info about each group video call session (via Jitsi or any provider).
+    Stores info about each group video call session (via ZegoCloud).
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -107,22 +107,22 @@ class Meeting(models.Model):
         help_text="The user who started the meeting"
     )
     community = models.ForeignKey(
-        Community,  
+        Community,
         on_delete=models.CASCADE,
         related_name="meetings",
         null=True,
         blank=True
     )
     room_name = models.CharField(max_length=255, unique=True)
-    domain = models.CharField(max_length=255, default="meet.jit.si")
-    jwt_token = models.TextField(blank=True, null=True)
+    zego_app_id = models.BigIntegerField(default=1551231778)
+    domain = models.CharField(max_length=255, default="zegocloud")
+    kit_token = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(blank=True, null=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     duration = models.PositiveIntegerField(default=0, help_text="Duration in seconds")
 
-    # ManyToMany for participants
     participants = models.ManyToManyField(
         User,
         related_name="meetings_joined",
@@ -131,14 +131,12 @@ class Meeting(models.Model):
     )
 
     def mark_started(self):
-        """Mark when meeting starts."""
         if not self.started_at:
             self.started_at = timezone.now()
             self.is_active = True
             self.save(update_fields=["started_at", "is_active"])
 
     def mark_ended(self):
-        """Mark when meeting ends and calculate duration."""
         if not self.ended_at:
             self.ended_at = timezone.now()
             self.is_active = False
@@ -146,20 +144,9 @@ class Meeting(models.Model):
                 self.duration = int((self.ended_at - self.started_at).total_seconds())
             self.save(update_fields=["ended_at", "is_active", "duration"])
 
-    def add_participant(self, user):
-        """Convenience method to add a participant."""
-        self.participants.add(user)
-        self.save()
-
-    def remove_participant(self, user):
-        """Remove participant (optional)."""
-        self.participants.remove(user)
-        self.save()
-
     def __str__(self):
         return f"{self.room_name} ({self.community})"
-
-
+    
 class MeetingParticipant(models.Model):
     """
     Optional: Track join/leave times per participant (for attendance logs).

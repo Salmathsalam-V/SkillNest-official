@@ -233,3 +233,10 @@ class CommunityMeetConsumer(AsyncWebsocketConsumer):
             "type": "meeting_started",
             "meeting": event["meeting"],
         }))
+    
+    # 🔹 Send to clients when meeting ends
+    async def meeting_ended(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "meeting_ended",
+            "meeting_id": event["meeting_id"],
+        }))

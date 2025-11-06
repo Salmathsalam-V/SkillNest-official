@@ -796,6 +796,27 @@ export const createMeetingRoom = async (communityId) => {
   }
 };
 
+export const editMeetingRoom = async (meeting_id) => {
+  try {
+    console.log("eidting the meeting room...");
+    const res = await apiClient.patch(
+      `chat/create/meet-room/`,
+      { meeting_id: meeting_id }
+    );
+    console.log("Meeting ended in backend", res);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Failed to update meeting room:", err.response?.data || err);
+    return { success: false, error: err };
+  }
+};
+
+export const getActiveMeeting = async (communityId) => {
+  const res = await apiClient.get(`chat/active-meeting/${communityId}/`);
+  return res.data;
+};
+
+
 export const createFeedback = async (communityId, creatorId, userId, feedbackText) => {
   try {
     console.log("Sending feedback...");
@@ -828,3 +849,4 @@ export const fetchFeedbacks = async (communityId) => {
     throw err;
   }
 };
+

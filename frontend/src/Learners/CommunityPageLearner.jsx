@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom, imageUpload,getMembers } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom, imageUpload, getMembers, getActiveMeeting } from "../endpoints/axios";
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import { toast } from "sonner";
 import chatService from "../services/chatService";
@@ -17,9 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-    DialogDescription,
-} from "@/components/ui/dialog"; 
+} from "@/components/ui/dialog";
 import { FeedbackListModal } from "@/Creator/FeedbackListModal";
+import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
 
 
 export const CommunityPageLearner = () => {
@@ -34,11 +34,14 @@ export const CommunityPageLearner = () => {
   const [members, setMembers] = useState([]);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [isMeetingOpen, setIsMeetingOpen] = useState(false);
+  const [meetingInfo, setMeetingInfo] = useState(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
 
-  // --- API Loads ---
+  // --- Load Community ---
   const loadChatRoom = async () => {
     try {
       const { data } = await fetchChatRoom(communityId);
@@ -57,20 +60,18 @@ export const CommunityPageLearner = () => {
     }
   };
 
-  // --- Send Text/Media ---
+  // --- Send Text ---
   const handleSend = async (mediaUrl = null, type = "text") => {
     if (!newMessage.trim() && !mediaUrl) return;
     try {
-      chatService.sendMessage(community.uuid, newMessage, "text", mediaUrl);
-
-      
+      chatService.sendMessage(community.uuid, newMessage, type, mediaUrl);
       setNewMessage("");
     } catch (error) {
       console.error("Send Error:", error);
     }
   };
 
-  // --- Upload & Send Media ---
+  // --- Upload Media ---
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -85,15 +86,11 @@ export const CommunityPageLearner = () => {
     formData.append("file", pendingFile);
     formData.append("upload_preset", "skillnest_profile");
     try {
-      const res = await imageUpload(
-        formData
-      );
+      const res = await imageUpload(formData);
       const url = res.data.url;
-
       let msgType = "file";
       if (pendingFile.type.startsWith("image/")) msgType = "image";
       else if (pendingFile.type.startsWith("video/")) msgType = "video";
-
       await handleSend(url, msgType);
       toast.success("File sent!");
     } catch (err) {
@@ -105,47 +102,100 @@ export const CommunityPageLearner = () => {
       setPreviewURL("");
     }
   };
-useEffect(() => {
-  console.log("Learner: setting up WebSocket for community:", communityId, "community:", community);
-  if (!community?.uuid) return; // Wait for chat room to load
 
-  chatService.connect(community.uuid);
+  // --- WebSocket ---
+  useEffect(() => {
+    if (!community?.uuid) return;
+    chatService.connect(community.uuid);
+    chatService.on("message", (msg) => setMessages((prev) => [...prev, msg]));
+    return () => chatService.disconnect();
+  }, [community?.uuid]);
 
-  // Handle new incoming messages
-  chatService.on("message", (message) => {
-    console.log("Learner received message via WS:", message);
-    setMessages((prev) => [...prev, message]);
-  });
-
-  chatService.on("connect", () => console.log("Learner WS connected"));
-  chatService.on("disconnect", () => console.log("Learner WS disconnected"));
-
-  // Cleanup on page leave
-  return () => chatService.disconnect();
-}, [community?.uuid]);
-
+  // --- Auto-scroll ---
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+  useEffect(() => scrollToBottom(), [messages]);
 
+  // --- Loaders ---
   useEffect(() => {
     loadChatRoom();
     loadMessages();
   }, [communityId]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const loadMembers = async () => {
     try {
-      const data = await getMembers(communityId); // pass it here
+      const data = await getMembers(communityId);
       setMembers(data.members || []);
-      console.log("Members loaded:", data);
     } catch (err) {
       console.error("Failed to load members:", err);
     }
   };
+
+  // 🆕 Check for Active Meeting
+  const checkActiveMeeting = async () => {
+    try {
+      const res = await getActiveMeeting(communityId);
+      if (res.active_meeting && res.active_meeting.is_active) {
+        setMeetingInfo(res.active_meeting);
+      } else {
+        setMeetingInfo(null);
+      }
+    } catch (err) {
+      console.error("Failed to check active meeting:", err);
+    }
+  };
+
+  useEffect(() => {
+    checkActiveMeeting(); // check once initially
+    const interval = setInterval(checkActiveMeeting, 15000);
+    return () => clearInterval(interval);
+  }, []);
+  // Function to initialize Zego meeting
+  const startZegoCall = async () => {
+    if (!meetingInfo) {
+      toast.error("No active meeting found");
+      return;
+    }
+
+    const { roomName, appID } = meetingInfo;
+    if (!roomName || !appID) {
+      toast.error("Invalid meeting info");
+      return;
+    }
+
+    // Generate token
+    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+      Number(appID),
+      "b5760c71682586e629b772f8fa71570f", // your serverSecret/test key
+      roomName,
+      String(userId),
+      user?.username || "Guest"
+    );
+
+    const container = document.getElementById("zego-container");
+    if (!container) {
+      console.error("Zego container not found!");
+      return;
+    }
+
+    const zp = ZegoUIKitPrebuilt.create(kitToken);
+    zp.joinRoom({
+      container,
+      scenario: {
+        mode: ZegoUIKitPrebuilt.VideoConference,
+      },
+    });
+  };
+
+  // Run when modal opens
+  useEffect(() => {
+    if (isMeetingOpen && meetingInfo) {
+      console.log("🔹 Learner joining meeting...");
+      startZegoCall();
+    }
+  }, [isMeetingOpen, meetingInfo]);
+
   if (!community) return <p>Loading community...</p>;
 
   return (
@@ -186,16 +236,40 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        {/* ---- Messages ---- */}
+        {/* 🆕 Active Meeting Banner */}
+        {meetingInfo && (
+          <div className="bg-green-100 text-green-800 p-3 flex justify-between items-center shadow-md">
+            <span>
+              🟢 A live session is ongoing: <b>{meetingInfo.title || "Community Meet"}</b>
+            </span>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => setIsMeetingOpen(true)}
+            >
+              Join Meet
+            </Button>
+          </div>
+        )}
+
+        {/* 🆕 Community Video Call Modal */}
+        <Dialog open={isMeetingOpen} onOpenChange={setIsMeetingOpen}>
+          <DialogContent className="max-w-5xl w-full h-[80vh] p-0">
+            <DialogHeader>
+              <DialogTitle>Community Video Call</DialogTitle>
+            </DialogHeader>
+            <div id="zego-container" className="w-full h-full rounded-lg overflow-hidden"></div>
+          </DialogContent>
+        </Dialog>
+
+
+        {/* ---- Chat Messages ---- */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.map((msg) => {
             const isMine = msg?.sender?.id === userId;
             return (
               <div
                 key={msg.id}
-                className={`flex flex-col ${
-                  isMine ? "items-end" : "items-start"
-                }`}
+                className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
               >
                 <span className="text-xs text-gray-500 mb-1">
                   {isMine ? "You" : msg?.sender?.username || "Unknown"}
@@ -212,22 +286,13 @@ useEffect(() => {
                   {msg.media_url && (
                     <>
                       {msg.message_type === "video" ? (
-                        <video
-                          src={msg.media_url}
-                          controls
-                          className="mt-2 rounded-md max-w-full"
-                        />
+                        <video src={msg.media_url} controls className="mt-2 rounded-md max-w-full" />
                       ) : (
-                        <img
-                          src={msg.media_url}
-                          alt="uploaded"
-                          className="mt-2 rounded-md max-w-full"
-                        />
+                        <img src={msg.media_url} alt="uploaded" className="mt-2 rounded-md max-w-full" />
                       )}
                     </>
                   )}
                 </div>
-                {/* Date + Time below bubble */}
                 <span className="text-[10px] text-gray-400 mt-1">
                   {new Date(msg.timestamp).toLocaleString("en-IN", {
                     day: "2-digit",
@@ -243,39 +308,24 @@ useEffect(() => {
           <div ref={messagesEndRef}></div>
         </div>
 
-        {/* ---- Preview of Pending File ---- */}
+        {/* ---- Pending File Preview ---- */}
         {pendingFile && (
           <div className="p-3 border-t bg-white flex items-center gap-4">
             {pendingFile.type.startsWith("image/") ? (
-              <img
-                src={previewURL}
-                alt="preview"
-                className="h-24 w-auto rounded-md border"
-              />
+              <img src={previewURL} alt="preview" className="h-24 w-auto rounded-md border" />
             ) : pendingFile.type.startsWith("video/") ? (
-              <video
-                src={previewURL}
-                controls
-                className="h-24 w-auto rounded-md border"
-              />
+              <video src={previewURL} controls className="h-24 w-auto rounded-md border" />
             ) : (
               <p className="text-sm">{pendingFile.name}</p>
             )}
-
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setPendingFile(null);
-                setPreviewURL("");
-              }}
-            >
+            <Button variant="destructive" onClick={() => { setPendingFile(null); setPreviewURL(""); }}>
               Cancel
             </Button>
             <Button onClick={handleSendPendingFile}>Send File</Button>
           </div>
         )}
 
-        {/* ---- Input & Upload ---- */}
+        {/* ---- Chat Input ---- */}
         <div className="p-4 border-t bg-white flex items-center space-x-2">
           <Input
             placeholder="Type a message..."
@@ -293,20 +343,23 @@ useEffect(() => {
           <label
             htmlFor="chat-upload"
             className={`cursor-pointer px-3 py-2 rounded-xl ${
-              uploading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gray-200 hover:bg-gray-300"
+              uploading ? "bg-gray-400 cursor-not-allowed" : "bg-gray-200 hover:bg-gray-300"
             }`}
           >
-            {uploading ? "⏳ Uploading..." : "📎"}
+            {uploading ? "⏳" : "📎"}
           </label>
           <Button onClick={() => handleSend()}>Send</Button>
         </div>
       </div>
-              {/* Members Modal */}
-      <Dialog open={membersModalOpen}
-         onOpenChange={(open) => {setMembersModalOpen(open);
-          if (open) loadMembers()}}>
+
+      {/* ---- Members Modal ---- */}
+      <Dialog
+        open={membersModalOpen}
+        onOpenChange={(open) => {
+          setMembersModalOpen(open);
+          if (open) loadMembers();
+        }}
+      >
         <DialogTrigger asChild>
           <Button variant="outline">Community Members</Button>
         </DialogTrigger>
@@ -314,40 +367,30 @@ useEffect(() => {
           <DialogHeader>
             <DialogTitle>Community Members</DialogTitle>
           </DialogHeader>
-
-          {/* Member List */}
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {members.length > 0 ? (
-              members.map((member) => (
-                <div
-                  key={member.email}
-                  className="flex items-center justify-between bg-gray-100 p-2 rounded-lg"
-                >
-                  <span>
-                    {member.username} ({member.email})
-                  </span>
-      
+              members.map((m) => (
+                <div key={m.email} className="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
+                  <span>{m.username} ({m.email})</span>
                 </div>
               ))
             ) : (
               <p className="text-sm text-gray-500 text-center">No members yet.</p>
             )}
           </div>
-          
-
         </DialogContent>
       </Dialog>
-      <Button
-          variant="outline"
-          onClick={() => setShowFeedbackModal(true)}
-        >
-          View My Feedback
-        </Button>
-            <FeedbackListModal
-              open={showFeedbackModal}
-              onOpenChange={setShowFeedbackModal}
-              communityId={communityId}
-            />
+
+      <Button variant="outline" onClick={() => setShowFeedbackModal(true)}>
+        View My Feedback
+      </Button>
+
+      <FeedbackListModal
+        open={showFeedbackModal}
+        onOpenChange={setShowFeedbackModal}
+        communityId={communityId}
+      />
+
 
     </LearnerLayout>
   );
