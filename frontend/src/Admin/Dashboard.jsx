@@ -197,7 +197,18 @@ useEffect(() => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                 {posts.map((post) => (
                   <Card key={post.id} className="shadow-lg rounded-2xl overflow-hidden">
-                    {/* Post Image */}
+                    {/* Post author info */}
+                    {post.user && (
+                      <div className="flex items-center p-3 gap-3">
+                        <img
+                          src={post.user.profile || "/default-avatar.png"} // fallback if no profile image
+                          alt={post.user.username}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <span className="font-semibold">{post.user.username}</span>
+                      </div>
+                    )}
+
                     {post.image && (
                       <img
                         src={post.image}
@@ -205,31 +216,28 @@ useEffect(() => {
                         className="w-full h-48 object-cover"
                       />
                     )}
-                    <strong   className="p-3 text-lg font-semibold"> {post.caption}</strong>  
+                    <CardContent className="p-3">
+                      <strong className="text-lg font-semibold">{post.caption}</strong>
 
-                    <div className="p-3 space-y-2">
-                      {/* Like & Comment Buttons */}
-                      <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center justify-between mt-3">
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" className="p-0" >
+                          <Button variant="ghost" size="sm" className="p-0">
                             {post.is_liked ? (
-                            <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                              <Heart className="w-5 h-5 text-red-500 fill-red-500" />
                             ) : (
                               <Heart className="w-5 h-5 text-gray-500" />
                             )}
                           </Button>
                           <span className="text-sm">{post.like_count} likes</span>
-
-
-  <Button
-    variant="outline"
-    size="sm"
-    onClick={() => handleDeletePost(post.id)}
-  >
-    Delete
-  </Button>
-
                         </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeletePost(post.id)}
+                        >
+                          Delete
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -238,38 +246,25 @@ useEffect(() => {
                         >
                           <MessageCircle className="w-5 h-5" />
                         </Button>
-
                       </div>
 
-                      {/* First Comment */}
-                      <div>
+                      <div className="mt-2">
                         {post.comments?.length > 0 ? (
-                          <>
-                            <p className="text-sm">
-                              <span className="font-semibold">
-                                {post.comments[0].user?.username}:
-                              </span>{" "}
-                              {post.comments[0].content}
-                            </p>
+                          <p className="text-sm text-gray-700">
+                            <span className="font-semibold">
+                              {post.comments[0].user?.username}:
+                            </span>{" "}
+                            {post.comments[0].content}
                             {post.comments.length > 1 && (
-                              <button
-                                onClick={() => setOpenPost(post)}
-                                className="text-xs text-gray-500 hover:underline"
-                              >
-                                View more comments
-                              </button>
+                              <span className="text-xs text-gray-500 ml-2">+ more</span>
                             )}
-                          </>
+                          </p>
                         ) : (
                           <p className="text-xs text-gray-400">No comments yet.</p>
                         )}
                       </div>
-                              
-                    
-                    </div>
-               
+                    </CardContent>
                   </Card>
-                  
                 ))}
 
 

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Heart, MessageCircle } from "lucide-react";
-import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost,  createCreatorPost,toggleCommentLike,fetchFollowers } from '../endpoints/axios';
+import { createComment, deletePost, imageUpload, updateCreatorProfile, updatePost,  createCreatorPost,toggleCommentLike,fetchFollowers,fetchReviews } from '../endpoints/axios';
 import { Loader} from '@/components/Layouts/Loader';
 import { Switch } from "@/components/ui/switch";
 
@@ -37,6 +37,7 @@ export default function CreatorProfile() {
   const [hasMore, setHasMore] = useState(true);
   const [isFollowersOpen, setIsFollowersOpen] = useState(false);
   const [followers, setFollowers] = useState([]);
+  const [reviews, setReviews] = useState([]);
 
   const pageSize = 6;
 
@@ -239,6 +240,7 @@ useEffect(() => {
   setNextPage(0);
   setHasMore(true);
   fetchPosts(0);
+  fetchCreatorReviews();
 }, [id]);
 
 
@@ -404,7 +406,15 @@ const handleCommentLikeToggle = async (postId, commentId) => {
   }
 };
 
-
+const fetchCreatorReviews = async () => {
+  try {
+    console.log("before fetch ",id)
+    const res = await fetchReviews(id);
+    setReviews(res.data.results || res.data); // depending on pagination
+  } catch (err) {
+    console.error("Error fetching reviews:", err);
+  }
+};
   if (loading) return <Loader text="Loading Profile..." />;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
@@ -989,7 +999,31 @@ const handleCommentLikeToggle = async (postId, commentId) => {
           </TabsContent>
 
           <TabsContent value="reviews">
-            <p className="text-muted-foreground text-center mt-6">No reviews yet.</p>
+              {/* Existing Reviews */}
+                  {reviews.length > 0 ? (
+                    reviews.map((rev) => (
+                      <Card key={rev.id} className="p-4 shadow rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-semibold">@{rev.user_username}</p>
+                            <div className="flex text-yellow-400">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <span key={star}>
+                                  {star <= rev.rating ? "★" : "☆"}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="text-sm text-gray-700 mt-1">{rev.comment}</p>
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            {new Date(rev.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </Card>
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500">No reviews yet.</p>
+                  )}
           </TabsContent>
         </Tabs>
       </div>

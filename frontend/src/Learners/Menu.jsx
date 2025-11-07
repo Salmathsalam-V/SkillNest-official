@@ -242,8 +242,10 @@ const filteredPosts = posts
         {/* Posts grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredPosts.length > 0 ? (
+            
             filteredPosts.map((post) => (
               <Card key={post.id} className="shadow-lg rounded-2xl overflow-hidden">
+                
                 <CardContent className="p-0">
                   {post.image && (
                     <img

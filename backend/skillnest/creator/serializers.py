@@ -37,7 +37,7 @@ class CommentSerializer(serializers.ModelSerializer):
     
 # --- Post Serializer ---
 class PostSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()
+    user = UserSerializer(read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     like_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()

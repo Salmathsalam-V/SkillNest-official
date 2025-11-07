@@ -36,7 +36,7 @@ const AdminLayout = ({ children }) => {
           </Button>
 
           {/* Menubar aligned to the right */}
-          <Menubar>
+          {/* <Menubar>
             <MenubarMenu>
               <MenubarTrigger>About</MenubarTrigger>
             </MenubarMenu>
@@ -46,7 +46,7 @@ const AdminLayout = ({ children }) => {
             <MenubarMenu>
               <MenubarTrigger>Profiles</MenubarTrigger>
             </MenubarMenu>
-          </Menubar>
+          </Menubar> */}
         </header>
 
         {/* ---- Scrollable content area ---- */}
