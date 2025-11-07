@@ -180,6 +180,15 @@ useEffect(() => {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+      <Card className="bg-yellow-50 border-none shadow-md hover:shadow-lg transition-shadow duration-300">
+  <CardHeader>
+    <CardTitle className="text-yellow-800">Total Revenue</CardTitle>
+  </CardHeader>
+  <CardContent className="text-3xl font-semibold text-yellow-900">
+    ₹{stats.total_revenue}
+  </CardContent>
+</Card>
+
       {/* Latest Posts */}
       <div className="space-y-4">
         <CardHeader><CardTitle>Latest Posts</CardTitle></CardHeader>
