@@ -861,3 +861,18 @@ export const fetchFeedbacks = async (communityId) => {
   }
 };
 
+export async function translateText(text, targetLang = "en") {
+  try {
+    const sourceLang = detect(text);
+    if (sourceLang === targetLang) return text;
+    const res = await axios.get("https://api.mymemory.translated.net/get", {
+      params: { q: text, langpair: `${sourceLang}|${targetLang}` },
+    });
+    return res.data?.responseData?.translatedText || text;
+  } catch (err) {
+    console.error("Translation failed:", err);
+    return text;
+  }
+}
+
+

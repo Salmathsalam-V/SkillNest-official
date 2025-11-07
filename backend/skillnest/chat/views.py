@@ -31,6 +31,10 @@ import hmac
 import hashlib
 import base64
 import time
+import httpx
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from asgiref.sync import sync_to_async
 
 import logging
 logger = logging.getLogger(__name__)
@@ -324,31 +328,39 @@ class ActiveMeetingView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
-# class CreateMeetingRoomView(APIView):
-#     permission_classes = [permissions.IsAuthenticated]
+@csrf_exempt
+async def translate_text(request):
+    try:
+        data = await sync_to_async(lambda: request.body)()
+        import json
+        data = json.loads(data.decode())
+        text = data.get("text")
+        target = data.get("target", "en")
 
-#     def post(self, request):
-#         serializer = CreateRoomSerializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         community_id = serializer.validated_data["community_id"]
+        if not text:
+            return JsonResponse({"error": "Missing text"}, status=400)
 
-#         room_name = f"community_{community_id}_{uuid.uuid4().hex[:8]}"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://libretranslate.de/translate",  # ✅ works without API key
+                json={
+                    "q": text,
+                    "source": "auto",  # works fine on libretranslate.de
+                    "target": target,
+                    "format": "text",
+                },
+                timeout=10.0,
+            )
 
-#         token = generate_zego_token(str(request.user.id), room_name)
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Translation API error {response.status_code}",
+                "details": response.text
+            }, status=response.status_code)
 
-#         meeting = Meeting.objects.create(
-#             host=request.user,
-#             community_id=community_id,
-#             room_name=room_name,
-#             domain="zegocloud",
-#             created_at=timezone.now(),
-#         )
+        result = response.json()
+        return JsonResponse({"translated": result.get("translatedText", text)})
 
-#         return Response({
-#             "roomName": room_name,
-#             "appID": 1551231778,
-#             "token": token,
-#             "meeting_id": str(meeting.id),
-#         }, status=status.HTTP_200_OK)
-
-
+    except Exception as e:
+        print("❌ Translation error:", e)
+        return JsonResponse({"error": str(e)}, status=500)
