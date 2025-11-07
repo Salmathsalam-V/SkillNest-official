@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload ,createMeetingRoom,editMeetingRoom,getActiveMeeting   } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload ,createMeetingRoom,editMeetingRoom,getActiveMeeting,translateText  } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import { toast } from 'sonner';
 import {
@@ -297,10 +297,23 @@ useEffect(() => {
   chatService.connect(community.uuid);
 
   // listen for messages
-  chatService.on("message", (message) => {
-    console.log("send messages compge: ",message)
-    setMessages(prev => [...prev, message]);
+  chatService.on("message", async (message) => {
+    console.log("📨 Received message:", message);
+
+    // Only translate if it’s text content
+    if (message.message_type === "text" && message.content) {
+      try {
+        const translated = await translateText(message.content, "en"); // or dynamic user language
+        message.translated = translated;
+      } catch (err) {
+        console.error("Translation failed:", err);
+        message.translated = message.content;
+      }
+    }
+
+    setMessages((prev) => [...prev, message]);
   });
+
 
   chatService.on("typing", (data) => {
     // optional: handle typing indicator
@@ -591,7 +604,17 @@ useEffect(() => {
               : "bg-gray-200 text-gray-900 rounded-bl-none"
           }`}
         >
-          {msg.content && <p>{msg.content}</p>}
+          {msg.translated ? (
+            <>
+              <p>{msg.translated}</p>
+              <p className="text-xs text-gray-400 italic mt-1">
+                (Original: {msg.content})
+              </p>
+            </>
+          ) : (
+            <p>{msg.content}</p>
+          )}
+
           {msg.media_url && (
             <>
               {msg.message_type === "video" ? (

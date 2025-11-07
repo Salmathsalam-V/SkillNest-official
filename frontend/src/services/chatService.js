@@ -21,11 +21,15 @@ export default {
     ws.onerror = (e) => emit("error", e);
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      console.log("data from chatservice",data)
-      if (data.type === "chat_message") emit("message", data.message);
+      if (data.type === "chat_message") {
+          emit("message", data.message);
+        } else if (data.type === "translation_update") {
+          emit("translation_update", { messageId: data.message_id, translated: data.translated });
+        }
       else if (data.type === "typing_indicator") emit("typing", data);
       else if (data.type === "user_status_update") emit("userStatus", data);
     };
+
   },
 
   sendMessage(roomUuid, content, type = "text", media_url = null) {
