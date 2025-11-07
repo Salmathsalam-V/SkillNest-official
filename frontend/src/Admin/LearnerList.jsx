@@ -170,7 +170,6 @@ const handleBlock = async (learnerId) => {
                 <TableCell>{learner.username}</TableCell>
                 <TableCell>{learner.fullname}</TableCell>
                 <TableCell>{learner.email}</TableCell>
-                <TableCell>{learner.is_block? "True": "False"}</TableCell>
                 <TableCell className="text-right space-x-2">
                   {/* <Button variant="outline" size="sm" onClick={() => handleEditClick(learner)}>
                     Edit

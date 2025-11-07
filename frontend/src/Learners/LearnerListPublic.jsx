@@ -79,12 +79,12 @@ export const LearnerListPublic = () => {
                 <p className="text-sm text-gray-600">
                   <strong>Email:</strong> {learner.email || "N/A"}
                 </p>
-                <Button
+                {/* <Button
                   variant="custom"
                   className="mt-2 "
                 >
                   Connect
-                </Button>
+                </Button> */}
               </CardContent>
             </Card>
           ))}

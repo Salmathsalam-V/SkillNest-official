@@ -363,11 +363,6 @@ useEffect(() => {
           ))}
         </div>
       </section>
-      
-      {/* Footer */}
-      <footer className="bg-[#2a9a93] text-white text-center py-4 mt-10 rounded">
-        <p>&copy; 2025 SkillNest | Empowering Creators and Learners</p>
-      </footer>
 
       
     </LearnerLayout>
