@@ -268,9 +268,7 @@ useEffect(() => {
             ) : (
               <p className="text-muted-foreground text-center mt-6">No posts available.</p>
             )}
-        <div className="text-center">
-          <Button onClick={loadMore}>Load More</Button>
-        </div>
+        
       </div>
                   {/* Comments modal (like PostsPage) */}
   <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>

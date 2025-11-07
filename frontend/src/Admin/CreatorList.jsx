@@ -140,7 +140,7 @@ const handleBlock = async (creatorId) => {
                   <TableCell>{creator.fullname}</TableCell>
                   <TableCell>{creator.email}</TableCell>
                   <TableCell>{creator.approve}</TableCell>
-                  <TableCell>{creator.has_paid? "True": "False"}</TableCell>
+                  <TableCell>{creator.has_paid? "Payed": "NotPayed"}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="outline" size="sm"onClick={() => handleBlock(creator.id)}>
                       {creator.is_block ? "Unblock" : "Block"}
