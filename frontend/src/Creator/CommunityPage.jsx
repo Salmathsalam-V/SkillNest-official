@@ -52,6 +52,9 @@ export const CommunityPage = () => {
   const meetingSocketRef = useRef(null);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [feedbackListModalOpen, setFeedbackListModalOpen] = useState(false);
+  const isCreator = 
+  community?.created_by?.id === userId ||
+  community?.community?.creator?.id === userId;
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -695,6 +698,7 @@ useEffect(() => {
     </div>
     </div>
     {/* Members Modal */}
+    {isCreator ? (
       <Dialog open={membersModalOpen}
          onOpenChange={(open) => {setMembersModalOpen(open);
           if (open) loadMembers()}}>
@@ -761,6 +765,36 @@ useEffect(() => {
             )}
           </div>
         </DialogContent>
+              </Dialog>
+    ) : 
+    <Dialog
+            open={membersModalOpen}
+            onOpenChange={(open) => {
+              setMembersModalOpen(open);
+              if (open) loadMembers();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline">Community Members</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Community Members</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {members.length > 0 ? (
+                  members.map((m) => (
+                    <div key={m.email} className="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
+                      <span>{m.username} ({m.email})</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 text-center">No members yet.</p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+    }
       {/* Feedback options */}
       {(community?.created_by?.id === userId ||
         community?.community?.creator?.id === userId) ? (
@@ -781,7 +815,6 @@ useEffect(() => {
         </Button>
       )}
 
-      </Dialog>
      
       <FeedbackModal
         open={feedbackModalOpen}

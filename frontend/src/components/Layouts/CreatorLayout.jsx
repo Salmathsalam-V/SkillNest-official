@@ -20,15 +20,19 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Footer from './Footer';
 import { useSelector } from "react-redux";
- import { useNotifications } from "@/components/hooks/useNotifications"
- import { NotificationDropdown } from "@/components/Layouts/NotificationDropdown"
+import { useNotifications } from "@/components/hooks/useNotifications"
+import { NotificationDropdown } from "@/components/Layouts/NotificationDropdown"
 import { getNotifications } from '@/endpoints/axios';
+import InviteModal from "@/components/Layouts/InviteModal";
+import { Bell } from "lucide-react";
+
 
 const CreatorLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   const notifications = useNotifications();
   const [history, setHistory] = useState([]);
@@ -93,6 +97,12 @@ const allNotifications = [...normalizedLive, ...normalizedHistory];
                 <NotificationDropdown notifications={allNotifications} />
               </MenubarTrigger>
             </MenubarMenu>
+            <MenubarMenu>
+              <MenubarTrigger onClick={() => setInviteModalOpen(true)}>
+                <Bell className="w-5 h-5 cursor-pointer" />
+              </MenubarTrigger>
+            </MenubarMenu>
+            <InviteModal open={inviteModalOpen} setOpen={setInviteModalOpen} />
             <MenubarMenu>
               <MenubarTrigger
                 onClick={() => navigate(`/creator-profile/${userId}`)}
