@@ -151,7 +151,7 @@ export const CommunityPageLearner = () => {
 
   useEffect(() => {
     checkActiveMeeting(); // check once initially
-    const interval = setInterval(checkActiveMeeting, 15000);
+    const interval = setInterval(checkActiveMeeting, 10000);
     return () => clearInterval(interval);
   }, []);
   // Function to initialize Zego meeting

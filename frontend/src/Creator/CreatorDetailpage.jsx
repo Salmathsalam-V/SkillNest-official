@@ -407,7 +407,7 @@ useEffect(() => {
                               <span className="font-semibold">
                                 {post.comments[0].user.username}:
                               </span>{" "}
-                              {post.comments[0].content}
+                              {post.comments[0].content[20]}...
                             </p>
                             {post.comments.length > 1 && (
                               <button
@@ -524,141 +524,241 @@ useEffect(() => {
             </Dialog>
           </TabsContent>
 
-        <TabsContent value="courses">
-          {Array.isArray(courses) && courses.length > 0 ? (
+          <TabsContent value="courses">
+            {Array.isArray(courses) && courses.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              {courses.map((course) => (
-                <Card
-                  key={course.id}
-                  className="shadow-lg rounded-2xl overflow-hidden"
-                >
-                  {/* Course Thumbnail */}
-                  {course.image && (
-                    <img
-                      src={course.image}
-                      alt="Course"
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
+                {courses.map((course) => (
+                  <Card key={course.id} className="shadow-lg rounded-2xl overflow-hidden">
+                    {/* Course Thumbnail */}
+                    {course.image && (
+                      <img
+                        src={course.image}
+                        alt="Course"
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
 
-                  <div className="p-3 space-y-2">
-                    {/* Course Title & Caption */}
-                    <h3 className="text-lg font-semibold">{course.caption}</h3>
-                    
+                    <div className="p-3 space-y-2">
+                      {/* Course Title */}
+                      <h3 className="text-lg font-semibold">{course.caption}</h3>
 
-                    {/* Rating stars */}
-                    {/* <div className="flex gap-1 mt-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span
-                          key={star}
-                          className={`text-lg ${
-                            star <= course.rating ? "text-yellow-400" : "text-gray-300"
-                          }`}
+                      {/* Like & Comment Buttons */}
+                      <div className="flex items-center justify-between w-full mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0"
+                          onClick={() => handleLikeToggle(course.id)}
                         >
-                          ★
-                        </span>
-                      ))}
-                    </div> */}
+                          {course.is_liked ? (
+                            <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                          ) : (
+                            <Heart className="w-5 h-5 text-gray-500" />
+                          )}
+                        </Button>
+                        <span className="text-sm">{course.like_count} likes</span>
 
-                    {/* Like & Comment Buttons */}
-                    <div className="flex items-center justify-between w-full mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-0"
-                        onClick={() => handleLikeToggle(course.id)}
-                      >
-                        {course.is_liked ? (
-                          <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0"
+                          onClick={() => setOpenPost(course)}
+                        >
+                          <MessageCircle className="w-5 h-5" />
+                        </Button>
+
+                        {/* Report Menu */}
+                        <Menu as="div" className="relative inline-block text-left">
+                          <Menu.Button className="p-1 rounded-full hover:bg-gray-200">
+                            <MoreHorizontal className="w-5 h-5" />
+                          </Menu.Button>
+                          <Menu.Items className="absolute right-0 mt-2 w-28 bg-white border rounded-md shadow-lg focus:outline-none z-50">
+                            <Menu.Item>
+                              {({ active }) => (
+                                <button
+                                  className={`${active ? "bg-gray-100" : ""} block w-full text-left px-4 py-2 text-sm text-gray-700`}
+                                  onClick={() => handleOpenReportModal(course.id)}
+                                >
+                                  Report
+                                </button>
+                              )}
+                            </Menu.Item>
+                          </Menu.Items>
+                        </Menu>
+                      </div>
+
+                      {/* Preview of first comment */}
+                      <div>
+                        {course.comments?.length > 0 ? (
+                          <>
+                            <p className="text-sm">
+                              <span className="font-semibold">
+                                {course.comments[0].user.username}:
+                              </span>{" "}
+                              {course.comments[0].content}
+                            </p>
+                            {course.comments.length > 1 && (
+                              <button
+                                onClick={() => setOpenPost(course)}
+                                className="text-xs text-gray-500 hover:underline"
+                              >
+                                View more comments
+                              </button>
+                            )}
+                          </>
                         ) : (
-                          <Heart className="w-5 h-5 text-gray-500" />
+                          <p className="text-xs text-gray-400">No comments yet.</p>
                         )}
-                      </Button>
-                      <span className="text-sm">{course.like_count} likes</span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center mt-6">No courses yet.</p>
+            )}
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-0"
-                        onClick={() => setOpenPost(course)}
-                      >
-                        <MessageCircle className="w-5 h-5" />
+            {/* ✅ Reuse the same comment Dialog as posts */}
+            <Dialog open={!!openPost} onOpenChange={() => setOpenPost(null)}>
+              <DialogContent className="max-h-[80vh] overflow-y-auto max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Comments</DialogTitle>
+                </DialogHeader>
+                {openPost && (
+                  <div className="space-y-3">
+                    {openPost.image && (
+                      <img
+                        src={openPost.image}
+                        alt="Course"
+                        className="rounded-lg w-full mb-2"
+                      />
+                    )}
+                    <p className="text-gray-700">{openPost.caption}</p>
+
+                    {/* Comments list */}
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {openPost.comments?.length > 0 ? (
+                        openPost.comments.map((comment) => (
+                          <div
+                            key={comment.id}
+                            className="border-b pb-1 flex justify-between items-center"
+                          >
+                            <div>
+                              <p className="text-sm font-semibold">
+                                {comment.user?.username}
+                              </p>
+                              <p className="text-sm text-gray-600">{comment.content}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="p-0"
+                                onClick={() =>
+                                  handleCommentLikeToggle(openPost.id, comment.id)
+                                }
+                              >
+                                {comment.is_liked ? (
+                                  <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                                ) : (
+                                  <Heart className="w-4 h-4 text-gray-500" />
+                                )}
+                              </Button>
+                              <span className="text-xs">{comment.like_count}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400">No comments yet.</p>
+                      )}
+                    </div>
+
+                    {/* Add Comment */}
+                    <div className="flex items-center gap-2 mt-3">
+                      <Textarea
+                        placeholder="Write a comment..."
+                        value={commentText[openPost.id] || ""}
+                        onChange={(e) =>
+                          setCommentText({
+                            ...commentText,
+                            [openPost.id]: e.target.value,
+                          })
+                        }
+                        className="flex-1"
+                      />
+                      <Button onClick={() => handleCommentSubmit(openPost.id)}>
+                        Post
                       </Button>
                     </div>
                   </div>
-                </Card>
-              ))}
-            </div>
-            
-          ) : (
-          <p className="text-muted-foreground text-center mt-6">
-              No courses yet.
-            </p>
-          )}
-        </TabsContent>
+                )}
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
+
 
 
         <TabsContent value="reviews">
-  <div className="mt-6 space-y-6">
-    {/* Existing Reviews */}
-    {reviews.length > 0 ? (
-      reviews.map((rev) => (
-        <Card key={rev.id} className="p-4 shadow rounded-lg">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="font-semibold">@{rev.user_username}</p>
-              <div className="flex text-yellow-400">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span key={star}>
-                    {star <= rev.rating ? "★" : "☆"}
-                  </span>
-                ))}
-              </div>
-              <p className="text-sm text-gray-700 mt-1">{rev.comment}</p>
-            </div>
-            <p className="text-xs text-gray-400">
-              {new Date(rev.created_at).toLocaleDateString()}
-            </p>
-          </div>
-        </Card>
-      ))
-    ) : (
-      <p className="text-center text-gray-500">No reviews yet.</p>
-    )}
+          <div className="mt-6 space-y-6">
+            {/* Existing Reviews */}
+            {reviews.length > 0 ? (
+              reviews.map((rev) => (
+                <Card key={rev.id} className="p-4 shadow rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold">@{rev.user_username}</p>
+                      <div className="flex text-yellow-400">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span key={star}>
+                            {star <= rev.rating ? "★" : "☆"}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-700 mt-1">{rev.comment}</p>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {new Date(rev.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <p className="text-center text-gray-500">No reviews yet.</p>
+            )}
 
-    {/* Add New Review Form */}
-    {user && (
-      <Card className="p-4 shadow-md">
-        <h3 className="font-semibold mb-2">Leave a Review</h3>
-        <div className="flex gap-2 mb-3">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <span
-              key={star}
-              onClick={() =>
-                setNewReview((prev) => ({ ...prev, rating: star }))
-              }
-              className={`cursor-pointer text-2xl ${
-                star <= newReview.rating ? "text-yellow-400" : "text-gray-300"
-              }`}
-            >
-              ★
-            </span>
-          ))}
-        </div>
-        <Textarea
-          placeholder="Write your review..."
-          value={newReview.comment}
-          onChange={(e) =>
-            setNewReview((prev) => ({ ...prev, comment: e.target.value }))
-          }
-        />
-        <div className="flex justify-end mt-3">
-          <Button onClick={handleReviewSubmit}>Submit Review</Button>
-        </div>
-      </Card>
-    )}
-  </div>
-</TabsContent>
+            {/* Add New Review Form */}
+            {user && (
+              <Card className="p-4 shadow-md">
+                <h3 className="font-semibold mb-2">Leave a Review</h3>
+                <div className="flex gap-2 mb-3">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span
+                      key={star}
+                      onClick={() =>
+                        setNewReview((prev) => ({ ...prev, rating: star }))
+                      }
+                      className={`cursor-pointer text-2xl ${
+                        star <= newReview.rating ? "text-yellow-400" : "text-gray-300"
+                      }`}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+                <Textarea
+                  placeholder="Write your review..."
+                  value={newReview.comment}
+                  onChange={(e) =>
+                    setNewReview((prev) => ({ ...prev, comment: e.target.value }))
+                  }
+                />
+                <div className="flex justify-end mt-3">
+                  <Button onClick={handleReviewSubmit}>Submit Review</Button>
+                </div>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
 
       </Tabs>
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>

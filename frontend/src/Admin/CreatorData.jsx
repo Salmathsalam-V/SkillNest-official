@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AdminLayout from '@/components/Layouts/AdminLayout';
-import { toggleLike,createComment,toggleCommentLike,get_course,creatorData,getCreatorPosts,approveCreator,rejectCreator  } from '../endpoints/axios';
+import { toggleLike,createComment,toggleCommentLike,get_course,creatorData,getCreatorPosts,approveCreator,rejectCreator ,fetchReviews } from '../endpoints/axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Heart, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner'; 
 import { Loader }  from '@/components/Layouts/Loader';
-
+import axios from 'axios';
 
 export function CreatorData() {
   const { id } = useParams();
@@ -22,6 +22,7 @@ export function CreatorData() {
   const [courses, setCourses] = useState([]);
   const [posts, setPosts] = useState([]);
   const [commentText, setCommentText] = useState({});
+  const [reviews, setReviews] = useState([]);
   
   useEffect(() => {
     const fetchCreator = async () => {
@@ -44,6 +45,8 @@ export function CreatorData() {
     };
 
     fetchCreator();
+    fetchCreatorReviews();
+
   }, [id]);
 
     useEffect(() => {
@@ -54,7 +57,7 @@ export function CreatorData() {
       setPosts(resPosts.data || []);
       console.log("creatoriid : ", id);
       try{
-        const resCourses = await get_course(id);
+        const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
         setCourses(resCourses || []);
         console.log("Courses fetched:", courses,resCourses[0]);
 
@@ -175,6 +178,15 @@ const handleCommentLikeToggle = async (postId, commentId) => {
   } catch (err) {
     console.log("Comment like toggle error:", err);
     toast.error("Failed to like comment");
+  }
+};
+const fetchCreatorReviews = async () => {
+  try {
+    console.log("before fetch ",id)
+    const res = await fetchReviews(id);
+    setReviews(res.data.results || res.data); // depending on pagination
+  } catch (err) {
+    console.error("Error fetching reviews:", err);
   }
 };
 
@@ -414,9 +426,9 @@ const handleCommentLikeToggle = async (postId, commentId) => {
                   className="shadow-lg rounded-2xl overflow-hidden"
                 >
                   {/* Course Thumbnail */}
-                  {course.post.image && (
+                  {course.image && (
                     <img
-                      src={course.post.image}
+                      src={course.image}
                       alt="Course"
                       className="w-full h-48 object-cover"
                     />
@@ -424,11 +436,11 @@ const handleCommentLikeToggle = async (postId, commentId) => {
 
                   <div className="p-3 space-y-2">
                     {/* Course Title & Caption */}
-                    <h3 className="text-lg font-semibold">{course.post.caption}</h3>
+                    <h3 className="text-lg font-semibold">{course.caption}</h3>
                     
 
                     {/* Rating stars */}
-                    <div className="flex gap-1 mt-2">
+                    {/* <div className="flex gap-1 mt-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <span
                           key={star}
@@ -439,7 +451,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
                           ★
                         </span>
                       ))}
-                    </div>
+                    </div> */}
 
                     {/* Like & Comment Buttons */}
                     <div className="flex items-center justify-between w-full mt-2">
@@ -470,6 +482,7 @@ const handleCommentLikeToggle = async (postId, commentId) => {
                 </Card>
               ))}
             </div>
+            
           ) : (
           <p className="text-muted-foreground text-center mt-6">
               No courses yet.
@@ -478,8 +491,35 @@ const handleCommentLikeToggle = async (postId, commentId) => {
         </TabsContent>
 
         <TabsContent value="reviews">
-          <p className="text-muted-foreground text-center mt-6">No reviews yet.</p>
-        </TabsContent>
+<div className="mt-6 space-y-6">
+    {/* Existing Reviews */}
+    {reviews.length > 0 ? (
+      reviews.map((rev) => (
+        <Card key={rev.id} className="p-4 shadow rounded-lg">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="font-semibold">@{rev.user_username}</p>
+              <div className="flex text-yellow-400">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span key={star}>
+                    {star <= rev.rating ? "★" : "☆"}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm text-gray-700 mt-1">{rev.comment}</p>
+            </div>
+            <p className="text-xs text-gray-400">
+              {new Date(rev.created_at).toLocaleDateString()}
+            </p>
+          </div>
+        </Card>
+      ))
+    ) : (
+      <p className="text-center text-gray-500">No reviews yet.</p>
+    )}
+
+  </div>
+          </TabsContent>
       </Tabs>
     </div>
     </AdminLayout>
