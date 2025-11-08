@@ -247,6 +247,17 @@ const filteredPosts = posts
               <Card key={post.id} className="shadow-lg rounded-2xl overflow-hidden">
                 
                 <CardContent className="p-0">
+                  {/* Post author info */}
+                {post.user && (
+                  <div className="flex items-center p-3 gap-3">
+                    <img
+                      src={post.user.profile || "/default-avatar.png"} // fallback if no profile image
+                      alt={post.user.username}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <span className="font-semibold">{post.user.username}</span>
+                  </div>
+                )}
                   {post.image && (
                     <img
                       src={post.image}
@@ -313,7 +324,7 @@ const filteredPosts = posts
                           <span className="font-semibold">
                             {post.comments[0].user?.username}:
                           </span>{" "}
-                          {post.comments[0].content}
+                          {post.comments[0].content[70]}...
                         </p>
                         {post.comments.length > 1 && (
                           <button
