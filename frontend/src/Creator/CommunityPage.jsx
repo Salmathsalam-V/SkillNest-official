@@ -52,6 +52,9 @@ export const CommunityPage = () => {
   const meetingSocketRef = useRef(null);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [feedbackListModalOpen, setFeedbackListModalOpen] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+ // track who is typing
+  const typingTimeoutRef = useRef(null);
   const isCreator = 
   community?.created_by?.id === userId ||
   community?.community?.creator?.id === userId;
@@ -304,12 +307,43 @@ useEffect(() => {
     console.log("send messages compge: ",message)
     setMessages(prev => [...prev, message]);
   });
-
   chatService.on("typing", (data) => {
-    // optional: handle typing indicator
+    const { user_id, username, is_typing } = data;
+
+    if (user_id === userId) return; // ignore yourself
+    console.log("Typing data received:", data);
+    console.log("Current typingUsers before update:",username , is_typing);
+    setTypingUsers((prev) => {
+      if (is_typing) {
+        // add user if not already in list
+        if (!prev.includes(username)) return [...prev, username];
+        return prev;
+      } else {
+        // remove user
+        return prev.filter((u) => u !== username);
+      }
+    });
   });
 
+  // chatService.on("typing", (data) => {
+  //   // optional: handle typing indicator
+  // });
+
   chatService.on("userStatus", (data) => {
+    if (data.is_typing !== undefined) {
+      // This is a typing event
+      console.log(`${data.username} is typing?`, data.is_typing);
+       
+        setTypingUsers(prev => {
+          const newSet = new Set(prev);
+          if (data.is_typing) newSet.add(data.username);
+          else newSet.delete(data.username);
+          return newSet;
+        });
+      } else if (data.status) {
+    // This is online/offline
+    console.log(`${data.username} is ${data.status}`);
+  }
     // optional: handle online/offline updates
   });
 
@@ -518,6 +552,21 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, []);
 
+const handleTyping = (e) => {
+  setNewMessage(e.target.value);
+
+  // Notify others that this user is typing
+  chatService.sendTyping(true);
+
+  // Clear previous timeout
+  if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+  // Stop typing after 2 seconds of inactivity
+  typingTimeoutRef.current = setTimeout(() => {
+    chatService.sendTyping(false);
+  }, 2000);
+};
+
   if (!community) return <Loader text="Loading Chats..." />; 
   
 
@@ -619,8 +668,16 @@ useEffect(() => {
       </div>
     );
   })}
+  p
+ <div className="text-sm text-gray-500 mt-1">
+  {Array.from(typingUsers).length > 0 && (
+    <span>{Array.from(typingUsers).join(", ")} is typing...</span>
+  )}
+</div>
 
   <div ref={messagesEndRef}></div>
+ 
+
 </div>
 
 
@@ -659,7 +716,7 @@ useEffect(() => {
       <Input
         placeholder="Type a message..."
         value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
+        onChange={handleTyping}
         onKeyDown={(e) => e.key === "Enter" && handleSend()}
       />
      {/* <input

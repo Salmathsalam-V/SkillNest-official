@@ -95,16 +95,30 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
 
         # Look for various possible envelope keys
         envelope = data.get("type") or data.get("action") or data.get("event")
-        # message_type is explicit OR fallback to envelope when envelope is a known message type
-        message_type = data.get("message_type") or (envelope if envelope in ("text", "image", "video", "file") else None) or "text"
-
-        logger.warning(f"Received envelope={envelope} message_type={message_type} from user {self.user.id}: {data}")
-
-        # If it's a chat message (either explicit envelope or a known message_type), handle it
-        if envelope == "chat_message" or message_type in ("text", "image", "video", "file"):
-            await self.handle_chat_message(data, message_type=message_type)
+        if envelope == "typing":
+            await self.handle_typing(data)
         else:
-            logger.warning(f"Unknown/unsupported action/type received: {envelope}")
+            # message_type is explicit OR fallback to envelope when envelope is a known message type
+            message_type = data.get("message_type") or (envelope if envelope in ("text", "image", "video", "file") else None) or "text"
+
+            logger.warning(f"Received envelope={envelope} message_type={message_type} from user {self.user.id}: {data}")
+
+            # If it's a chat message (either explicit envelope or a known message_type), handle it
+            if envelope == "chat_message" or message_type in ("text", "image", "video", "file"):
+                await self.handle_chat_message(data, message_type=message_type)
+            else:
+                logger.warning(f"Unknown/unsupported action/type received: {envelope}")
+    async def handle_typing(self, data):
+        is_typing = data.get("is_typing", False)
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "user_status_update",  # reuse user_status_update
+                "user_id": self.user.id,
+                "username": self.user.username,
+                "is_typing": is_typing,
+            }
+        )
 
     async def chat_message(self, event):
         """
@@ -184,12 +198,17 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
         presence.save()
     
     async def user_status_update(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "user_status_update",
-            "user_id": event["user_id"],
-            "username": event["username"],
-            "status": event["status"],
-        }))
+        payload = {
+        "type": "user_status_update",
+        "user_id": event["user_id"],
+        "username": event["username"],
+        }
+        if "status" in event:
+            payload["status"] = event["status"]
+        if "is_typing" in event:
+            payload["is_typing"] = event["is_typing"]
+
+        await self.send(text_data=json.dumps(payload))
 
 class CommunityMeetConsumer(AsyncWebsocketConsumer):
     async def connect(self):
