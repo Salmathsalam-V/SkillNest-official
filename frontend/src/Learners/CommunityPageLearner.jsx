@@ -37,6 +37,9 @@ export const CommunityPageLearner = () => {
   const [isMeetingOpen, setIsMeetingOpen] = useState(false);
   const [meetingInfo, setMeetingInfo] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+  
+  const typingTimeoutRef = useRef(null);
 
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
@@ -196,6 +199,68 @@ export const CommunityPageLearner = () => {
     }
   }, [isMeetingOpen, meetingInfo]);
 
+  useEffect(() => {
+  if (!community?.uuid) return;
+
+  chatService.connect(community.uuid);
+
+  chatService.on("message", (msg) => setMessages((prev) => [...prev, msg]));
+
+  chatService.on("typing", (data) => {
+      const { user_id, username, is_typing } = data;
+  
+      if (user_id === userId) return; // ignore yourself
+      console.log("Typing data received:", data);
+      console.log("Current typingUsers before update:",username , is_typing);
+      setTypingUsers((prev) => {
+        if (is_typing) {
+          // add user if not already in list
+          if (!prev.includes(username)) return [...prev, username];
+          return prev;
+        } else {
+          // remove user
+          return prev.filter((u) => u !== username);
+        }
+      });
+    });
+    chatService.on("userStatus", (data) => {
+      if (data.is_typing !== undefined) {
+        // This is a typing event
+        console.log(`${data.username} is typing?`, data.is_typing);
+          
+          setTypingUsers(prev => {
+            const newSet = new Set(prev);
+            if (data.is_typing) newSet.add(data.username);
+            else newSet.delete(data.username);
+            return newSet;
+          });
+        } else if (data.status) {
+      // This is online/offline
+      console.log(`${data.username} is ${data.status}`);
+    }
+      // optional: handle online/offline updates
+    });
+
+  return () => chatService.disconnect();
+}, [community?.uuid]);
+
+
+  const handleTyping = (e) => {
+  setNewMessage(e.target.value);
+
+  // Notify others that this user is typing
+  chatService.sendTyping(true);
+
+  // Clear previous timeout
+  if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+  // Stop typing after 2 seconds of inactivity
+  typingTimeoutRef.current = setTimeout(() => {
+    chatService.sendTyping(false);
+  }, 2000);
+};
+
+
   if (!community) return <p>Loading community...</p>;
 
   return (
@@ -305,6 +370,14 @@ export const CommunityPageLearner = () => {
               </div>
             );
           })}
+          <div className="text-sm text-gray-500 mt-1">
+            {typingUsers.size > 0 && (
+            <p className="text-sm text-gray-500">
+              {Array.from(typingUsers).join(", ")} {typingUsers.size > 1 ? "are" : "is"} typing...
+            </p>
+          )}
+          </div>
+
           <div ref={messagesEndRef}></div>
         </div>
 
@@ -330,7 +403,7 @@ export const CommunityPageLearner = () => {
           <Input
             placeholder="Type a message..."
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleTyping}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
           />
           <input

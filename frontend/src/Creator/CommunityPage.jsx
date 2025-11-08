@@ -668,12 +668,14 @@ const handleTyping = (e) => {
       </div>
     );
   })}
-  p
- <div className="text-sm text-gray-500 mt-1">
-  {Array.from(typingUsers).length > 0 && (
-    <span>{Array.from(typingUsers).join(", ")} is typing...</span>
-  )}
-</div>
+  
+          <div className="text-sm text-gray-500 mt-1">
+            {typingUsers.size > 0 && (
+            <p className="text-sm text-gray-500">
+              {Array.from(typingUsers).join(", ")} {typingUsers.size > 1 ? "are" : "is"} typing...
+            </p>
+          )}
+          </div>
 
   <div ref={messagesEndRef}></div>
  
