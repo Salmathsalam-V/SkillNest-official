@@ -92,12 +92,7 @@ export const Home = () => {
         <p className="text-lg text-gray-100 font-medium italic drop-shadow-md">
           — Here is your skill-sharpening Nest.
         </p>
-        <Button
-          className="mt-4 px-6 py-3 rounded-full text-md font-semibold bg-white text-purple-700 hover:bg-gray-100 shadow-xl transition-all duration-300"
-          onClick={() => navigate('/creators')}
-        >
-          Explore Creators <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+       
       </div>
     </div>
 

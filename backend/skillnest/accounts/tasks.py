@@ -30,12 +30,12 @@ The SkillNest Support Team
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user_email])
 
 @shared_task
-def send_payment_reply_email(user_email, user_name, admin_reply):
-    subject = "Payment Aknowledge from SkillNest"
+def send_payment_reply_email(user_email, user_name, email_msg):
+    subject = "Payment Acknowledgement from SkillNest"
     message = f"""
 Hi {user_name},
 
-Thanks for be a part us.
+Thanks for being a part of us.
 
 Your payment has been received successfully.
 ------------------------------------
@@ -45,5 +45,4 @@ Your payment has been received successfully.
 Best,
 The SkillNest Support Team
 """
-
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user_email])

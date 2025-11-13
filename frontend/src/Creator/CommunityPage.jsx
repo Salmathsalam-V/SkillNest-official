@@ -477,11 +477,11 @@ const startZegoCall = async () => {
 
     // ✅ Check if container exists
     const container = document.getElementById("zego-container");
-    // if (!container) {
-    //   console.error("Zego container not found!");
-    //   toast.error("Video container not ready");
-    //   return;
-    // }
+    if (!container) {
+      console.error("Zego container not found!");
+      // toast.error("Video container not ready");
+      return;
+    }
 
     // ✅ Create ZegoUIKitPrebuilt instance
     const zp = ZegoUIKitPrebuilt.create(kitToken);
