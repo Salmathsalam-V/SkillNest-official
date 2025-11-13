@@ -87,6 +87,18 @@ useEffect(() => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {posts.map((post) => (
               <Card key={post.id} className="shadow-lg rounded-2xl overflow-hidden">
+                {/* Post author info */}
+                {post.user && (
+                  <div className="flex items-center p-3 gap-3">
+                    <img
+                      src={post.user.profile || "/default-avatar.png"} // fallback if no profile image
+                      alt={post.user.username}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <span className="font-semibold">{post.user.username}</span>
+                  </div>
+                )}
+
                 {post.image && (
                   <img
                     src={post.image}
@@ -117,13 +129,13 @@ useEffect(() => {
                       Delete
                     </Button>
                     <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-0"
-                          onClick={() => setOpenPost(post)}
-                        >
-                          <MessageCircle className="w-5 h-5" />
-                        </Button>
+                      variant="ghost"
+                      size="sm"
+                      className="p-0"
+                      onClick={() => setOpenPost(post)}
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                    </Button>
                   </div>
 
                   <div className="mt-2">
@@ -144,6 +156,7 @@ useEffect(() => {
                 </CardContent>
               </Card>
             ))}
+
           </div>
         ) : (
           <p className="text-center text-gray-500">No posts available.</p>

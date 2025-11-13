@@ -38,6 +38,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 import razorpay
 from django.db import transaction
 from django.conf import settings
+from accounts.tasks import send_admin_reply_email, send_payment_reply_email
 
 import logging
 logger = logging.getLogger(__name__)
@@ -483,7 +484,7 @@ class VerifyPaymentView(APIView):
                     status="success",
                     amount=amount,
                 )
-
+                logger.info(f"Payment record created for user: {user.email if user else 'Guest'}, amount: {amount}")
                 # ✅ Upgrade user if learner → creator
                 if user and user.user_type == "learner":
                     user.user_type = "creator"
@@ -493,9 +494,17 @@ class VerifyPaymentView(APIView):
                     # Create Creator profile only if not exists
                     Creator.objects.get_or_create(user=user)
                     message = "Payment verified successfully! You’ve been upgraded to Creator. Please wait for admin approval before logging in."
+                    email_msg = f"Your payment of ₹{amount} has been received successfully. You have been upgraded to a Creator account. Please wait for admin approval before logging in."
+                    send_admin_reply_email.delay(user.email, user.fullname, email_msg)        
+
                 else:
                     message = "Payment verified successfully."
+                    email_msg = f"Your payment of ₹{amount} has been received successfully. You have been registered as Creator. Please wait for admin approval before logging in."
+                    send_admin_reply_email.delay(user.email, user.fullname, email_msg)
+
                 logger.info(message)
+                # Send admin reply email asynchronously
+
             return Response({"status": message}, status=status.HTTP_200_OK)
 
         except razorpay.errors.SignatureVerificationError:

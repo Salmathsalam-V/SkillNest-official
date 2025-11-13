@@ -21,6 +21,7 @@ from django.utils import timezone
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 from accounts.tasks import send_admin_reply_email
+from django.db.models import Sum
 
 import logging
 logger = logging.getLogger(__name__)
@@ -174,11 +175,13 @@ class DashboardStatsView(APIView):
             .annotate(count=Count('id'))
             .order_by('date')
         )
+        total_revenue = Payment.objects.aggregate(total=Sum('amount'))['total'] or 0
+
         payment_growth = (
             Payment.objects
             .annotate(date=TruncDate('created_at'))
             .values('date')
-            .annotate(count=Count('id'))
+            .annotate(amount=Sum('amount'))
             .order_by('date')
         )
         logger.info(f"User Growth Data: {user_growth}")
@@ -189,6 +192,7 @@ class DashboardStatsView(APIView):
             "creators": creators,
             "learners": learners,
             "communities": communities,
+            "total_revenue": total_revenue,
             "user_growth": [
                 {"date": item["date"].strftime("%Y-%m-%d"), "count": item["count"]}
                 for item in user_growth
@@ -197,8 +201,8 @@ class DashboardStatsView(APIView):
                 {"date": item["date"].strftime("%Y-%m-%d"), "count": item["count"]}
                 for item in community_growth
             ],
-            "payment_growth":[
-                {"date": item["date"].strftime("%Y-%m-%d"), "count": item["count"]}
+            "payment_growth": [
+                {"date": item["date"].strftime("%Y-%m-%d"), "amount": item["amount"]}
                 for item in payment_growth
             ],
         }

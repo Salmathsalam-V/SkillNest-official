@@ -14,7 +14,7 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { Loader }  from '@/components/Layouts/Loader';
 import { toast } from "sonner";
 import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal";
-
+import { useSelector } from "react-redux";
 export const CommunityList = () => {
   const [communities, setCommunities] = useState([]);
   const [users, setUsers] = useState([]);
@@ -27,10 +27,12 @@ export const CommunityList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false); // modal state
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
+  const user = useSelector((state) => state.user.user); // current logged in user
 
   const navigate = useNavigate();
   const LIMIT = 6;
 
+  
   // Fetch communities and users
  useEffect(() => {
     const loadData = async () => {
@@ -143,6 +145,13 @@ const confirmDelete = async () => {
     setDeleteId(null);
   }
 };
+const createdByMe = communities.filter(
+  (c) => c.creator?.id === user.id
+);
+
+const memberOf = communities.filter(
+  (c) => c.creator?.id !== user.id && c.members?.some((m) => m.id === user.id)
+);
 
   if (loading) return <Loader text="Loading communities..." />; // or redirect to login
 
@@ -202,7 +211,7 @@ const confirmDelete = async () => {
           onClose={() => setDeleteId(null)} 
           onConfirm={confirmDelete} 
         />
-
+        
        {/* Create Community Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="max-h-[80vh] overflow-y-auto">

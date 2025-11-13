@@ -52,6 +52,12 @@ export const CommunityPage = () => {
   const meetingSocketRef = useRef(null);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [feedbackListModalOpen, setFeedbackListModalOpen] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+ // track who is typing
+  const typingTimeoutRef = useRef(null);
+  const isCreator = 
+  community?.created_by?.id === userId ||
+  community?.community?.creator?.id === userId;
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -316,10 +322,42 @@ useEffect(() => {
 
 
   chatService.on("typing", (data) => {
-    // optional: handle typing indicator
+    const { user_id, username, is_typing } = data;
+
+    if (user_id === userId) return; // ignore yourself
+    console.log("Typing data received:", data);
+    console.log("Current typingUsers before update:",username , is_typing);
+    setTypingUsers((prev) => {
+      if (is_typing) {
+        // add user if not already in list
+        if (!prev.includes(username)) return [...prev, username];
+        return prev;
+      } else {
+        // remove user
+        return prev.filter((u) => u !== username);
+      }
+    });
   });
 
+  // chatService.on("typing", (data) => {
+  //   // optional: handle typing indicator
+  // });
+
   chatService.on("userStatus", (data) => {
+    if (data.is_typing !== undefined) {
+      // This is a typing event
+      console.log(`${data.username} is typing?`, data.is_typing);
+       
+        setTypingUsers(prev => {
+          const newSet = new Set(prev);
+          if (data.is_typing) newSet.add(data.username);
+          else newSet.delete(data.username);
+          return newSet;
+        });
+      } else if (data.status) {
+    // This is online/offline
+    console.log(`${data.username} is ${data.status}`);
+  }
     // optional: handle online/offline updates
   });
 
@@ -455,7 +493,7 @@ const startZegoCall = async () => {
     const container = document.getElementById("zego-container");
     if (!container) {
       console.error("Zego container not found!");
-      toast.error("Video container not ready");
+      // toast.error("Video container not ready");
       return;
     }
 
@@ -527,6 +565,21 @@ useEffect(() => {
   const interval = setInterval(checkActiveMeeting, 15000); // every 15s
   return () => clearInterval(interval);
 }, []);
+
+const handleTyping = (e) => {
+  setNewMessage(e.target.value);
+
+  // Notify others that this user is typing
+  chatService.sendTyping(true);
+
+  // Clear previous timeout
+  if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+  // Stop typing after 2 seconds of inactivity
+  typingTimeoutRef.current = setTimeout(() => {
+    chatService.sendTyping(false);
+  }, 2000);
+};
 
   if (!community) return <Loader text="Loading Chats..." />; 
   
@@ -639,8 +692,18 @@ useEffect(() => {
       </div>
     );
   })}
+  
+          <div className="text-sm text-gray-500 mt-1">
+            {typingUsers.size > 0 && (
+            <p className="text-sm text-gray-500">
+              {Array.from(typingUsers).join(", ")} {typingUsers.size > 1 ? "are" : "is"} typing...
+            </p>
+          )}
+          </div>
 
   <div ref={messagesEndRef}></div>
+ 
+
 </div>
 
 
@@ -679,7 +742,7 @@ useEffect(() => {
       <Input
         placeholder="Type a message..."
         value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
+        onChange={handleTyping}
         onKeyDown={(e) => e.key === "Enter" && handleSend()}
       />
      {/* <input
@@ -718,6 +781,7 @@ useEffect(() => {
     </div>
     </div>
     {/* Members Modal */}
+    {isCreator ? (
       <Dialog open={membersModalOpen}
          onOpenChange={(open) => {setMembersModalOpen(open);
           if (open) loadMembers()}}>
@@ -784,6 +848,36 @@ useEffect(() => {
             )}
           </div>
         </DialogContent>
+              </Dialog>
+    ) : 
+    <Dialog
+            open={membersModalOpen}
+            onOpenChange={(open) => {
+              setMembersModalOpen(open);
+              if (open) loadMembers();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline">Community Members</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Community Members</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {members.length > 0 ? (
+                  members.map((m) => (
+                    <div key={m.email} className="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
+                      <span>{m.username} ({m.email})</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 text-center">No members yet.</p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+    }
       {/* Feedback options */}
       {(community?.created_by?.id === userId ||
         community?.community?.creator?.id === userId) ? (
@@ -804,7 +898,6 @@ useEffect(() => {
         </Button>
       )}
 
-      </Dialog>
      
       <FeedbackModal
         open={feedbackModalOpen}

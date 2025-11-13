@@ -207,12 +207,17 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
         presence.save()
     
     async def user_status_update(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "user_status_update",
-            "user_id": event["user_id"],
-            "username": event["username"],
-            "status": event["status"],
-        }))
+        payload = {
+        "type": "user_status_update",
+        "user_id": event["user_id"],
+        "username": event["username"],
+        }
+        if "status" in event:
+            payload["status"] = event["status"]
+        if "is_typing" in event:
+            payload["is_typing"] = event["is_typing"]
+
+        await self.send(text_data=json.dumps(payload))
 
 class CommunityMeetConsumer(AsyncWebsocketConsumer):
     async def connect(self):
