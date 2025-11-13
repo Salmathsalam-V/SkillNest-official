@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom, imageUpload, getMembers, getActiveMeeting } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom, imageUpload, getMembers, getActiveMeeting,translateText } from "../endpoints/axios";
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import { toast } from "sonner";
 import chatService from "../services/chatService";
@@ -107,12 +107,27 @@ export const CommunityPageLearner = () => {
   };
 
   // --- WebSocket ---
-  useEffect(() => {
-    if (!community?.uuid) return;
-    chatService.connect(community.uuid);
-    chatService.on("message", (msg) => setMessages((prev) => [...prev, msg]));
-    return () => chatService.disconnect();
-  }, [community?.uuid]);
+useEffect(() => {
+  if (!community?.uuid) return;
+  chatService.connect(community.uuid);
+
+  const handleMessage = (m) => setMessages(prev => [...prev, m]);
+
+  const handleTranslation = ({ messageId, translated }) => {
+    setMessages(prev =>
+      prev.map(msg => (msg.id === messageId ? { ...msg, translated } : msg))
+    );
+  };
+
+  chatService.on("message", handleMessage);
+  chatService.on("translation_update", handleTranslation);
+
+  return () => {
+    chatService.off("message", handleMessage);
+    chatService.off("translation_update", handleTranslation);
+    chatService.disconnect();
+  };
+}, [community?.uuid]);
 
   // --- Auto-scroll ---
   const scrollToBottom = () => {
@@ -347,7 +362,17 @@ export const CommunityPageLearner = () => {
                       : "bg-gray-200 text-gray-900 rounded-bl-none"
                   }`}
                 >
-                  {msg.content && <p>{msg.content}</p>}
+                  {msg.translated ? (
+                    <p>
+                      {msg.translated}
+                      <span className="block text-xs text-gray-400 italic mt-1">
+                        (original: {msg.content})
+                      </span>
+                    </p>
+                  ) : (
+                    <p>{msg.content}</p>
+                  )}
+
                   {msg.media_url && (
                     <>
                       {msg.message_type === "video" ? (
