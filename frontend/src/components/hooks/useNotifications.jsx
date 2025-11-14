@@ -1,5 +1,4 @@
-
- //src/hooks/useNotifications.js
+//src/hooks/useNotifications.js
 import { useEffect, useState } from "react";
 import { toast } from 'sonner';
 
