@@ -108,6 +108,7 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
                 await self.handle_chat_message(data, message_type=message_type)
             else:
                 logger.warning(f"Unknown/unsupported action/type received: {envelope}")
+                
     async def handle_typing(self, data):
         is_typing = data.get("is_typing", False)
         await self.channel_layer.group_send(

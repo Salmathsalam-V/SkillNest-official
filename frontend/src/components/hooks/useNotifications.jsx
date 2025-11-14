@@ -1,7 +1,7 @@
 
  //src/hooks/useNotifications.js
 import { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from 'sonner';
 
 
 export const useNotifications=()=> {
@@ -18,12 +18,15 @@ export const useNotifications=()=> {
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
       setNotifications((prev) => [data, ...prev]);
-      toast(`${data.sender} ${data.notif_type} your post`, {
+      if (!data.type || data.type === "connection_established") return;
+      if (data.type === 'follow') {
+        toast.info(`${data.sender} ${data.type} you`, {
         icon: "🔔",})
-      // optional toast
-      toast(`${data.sender} ${data.type} your post`);
+      } else{
+      toast.info(`${data.sender} ${data.type} your post`, {
+        icon: "🔔",})
+      };
     };
-
     return () => ws.close();
   }, []);
 

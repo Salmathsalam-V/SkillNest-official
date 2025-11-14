@@ -39,7 +39,7 @@ function App() {
     <>
       <Router>
         {/* <AuthProvider> */}
-          <Toaster richColors position="top-right" />
+          {/* <Toaster richColors position="top-right" /> */}
           <Routes>
             <Route path='/login' element={<Login/>} />
             <Route path='/register' element={<Register/>}/>
