@@ -222,3 +222,31 @@ class FeedbackSerializer(serializers.ModelSerializer):
         community = self.context.get("community")
         validated_data.pop("community", None)
         return Feedback.objects.create(community=community, **validated_data)
+
+class PostDetailSerializer(serializers.ModelSerializer):
+    author = UserSerializer(read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
+    is_liked = serializers.SerializerMethodField()
+    class Meta:
+        model = Post
+        fields = [
+            'id',
+            'author',
+            'image',
+            'caption',
+            'created_at',
+            'likes_count',
+            'is_liked',
+            'comments',
+        ]
+        read_only_fields = ['id', 'author', 'created_at', 'likes_count', 'comments', 'is_liked']
+    
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False

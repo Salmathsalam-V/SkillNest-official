@@ -16,7 +16,15 @@ export const useNotifications=()=> {
     console.log("WebSocket instance created from hooks, useNotification:", ws);
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      setNotifications((prev) => [data, ...prev]);
+      const normalized = {
+        id: data.id,
+        sender: data.sender,
+        notif_type: data.type,     // <-- FIX
+        post_id: data.post_id,     // <-- OK
+        created_at: data.timestamp // <-- FIX
+      };
+      console.log("Received notification via WebSocket:", normalized);
+      setNotifications((prev) => [normalized, ...prev]);
       if (!data.type || data.type === "connection_established") return;
       if (data.type === 'follow') {
         toast.info(`${data.sender} ${data.type} you`, {
@@ -28,6 +36,6 @@ export const useNotifications=()=> {
     };
     return () => ws.close();
   }, []);
-
+  console.log("Updated notifications state:", notifications);
   return notifications;
 }

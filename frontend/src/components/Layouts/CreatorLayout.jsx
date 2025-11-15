@@ -6,6 +6,7 @@ import Footer from './Footer';
 import { useSelector } from "react-redux";
 import { useNotifications } from "@/components/hooks/useNotifications"
 import { NotificationDropdown } from "@/components/Layouts/NotificationDropdown"
+import {PostModal} from '@/Creator/PostModal';
 import { getNotifications } from '@/endpoints/axios';
 import InviteModal from "@/components/Layouts/InviteModal";
 import { Bell, UserPlus, CircleUser, Menu, X } from "lucide-react"; // Added UserPlus and Menu/X
@@ -23,8 +24,15 @@ const CreatorLayout = ({ children }) => {
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
     const notifications = useNotifications();
+    console.log("Notifications in CreatorLayout:", notifications);
     const [history, setHistory] = useState([]);
+    const [openModal, setOpenModal] = useState(false);
+    const [selectedPost, setSelectedPost] = useState(null);
 
+    const handleNotificationClick = (postId) => {
+        setSelectedPost(postId);
+        setOpenModal(true);
+    };
     useEffect(() => {
         const fetchNotifications = async () => {
             const res = await getNotifications();
@@ -46,16 +54,19 @@ const CreatorLayout = ({ children }) => {
         sender: n.sender_name || n.sender,
         notif_type: n.notif_type || n.type,
         created_at: n.created_at || n.timestamp,
+        post_id: n.post_id, 
         read: n.read || false,
     }));
 
     const normalizedLive = notifications.map((n) => ({
-        id: n.id,
-        sender: n.sender,
-        notif_type: n.notif_type || n.type,
-        created_at: n.created_at || n.timestamp,
-        read: false,
-    }));
+    id: n.id,
+    sender: n.sender,
+    notif_type: n.notif_type || n.type,
+    created_at: n.created_at || n.timestamp,
+    post_id: n.post_id,     
+    read: false,
+}));
+
 
     const allNotifications = [...normalizedLive, ...normalizedHistory];
 
@@ -104,7 +115,7 @@ const CreatorLayout = ({ children }) => {
                         <InviteModal open={inviteModalOpen} setOpen={setInviteModalOpen} />
 
                         {/* 2. Notification Dropdown (using Bell icon) */}
-                        <NotificationDropdown notifications={allNotifications}>
+                        <NotificationDropdown notifications={allNotifications} onNotificationClick={handleNotificationClick}>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -120,6 +131,11 @@ const CreatorLayout = ({ children }) => {
                                 )}
                             </Button>
                         </NotificationDropdown>
+                        <PostModal
+                            open={openModal}
+                            postId={selectedPost}
+                            onClose={() => setOpenModal(false)}
+                        />
 
                         {/* 3. Profiles/User Link (using CircleUser icon) */}
                         <Button
