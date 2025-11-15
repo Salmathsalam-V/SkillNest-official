@@ -876,3 +876,14 @@ export async function translateText(text, targetLang = "en") {
 }
 
 
+export const getPostById = async (postId) => {
+  try {
+    const res = await apiClient.get(`/creator/post/${postId}/`);
+    console.log("Post fetched successfully:", res.data);
+    return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error fetching post:", err);
+    return { success: false, error: err };
+  }
+};
+

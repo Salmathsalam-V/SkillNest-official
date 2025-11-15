@@ -14,6 +14,7 @@ def create_notification(sender, recipient, notif_type, post=None):
         post=post
     )
     # Send real-time via channel layer
+    
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'notifications_{recipient.id}',

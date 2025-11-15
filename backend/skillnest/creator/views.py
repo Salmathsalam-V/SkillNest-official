@@ -1,13 +1,13 @@
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer,ReportPostSerializer,ReviewSerializer,FeedbackSerializer
+from .serializers import PostSerializer,CommentSerializer,CommunitySerializer,CourseSerializer,UserSerializer,CommunityInviteSerializer,ReportPostSerializer,ReviewSerializer,FeedbackSerializer,PostDetailSerializer
 from .models import Post,Comment,Community,Course,Review,Feedback
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from . models import Creator,CommunityInvite,ReportPost
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from accounts.authentication import JWTCookieAuthentication
 from rest_framework.views import APIView
 from rest_framework import generics, permissions
@@ -510,3 +510,9 @@ class FeedbackDetailView(APIView):
         feedback = self.get_object(pk)
         feedback.delete()
         return Response({"detail": "Feedback deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    
+
+class PostAllDetailView(RetrieveAPIView):
+    queryset = Post.objects.all()
+    serializer_class = PostDetailSerializer
+    permission_classes = [IsAuthenticated]
