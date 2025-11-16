@@ -107,27 +107,27 @@ export const CommunityPageLearner = () => {
   };
 
   // --- WebSocket ---
-useEffect(() => {
-  if (!community?.uuid) return;
-  chatService.connect(community.uuid);
+// useEffect(() => {
+//   if (!community?.uuid) return;
+//   chatService.connect(community.uuid);
 
-  const handleMessage = (m) => setMessages(prev => [...prev, m]);
+//   const handleMessage = (m) => setMessages(prev => [...prev, m]);
 
-  const handleTranslation = ({ messageId, translated }) => {
-    setMessages(prev =>
-      prev.map(msg => (msg.id === messageId ? { ...msg, translated } : msg))
-    );
-  };
+//   const handleTranslation = ({ messageId, translated }) => {
+//     setMessages(prev =>
+//       prev.map(msg => (msg.id === messageId ? { ...msg, translated } : msg))
+//     );
+//   };
 
-  chatService.on("message", handleMessage);
-  chatService.on("translation_update", handleTranslation);
+//   chatService.on("message", handleMessage);
+//   chatService.on("translation_update", handleTranslation);
 
-  return () => {
-    chatService.off("message", handleMessage);
-    chatService.off("translation_update", handleTranslation);
-    chatService.disconnect();
-  };
-}, [community?.uuid]);
+//   return () => {
+//     chatService.off("message", handleMessage);
+//     chatService.off("translation_update", handleTranslation);
+//     chatService.disconnect();
+//   };
+// }, [community?.uuid]);
 
   // --- Auto-scroll ---
   const scrollToBottom = () => {
