@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from accounts.models import User
 from creator.models import Community
-from .models import CommunityChatRoom, CommunityMessage
+from .models import CommunityChatRoom, CommunityMessage, CommunityMessageRead
 from .serializers import (
     CommunityChatRoomSerializer,
     CommunityMessageSerializer,
@@ -145,12 +145,32 @@ def send_community_message(request, community_id):
 # ✅ 4. Mark message as read
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
-def mark_message_read(request, community_id, message_id):
+def mark_messages_read(request, community_id):
     community = get_object_or_404(Community, id=community_id)
-    message = get_object_or_404(CommunityMessage, id=message_id, room=community.chat_room)
+    room = community.chat_room
 
-    # CommunityMessageRead.objects.get_or_create(user=request.user, message=message)
-    return Response({"message": "Message marked as read"})
+    # Get all messages in this community chat room
+    messages = CommunityMessage.objects.filter(room=room)
+
+    # Mark each message as read for this user
+    for msg in messages:
+        CommunityMessageRead.objects.get_or_create(
+            user=request.user, 
+            message=msg
+        )
+
+    return Response({"success": True, "message": "All messages marked as read"})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def unread_message_count(request, room_uuid):
+    room = get_object_or_404(CommunityChatRoom, uuid=room_uuid)
+
+    unread = room.messages.exclude(
+        reads__user=request.user
+    ).count()
+
+    return Response({"unread_count": unread})
 
 
 # ✅ 5. List community chat members

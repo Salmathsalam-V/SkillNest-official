@@ -167,3 +167,11 @@ class MeetingParticipant(models.Model):
 
     def __str__(self):
         return f"{self.user} in {self.meeting.room_name}"
+
+class CommunityMessageRead(models.Model):
+    message = models.ForeignKey(CommunityMessage, on_delete=models.CASCADE, related_name="reads")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('message', 'user')

@@ -307,15 +307,15 @@ useEffect(() => {
     console.log("📨 Received message:", message);
 
     // Only translate if it’s text content
-    if (message.message_type === "text" && message.content) {
-      try {
-        const translated = await translateText(message.content, "en"); // or dynamic user language
-        message.translated = translated;
-      } catch (err) {
-        console.error("Translation failed:", err);
-        message.translated = message.content;
-      }
-    }
+    // if (message.message_type === "text" && message.content) {
+    //   try {
+    //     const translated = await translateText(message.content, "en"); // or dynamic user language
+    //     message.translated = translated;
+    //   } catch (err) {
+    //     console.error("Translation failed:", err);
+    //     message.translated = message.content;
+    //   }
+    // }
 
     setMessages((prev) => [...prev, message]);
   });
@@ -657,7 +657,7 @@ const handleTyping = (e) => {
               : "bg-gray-200 text-gray-900 rounded-bl-none"
           }`}
         >
-          {msg.translated ? (
+          {/* {msg.translated ? (
             <>
               <p>{msg.translated}</p>
               <p className="text-xs text-gray-400 italic mt-1">
@@ -666,7 +666,8 @@ const handleTyping = (e) => {
             </>
           ) : (
             <p>{msg.content}</p>
-          )}
+          )} */}
+          <p>{msg.content}</p>
 
           {msg.media_url && (
             <>

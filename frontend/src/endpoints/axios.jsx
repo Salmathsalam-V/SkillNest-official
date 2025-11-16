@@ -887,3 +887,8 @@ export const getPostById = async (postId) => {
   }
 };
 
+export const fetchUnreadCount = async (roomUuid) => {
+  const res = await apiClient.get(`chat/community/${roomUuid}/unread_count/`);
+  return res.data.unread_count;
+};
+

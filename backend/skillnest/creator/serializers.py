@@ -79,6 +79,7 @@ class CourseSerializer(serializers.ModelSerializer):
 # community
 class CommunitySerializer(serializers.ModelSerializer):
     creator = serializers.ReadOnlyField(source='creator.username')
+    chat_room_uuid = serializers.UUIDField(source='chat_room.room_id', read_only=True)
     members = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
@@ -87,8 +88,8 @@ class CommunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Community
-        fields = ['id', 'creator', 'name', 'description', 'members', 'created_at']
-        read_only_fields = ['id', 'creator', 'created_at']
+        fields = ['id', 'creator', 'name', 'description', 'members', 'created_at','chat_room_uuid']
+        read_only_fields = ['id', 'creator', 'created_at','chat_room_uuid']
 
     def create(self, validated_data):
         request = self.context['request']
