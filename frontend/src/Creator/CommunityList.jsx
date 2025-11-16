@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchCommunities, createCommunity, fetchAllFollowers,deleteCommunity } from "../endpoints/axios";
+import { fetchCommunities, createCommunity, fetchAllFollowers,deleteCommunity,fetchUnreadCount } from "../endpoints/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +28,8 @@ export const CommunityList = () => {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
   const user = useSelector((state) => state.user.user); // current logged in user
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const [filter, setFilter] = useState("all"); 
 
   const navigate = useNavigate();
   const LIMIT = 6;
@@ -153,18 +155,64 @@ const memberOf = communities.filter(
   (c) => c.creator?.id !== user.id && c.members?.some((m) => m.id === user.id)
 );
 
+useEffect(() => {
+  const loadCounts = async () => {
+    const counts = {};
+    console.log("Loading unread counts for communities", communities);
+    for (const c of communities) {
+      console.log("Fetching unread count for community:", c.chat_room_uuid);
+      counts[c.chat_room_uuid] = await fetchUnreadCount(c.chat_room_uuid);
+    }
+    setUnreadCounts(counts);
+  };
+
+  if (communities.length > 0) loadCounts();
+}, [communities]);
+
+let listToShow = communities;
+
+if (filter === "mine") {
+  listToShow = createdByMe;
+} else if (filter === "member") {
+  listToShow = memberOf;
+}
+
   if (loading) return <Loader text="Loading communities..." />; // or redirect to login
 
   return (
     <CreatorLayout>
       <div className="p-6 space-y-6">
+
         <h1 className="text-2xl font-bold">My Communities</h1>
         
+        <div className="flex gap-3 mb-4">
+  <Button 
+    variant={filter === "all" ? "default" : "outline"} 
+    onClick={() => setFilter("all")}
+  >
+    All
+  </Button>
+
+  <Button 
+    variant={filter === "mine" ? "default" : "outline"} 
+    onClick={() => setFilter("mine")}
+  >
+    Your Communities
+  </Button>
+
+  <Button 
+    variant={filter === "member" ? "default" : "outline"} 
+    onClick={() => setFilter("member")}
+  >
+    Member Of
+  </Button>
+</div>
+
 
         {/* Community List */}
-        {communities.length > 0 ? (
+        {listToShow.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {communities.map((community) => (
+            {listToShow.map((community) => (
   <Card key={community.id} className="shadow-lg rounded-2xl">
     <CardContent className="p-4">
       <h2 className="text-lg font-semibold">{community.name}</h2>
@@ -186,6 +234,22 @@ const memberOf = communities.filter(
       >
         Delete
       </Button>
+
+{/* {community.creator?.id === user.id && (
+          <Button
+            onClick={() => handleDeleteClick(community.id)}
+            variant="destructive"
+          >
+            Delete
+          </Button>
+        )} */}
+
+      {unreadCounts[community.chat_room_uuid] > 0 && (
+        <span className="text-xs bg-red-600 text-white rounded-full px-2 py-1">
+          {unreadCounts[community.chat_room_uuid]}
+        </span>
+      )}
+
     </div>
   </Card>
 ))}

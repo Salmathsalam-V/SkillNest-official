@@ -83,74 +83,56 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
             )
 
 # inside CommunityChatConsumer
+
     async def receive(self, text_data):
-        data = json.loads(text_data)
-        # support your existing envelope parsing
-        content = data.get("content", "") or ""
-        message_type = data.get("message_type", "text")
-        media_url = data.get("media_url")
-        # persist message synchronously via database helper
-        message = await self.save_message(content=content, message_type=message_type, media_url=media_url)
-        # broadcast original message immediately
+        """
+        Accept either:
+        - envelope style: { type: "chat_message", message_type: "image", content: "", media_url: "..." }
+        - short style:    { type: "image", content: "", media_url: "..." }
+        - or:             { action: "send", message_type: "...", ... }
+        """
+        try:
+            data = json.loads(text_data)
+        except Exception as e:
+            logger.exception("Invalid JSON received")
+            return
+
+        # Look for various possible envelope keys
+        envelope = data.get("type") or data.get("action") or data.get("event")
+        if envelope == "typing":
+            await self.handle_typing(data)
+        else:
+            # message_type is explicit OR fallback to envelope when envelope is a known message type
+            message_type = data.get("message_type") or (envelope if envelope in ("text", "image", "video", "file") else None) or "text"
+
+            logger.warning(f"Received envelope={envelope} message_type={message_type} from user {self.user.id}: {data}")
+
+            # If it's a chat message (either explicit envelope or a known message_type), handle it
+            if envelope == "chat_message" or message_type in ("text", "image", "video", "file"):
+                await self.handle_chat_message(data, message_type=message_type)
+            else:
+                logger.warning(f"Unknown/unsupported action/type received: {envelope}")
+    async def handle_typing(self, data):
+        is_typing = data.get("is_typing", False)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                "type": "chat_message",
-                "message": {
-                    "id": str(message.id),
-                    "content": message.content,
-                    "message_type": message.message_type,
-                    "media_url": message.media_url,
-                    "sender": {"id": message.sender.id, "username": message.sender.username},
-                    "timestamp": message.timestamp.isoformat(),
-                }
+                "type": "user_status_update",  # reuse user_status_update
+                "user_id": self.user.id,
+                "username": self.user.username,
+                "is_typing": is_typing,
             }
         )
 
-        # if it's text, schedule background translate (non-blocking)
-        if message.message_type == "text" and message.content:
-            # Use asyncio.create_task (CH channels supports it in async consumer)
-            asyncio.create_task(self._do_translate_and_notify(str(message.id), message.content))
-
     async def chat_message(self, event):
+        """
+        Called by group_send; event['message'] already contains the serialized message dict.
+        """
         await self.send(text_data=json.dumps({
             "type": "chat_message",
             "message": event["message"],
         }))
 
-    async def translation_update(self, event):
-        # Another event type we will send when translation completes
-        await self.send(text_data=json.dumps({
-            "type": "translation_update",
-            "message_id": event["message_id"],
-            "translated": event["translated"],
-        }))
-
-    async def _do_translate_and_notify(self, message_id: str, text: str, target_lang: str = "en"):
-        """
-        Background task: translate and send a small update to the group.
-        """
-        translated = await translate_text(text, target_lang=target_lang)
-        # Only send update if translation differs (optional)
-        if translated and translated != text:
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "translation_update",
-                    "message_id": message_id,
-                    "translated": translated,
-                }
-            )
-
-    @database_sync_to_async
-    def save_message(self, content="", message_type="text", media_url=None):
-        return CommunityMessage.objects.create(
-            room=self.room,
-            sender=self.user,
-            content=content or "",
-            message_type=message_type,
-            media_url=media_url,
-        )
     async def handle_chat_message(self, data, message_type="text"):
         """
         Save the message (text/media) and broadcast it to the group.
@@ -183,6 +165,19 @@ class CommunityChatConsumer(AsyncWebsocketConsumer):
                     "timestamp": message.timestamp.isoformat(),
                 }
             }
+        )
+
+    @database_sync_to_async
+    def save_message(self, content="", message_type="text", media_url=None):
+        """
+        Persist CommunityMessage including media_url and message_type.
+        """
+        return CommunityMessage.objects.create(
+            room=self.room,
+            sender=self.user,
+            content=content or "",
+            message_type=message_type,
+            media_url=media_url
         )
 
     @database_sync_to_async
