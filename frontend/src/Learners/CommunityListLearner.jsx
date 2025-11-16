@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchLearnerCommunities } from "../endpoints/axios";
+import { fetchLearnerCommunities,fetchUnreadCount } from "../endpoints/axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ export const CommunityListLearner = () => {
   const [next, setNext] = useState(null);
   const [loading, setLoading] = useState(true);
   const LIMIT = 6;
+  const [unreadCounts, setUnreadCounts] = useState({});
 
 
   useEffect(() => {
@@ -52,6 +53,27 @@ export const CommunityListLearner = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [next]);
   console.log("Communities state:", communities);
+
+  useEffect(() => {
+  const loadCounts = async () => {
+    const counts = {};
+    console.log("Loading unread counts for learner communities", communities);
+
+    for (const c of communities) {
+      console.log("Fetching unread count for:", c.chat_room_uuid);
+      const obj = await fetchUnreadCount(c.chat_room_uuid);
+      counts[c.chat_room_uuid] = obj.data; // store count
+    }
+
+    setUnreadCounts(counts);
+    console.log("Unread counts loaded:", counts);
+  };
+
+  if (communities.length > 0) {
+    loadCounts();
+  }
+}, [communities]);
+
   if (loading) return <Loader text="Loading communities..." />; // or redirect to login
   
   return (
@@ -63,21 +85,29 @@ export const CommunityListLearner = () => {
         {communities.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {communities.map((community) => (
-                <Card key={community.id} className="shadow-lg rounded-2xl">
-                <CardContent className="p-4 space-y-2">
-                    <h2 className="text-lg font-semibold">{community.name}</h2>
-                    <p className="text-sm text-gray-600">{community.description}</p>
-                    <p className="text-xs text-gray-400">
-                    Members: {community.members?.length || 0}
-                    </p>
-                     <Button
-                        onClick={() => navigate(`/learner/communities/${community.id}`)}
-                        variant="custom"
-                    >
-                        View
-                    </Button>
-                </CardContent>
-                </Card>
+            <Card key={community.id} className="shadow-lg rounded-2xl">
+              <CardContent className="p-4 space-y-2">
+                <h2 className="text-lg font-semibold">{community.name}</h2>
+                <p className="text-sm text-gray-600">{community.description}</p>
+                <p className="text-xs text-gray-400">
+                  Members: {community.members?.length || 0}
+                </p>
+
+                {unreadCounts[community.chat_room_uuid] > 0 && (
+                  <span className="text-xs bg-red-600 text-white rounded-full px-2 py-1">
+                    {unreadCounts[community.chat_room_uuid]}
+                  </span>
+                )}
+
+                <Button
+                  onClick={() => navigate(`/learner/communities/${community.id}`)}
+                  variant="custom"
+                >
+                  View
+                </Button>
+              </CardContent>
+            </Card>
+
             ))}
             </div>
         ) : (

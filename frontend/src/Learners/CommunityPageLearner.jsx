@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom, imageUpload, getMembers, getActiveMeeting,translateText } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom, imageUpload, getMembers, getActiveMeeting,translateText,markAsRead } from "../endpoints/axios";
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import { toast } from "sonner";
 import chatService from "../services/chatService";
@@ -49,6 +49,7 @@ export const CommunityPageLearner = () => {
     try {
       const { data } = await fetchChatRoom(communityId);
       setCommunity(data);
+      markMessagesAsRead(data.uuid);
     } catch (error) {
       console.error("ChatRoom Error:", error);
     }
@@ -150,6 +151,10 @@ export const CommunityPageLearner = () => {
     }
   };
 
+  const markMessagesAsRead = async(room_uuid)=> {
+      console.log("Fetched chatroom uuid:", room_uuid);
+        await markAsRead(room_uuid);
+    };
   // 🆕 Check for Active Meeting
   const checkActiveMeeting = async () => {
     try {
