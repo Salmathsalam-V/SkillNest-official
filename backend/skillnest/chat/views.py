@@ -143,33 +143,50 @@ def send_community_message(request, community_id):
 
 
 # ✅ 4. Mark message as read
-@api_view(["POST"])
-@permission_classes([permissions.IsAuthenticated])
-def mark_messages_read(request, community_id):
-    community = get_object_or_404(Community, id=community_id)
-    room = community.chat_room
+# @api_view(["POST"])
+# @permission_classes([permissions.IsAuthenticated])
+# def mark_messages_read(request, community_id):
+#     community = get_object_or_404(Community, id=community_id)
+#     room = community.chat_room
 
-    # Get all messages in this community chat room
+#     # Get all messages in this community chat room
+#     messages = CommunityMessage.objects.filter(room=room)
+
+#     # Mark each message as read for this user
+#     for msg in messages:
+#         CommunityMessageRead.objects.get_or_create(
+#             user=request.user, 
+#             message=msg
+#         )
+
+#     return Response({"success": True, "message": "All messages marked as read"})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_as_read(request, room_uuid):
+    room = get_object_or_404(CommunityChatRoom, uuid=room_uuid)
+    CommunityMessageRead.objects.filter(
+        user=request.user,
+        message__room=room
+    ).delete()  # avoid duplicates
+
     messages = CommunityMessage.objects.filter(room=room)
+    CommunityMessageRead.objects.bulk_create(
+        CommunityMessageRead(message=m, user=request.user)
+        for m in messages
+    )
+    return Response({"status": "ok"})
 
-    # Mark each message as read for this user
-    for msg in messages:
-        CommunityMessageRead.objects.get_or_create(
-            user=request.user, 
-            message=msg
-        )
-
-    return Response({"success": True, "message": "All messages marked as read"})
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def unread_message_count(request, room_uuid):
     room = get_object_or_404(CommunityChatRoom, uuid=room_uuid)
-
+    logger.info(f"Calculating unread messages for user: {request.user.username} in room: {room.uuid}")
     unread = room.messages.exclude(
         reads__user=request.user
     ).count()
-
+    logger.info(f"Unread message count: {unread}")
     return Response({"unread_count": unread})
 
 

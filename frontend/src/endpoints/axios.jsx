@@ -888,7 +888,21 @@ export const getPostById = async (postId) => {
 };
 
 export const fetchUnreadCount = async (roomUuid) => {
-  const res = await apiClient.get(`chat/community/${roomUuid}/unread_count/`);
-  return res.data.unread_count;
+  try {
+  const res = await apiClient.get(`chat/community/${roomUuid}/unread_count`);
+  return { success: true, data: res.data.unread_count };
+  } catch (err) {
+    console.error("Error fetching unread count:", err);
+    return { success: false, error: err };
+  }
+};
+export const markAsRead = async (roomUuid) => {
+  try {
+  const res = await apiClient.post(`chat/community/${roomUuid}/mark_as_read/`);
+  return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error marked as  read:", err);
+    return { success: false, error: err };
+  }
 };
 

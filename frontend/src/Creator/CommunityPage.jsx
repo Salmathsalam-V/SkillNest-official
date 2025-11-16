@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload ,createMeetingRoom,editMeetingRoom,getActiveMeeting,translateText  } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom,getMembers,searchUsers,removeMember,addMember, imageUpload ,createMeetingRoom,editMeetingRoom,getActiveMeeting,translateText,markAsRead  } from "../endpoints/axios";
 import CreatorLayout from "@/components/Layouts/CreatorLayout";
 import { toast } from 'sonner';
 import {
@@ -79,6 +79,8 @@ export const CommunityPage = () => {
       const { data } = await fetchChatRoom(communityId);
       setCommunity(data);
       console.log("Fetched community chat room:", data);
+      console.log("Fetched community data:", data.uuid);
+      markMessagesAsRead(data.uuid);
     } catch (error) {
       console.error("ChatRoom Error:", error);
     }
@@ -90,8 +92,11 @@ export const CommunityPage = () => {
 const loadMessages = async () => {
   try {
     const { data } = await fetchMessages(communityId); // no cursor → first page
+    // console.log("Fetched community data:", community);
+    // markMessagesAsRead(community.uuid);
     setMessages(data.results.reverse());   // newest last
     setNextCursor(data.next);
+    
   } catch (error) {
     console.error("Messages Error:", error);
   }
@@ -233,7 +238,10 @@ const handleRemoveMember = async (identifier) => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
+  const markMessagesAsRead = async(room_uuid)=> {
+    console.log("Fetched chatroom uuid:", room_uuid);
+      await markAsRead(room_uuid);
+  };
   useEffect(() => {
     loadChatRoom();
     loadMessages();

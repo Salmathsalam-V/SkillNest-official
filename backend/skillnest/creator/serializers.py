@@ -79,12 +79,12 @@ class CourseSerializer(serializers.ModelSerializer):
 # community
 class CommunitySerializer(serializers.ModelSerializer):
     creator = serializers.ReadOnlyField(source='creator.username')
-    chat_room_uuid = serializers.UUIDField(source='chat_room.room_id', read_only=True)
     members = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
         required=False
     )
+    chat_room_uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = Community
@@ -121,8 +121,12 @@ class CommunitySerializer(serializers.ModelSerializer):
                 status='pending',
                 
             )
-
         return community
+    def get_chat_room_uuid(self, obj):
+        # return UUID only if chat room exists
+        if hasattr(obj, "chat_room"):
+            return obj.chat_room.uuid
+        return None
 
 class CommunityInviteSerializer(serializers.ModelSerializer):
     community_name = serializers.CharField(source="community.name", read_only=True)

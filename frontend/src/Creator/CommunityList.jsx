@@ -161,9 +161,12 @@ useEffect(() => {
     console.log("Loading unread counts for communities", communities);
     for (const c of communities) {
       console.log("Fetching unread count for community:", c.chat_room_uuid);
-      counts[c.chat_room_uuid] = await fetchUnreadCount(c.chat_room_uuid);
+      const obj = await fetchUnreadCount(c.chat_room_uuid);
+      counts[c.chat_room_uuid]=obj.data
+      console.log(`Community ${c.id} has ${counts[c.chat_room_uuid]} unread messages`);
     }
     setUnreadCounts(counts);
+    console.log("Unread counts loaded:", counts);
   };
 
   if (communities.length > 0) loadCounts();
