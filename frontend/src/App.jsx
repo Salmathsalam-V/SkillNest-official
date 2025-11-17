@@ -31,6 +31,8 @@ import {CommunityListAdmin} from './Admin/CommunityListAdmin';
 import {ReportsPage} from './Admin/PostReports';
 import { PostsPage } from './Admin/PostsPage';
 import {AdminPayments} from './Admin/AdminPayments';
+import NotFound from './Pages/NotFound';
+import ServerError from './Pages/ServerError';
 // import { AuthProvider } from './contexts/useAuth';
 // import { PrivateRoutes } from './components/private_routes/PrivateRoutes'
 
@@ -71,7 +73,8 @@ function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/posts-admin" element={ <PostsPage />} />
             <Route path="/admin-payments" element={ <AdminPayments />} />
-
+            <Route path="*" element={<NotFound />} />
+            <Route path="/server-error" element={<ServerError />} />
           </Routes>
         {/* <PrivateRoutes></PrivateRoutes> */}
         {/* </AuthProvider> */}

@@ -61,6 +61,10 @@ apiClient.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
+    if (error.response?.status === 500) {
+      window.location.href = "/server-error";   // your custom page
+      return; // stop further handling
+    }
 
     return Promise.reject(error);
   }
