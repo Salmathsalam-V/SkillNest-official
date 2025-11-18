@@ -22,12 +22,6 @@ export const PostModal = ({ postId, open, onClose }) => {
     try {
       setLoading(true);
       const res = await getPostById(postId);
-
-        if (res.success) {
-        console.log(res.data);
-        } else {
-        console.error(res.error);
-        }
       setPost(res.data);
     } catch (err) {
       console.error("Error fetching post details:", err);

@@ -21,7 +21,6 @@ const fetchMessages = async () => {
   try {
     const res = await getContactMessages();
     if (res.success) {
-      console.log("Fetched messages:", res.data);
       setMessages(res.data);
     } else {
       console.error("Failed to fetch messages:", res.error);

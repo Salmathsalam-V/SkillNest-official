@@ -94,15 +94,13 @@ class CommunitySerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context['request']
         user = request.user
-        logger.info(f"Creating community by user: {user.username} and the request data: {validated_data}")
-        # ✅ 1. Only creators can create communities
+        # Only creators can create communities
         if user.user_type != 'creator':
             raise serializers.ValidationError("Only creators can create a community.")
 
-        # ✅ 2. Extract members if any
+        #  Extract members if any
         members = validated_data.pop('members', [])
-        logger.info(f"Invited members: {[member.username for member in members]}")
-        # ✅ 3. Create the community
+        # Create the community
         community = Community.objects.create(
             creator=user,
             name=validated_data['name'],

@@ -14,7 +14,6 @@ export const FeedbackListModal = ({ open, onOpenChange, communityId }) => {
     const loadFeedbacks = async () => {
       try {
         const data = await fetchFeedbacks(communityId);
-        console.log(data)
         setFeedbacks(data);
       } catch (err) {
         toast.error("Failed to load feedbacks");

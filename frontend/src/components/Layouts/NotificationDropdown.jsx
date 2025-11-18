@@ -7,7 +7,6 @@ export function NotificationDropdown({ notifications, onNotificationClick }) {
   const navigate = useNavigate();
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
-  console.log("Notofication from",notifications);
 
   return (
     <div className="relative mb-6">

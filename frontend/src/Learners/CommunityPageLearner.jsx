@@ -152,7 +152,6 @@ export const CommunityPageLearner = () => {
   };
 
   const markMessagesAsRead = async(room_uuid)=> {
-      console.log("Fetched chatroom uuid:", room_uuid);
         await markAsRead(room_uuid);
     };
   // 🆕 Check for Active Meeting
@@ -214,7 +213,6 @@ export const CommunityPageLearner = () => {
   // Run when modal opens
   useEffect(() => {
     if (isMeetingOpen && meetingInfo) {
-      console.log("🔹 Learner joining meeting...");
       startZegoCall();
     }
   }, [isMeetingOpen, meetingInfo]);
@@ -230,8 +228,6 @@ export const CommunityPageLearner = () => {
       const { user_id, username, is_typing } = data;
   
       if (user_id === userId) return; // ignore yourself
-      console.log("Typing data received:", data);
-      console.log("Current typingUsers before update:",username , is_typing);
       setTypingUsers((prev) => {
         if (is_typing) {
           // add user if not already in list
@@ -245,9 +241,7 @@ export const CommunityPageLearner = () => {
     });
     chatService.on("userStatus", (data) => {
       if (data.is_typing !== undefined) {
-        // This is a typing event
-        console.log(`${data.username} is typing?`, data.is_typing);
-          
+        // This is a typing event          
           setTypingUsers(prev => {
             const newSet = new Set(prev);
             if (data.is_typing) newSet.add(data.username);
@@ -256,7 +250,6 @@ export const CommunityPageLearner = () => {
           });
         } else if (data.status) {
       // This is online/offline
-      console.log(`${data.username} is ${data.status}`);
     }
       // optional: handle online/offline updates
     });

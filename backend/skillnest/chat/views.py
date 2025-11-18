@@ -43,7 +43,6 @@ def get_or_create_chat_room(community, user):
     try:
         return community.chat_room
     except Community.chat_room.RelatedObjectDoesNotExist:
-        logger.warning(f"Creating chat room for community: {community.uuid}")
         return CommunityChatRoom.objects.create(
             community=community,
             name=community.name,
@@ -182,11 +181,9 @@ def mark_as_read(request, room_uuid):
 @permission_classes([IsAuthenticated])
 def unread_message_count(request, room_uuid):
     room = get_object_or_404(CommunityChatRoom, uuid=room_uuid)
-    logger.info(f"Calculating unread messages for user: {request.user.username} in room: {room.uuid}")
     unread = room.messages.exclude(
         reads__user=request.user
     ).count()
-    logger.info(f"Unread message count: {unread}")
     return Response({"unread_count": unread})
 
 
@@ -262,7 +259,6 @@ class CreateMeetingRoomView(APIView):
         # ✅ 1. Check for an existing active meeting in this community
         existing = Meeting.objects.filter(community_id=community_id, is_active=True).first()
         if existing:
-            logger.info(f"Active meeting already exists: {existing.room_name}")
             kit_token = generate_kit_token(
                 app_id=1551231778,
                 server_secret='b5760c71682586e629b772f8fa71570f',
@@ -296,8 +292,6 @@ class CreateMeetingRoomView(APIView):
             created_at=timezone.now(),
             is_active=True,  # ✅ ensure this is marked active
         )
-
-        logger.info(f"New meeting created: {meeting.room_name}")
         return Response({
             "roomName": room_name,
             "appID": 1551231778,
@@ -309,8 +303,6 @@ class CreateMeetingRoomView(APIView):
     # ✅ PATCH method to end meeting
     def patch(self, request):
         meeting_id = request.data.get("meeting_id")
-        logger.warning(f"Ending meeting for room: {meeting_id}")
-
         if not meeting_id:
             return Response({"error": "meeting_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -325,15 +317,6 @@ class CreateMeetingRoomView(APIView):
         meeting.is_active = False
         meeting.ended_at = timezone.now()
         meeting.save()
-        # channel_layer = get_channel_layer()
-        # async_to_sync(channel_layer.group_send)(
-        #     f"community_{meeting.community_id}_meeting",
-        #     {
-        #         "type": "meeting_ended",
-        #         "meeting_id": str(meeting.id),
-        #     },
-        # )
-        logger.warning(f"Meeting {meeting_id} ended at {meeting.ended_at}")
         return Response({
             "message": "Meeting ended successfully",
             "meeting_id": str(meeting.id),
@@ -344,8 +327,6 @@ class ActiveMeetingView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, community_id):
-        logger.info(f"Checking active meeting for community: {community_id}")
-        logger.info(f"All meeting objects: {list(Meeting.objects.filter(community_id=community_id).values())}")
         meeting = (
             Meeting.objects
             .filter(community_id=community_id, is_active=True)

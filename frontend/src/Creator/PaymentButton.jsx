@@ -23,7 +23,6 @@ const PaymentButton = ({ amount,email }) => {
         order_id,
         handler: async (response) => {
           // Step 6: Send verification data to backend
-          console.log("email",email)
           await axios.post("http://localhost:8000/api/payment/verify/", {...response,email,amount});
           toast.success("Payment successful!  You can log in after admin accept");
           navigate('/login')

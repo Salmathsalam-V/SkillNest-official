@@ -36,7 +36,6 @@ class NotificationListView(generics.ListAPIView):
 
     def get_queryset(self):
         data=Notification.objects.filter(recipient=self.request.user)
-        logger.debug(f"Notification from views : {data}")
         return Notification.objects.filter(recipient=self.request.user)
     
 class NotificationUpdateView(generics.UpdateAPIView):
