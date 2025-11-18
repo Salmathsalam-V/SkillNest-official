@@ -361,7 +361,7 @@ useEffect(() => {
         setMeetingInfo(data.meeting);
       }
     } catch (err) {
-      console.error("Failed to parse meeting message:", err);
+      // console.error("Failed to parse meeting message:", err);
     }
   };
   ws.onerror = (error) => {
