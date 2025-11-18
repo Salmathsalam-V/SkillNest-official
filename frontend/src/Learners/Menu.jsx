@@ -173,7 +173,6 @@ const filteredPosts = posts
         }
       }
     } catch (err) {
-      console.log("Comment like toggle error:", err);
       toast.error("Failed to like comment");
     }
   };

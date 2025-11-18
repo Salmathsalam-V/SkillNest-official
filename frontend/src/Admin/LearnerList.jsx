@@ -38,7 +38,6 @@ const LearnerList = () => {
     const fetchLearners = async () => {
       try {
         const learners = await get_learners();  // returns array
-        console.log('Fetched learners:', learners);
         setLearners(learners);
       } catch (error) {
         console.error('Failed to fetch learners:', error);

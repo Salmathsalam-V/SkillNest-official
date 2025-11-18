@@ -66,7 +66,6 @@ const handlePostImageUpload = async (e) => {
   formData.append('file', file);
 
   try {
-    console.log("Uploading image:", file);
     const res = await imageUpload(
       formData,
       {
@@ -74,7 +73,6 @@ const handlePostImageUpload = async (e) => {
         withCredentials: true,
       }
     );
-    console.log("Upload response:", res);
     const url = res.data.url;
     setPostModal((prev) => ({
       ...prev,
@@ -91,7 +89,6 @@ const handlePostImageUpload = async (e) => {
 const submitPost = async () => {
   const { mode, data } = postModal;
   const payload = { caption: data.caption, image: data.image, is_course: data.is_course };
-  console.log(payload)
   if (!payload.caption?.trim()) {
     toast.error("Caption is required");
     return;
@@ -127,7 +124,6 @@ const submitPost = async () => {
 const handleViewFollowers = async () => {
   try {
     const res = await fetchFollowers(id);
-    console.log("followers:",res);
     setFollowers(res.data.followers || []);
     setIsFollowersOpen(true);
   } catch (err) {
@@ -208,7 +204,6 @@ const handleSaveChanges = async () => {
           withCredentials: true,
         }
       );
-      console.log("Upload response:", res.data.url);
       const url = res.data.url;
       setEditData(prev => ({ ...prev, background: url }));
       toast.success("Background image uploaded");
@@ -315,7 +310,6 @@ const handleCreatePost = async () => {
 };
 
 const handleCommentSubmit = async (postId) => {
-  console.log("Submitting comment for post id:", postId);
   const text = commentText[postId];
   if (!text?.trim()) {
     toast.error("Comment cannot be empty");
@@ -355,7 +349,6 @@ const handleProfileUpload = async (e) => {
         withCredentials: true,
       }
     );
-    console.log("Profile upload response:", res.data.url);
     const url = res.data.url;
     setEditData((prev) => ({ ...prev, profile: url }));
     toast.success("Profile image uploaded");
@@ -367,10 +360,8 @@ const handleProfileUpload = async (e) => {
   }
 };
 const handleCommentLikeToggle = async (postId, commentId) => {
-  console.log("Toggling like for comment:", commentId, "on post:", postId);
   try {
     const data = await toggleCommentLike(postId, commentId);
-    console.log("Comment like toggle response:", data);
     if (data.success) {
       // Update state for that comment
       setPosts((prev) =>
@@ -401,14 +392,12 @@ const handleCommentLikeToggle = async (postId, commentId) => {
       }
     }
   } catch (err) {
-    console.log("Comment like toggle error:", err);
     toast.error("Failed to like comment");
   }
 };
 
 const fetchCreatorReviews = async () => {
   try {
-    console.log("before fetch ",id)
     const res = await fetchReviews(id);
     setReviews(res.data.results || res.data); // depending on pagination
   } catch (err) {

@@ -7,7 +7,7 @@ import { store, persistor  } from '../src/Redux/store';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { PersistGate } from "redux-persist/integration/react";
 import { Toaster } from 'sonner';
-
+import  ErrorBoundary  from './components/ErrorBoundary.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,7 +15,9 @@ createRoot(document.getElementById('root')).render(
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
           <Toaster position="top-right" />
+          <ErrorBoundary>
           <App />
+          </ErrorBoundary>
         </PersistGate>
       </Provider>
     </GoogleOAuthProvider>

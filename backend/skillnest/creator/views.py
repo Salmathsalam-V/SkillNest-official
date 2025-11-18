@@ -117,7 +117,6 @@ def toggle_comment_like(request, post_id, comment_id):
     try:
         post = get_object_or_404(Post, id=post_id)
         comment = Comment.objects.get(id=comment_id, post_id=post_id)
-        print("Found comment:", comment)
     except Comment.DoesNotExist:
         return Response({"error": "Comment not found"}, status=404)
 
@@ -290,8 +289,6 @@ class CommunityMembersView(APIView):
 
     # helper for patch/post
     def _update_members(self, request, pk):
-        print("request.data type:", type(request.data))
-        print("request.data content:", request.data)
 
         community = get_object_or_404(Community, pk=pk)
         action_type = request.data.get("action", "add")
@@ -366,7 +363,6 @@ class PendingInvitesView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         result= CommunityInvite.objects.filter(invited_user=user, status="pending").order_by("-created_at")
-        logger.info(f"Pending invites for user {user.username}: {result}")
         return result
 
 class RespondToInviteView(generics.UpdateAPIView):
@@ -426,8 +422,6 @@ class CreatorReviewListCreateView(APIView):
 
     def post(self, request, creator_id):
         """Create a review for a specific creator"""
-        logger.info('before post')
-        logger.info(f"POST /reviews by {request.user} (auth={request.user.is_authenticated})")
         creator = get_object_or_404(User, id=creator_id)
         serializer = ReviewSerializer(
             data=request.data,
@@ -465,7 +459,6 @@ class FeedbackListCreateView(APIView):
 
     def post(self, request, community_id):
         """Create a feedback entry for a community"""
-        logger.info(f"POST /feedback by {request.user} (auth={request.user.is_authenticated})")
 
         community = get_object_or_404(Community, id=community_id)
         serializer = FeedbackSerializer(
@@ -474,10 +467,8 @@ class FeedbackListCreateView(APIView):
         )
 
         if serializer.is_valid():
-            serializer.save(creator=request.user)  # 👈 Associate logged user
+            serializer.save(creator=request.user)  
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        logger.error(f"Feedback creation failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class FeedbackDetailView(APIView):

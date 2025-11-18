@@ -79,12 +79,12 @@ class CourseSerializer(serializers.ModelSerializer):
 # community
 class CommunitySerializer(serializers.ModelSerializer):
     creator = serializers.ReadOnlyField(source='creator.username')
-    chat_room_uuid = serializers.UUIDField(source='chat_room.room_id', read_only=True)
     members = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
         required=False
     )
+    chat_room_uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = Community
@@ -94,15 +94,13 @@ class CommunitySerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context['request']
         user = request.user
-        logger.info(f"Creating community by user: {user.username} and the request data: {validated_data}")
-        # ✅ 1. Only creators can create communities
+        # Only creators can create communities
         if user.user_type != 'creator':
             raise serializers.ValidationError("Only creators can create a community.")
 
-        # ✅ 2. Extract members if any
+        #  Extract members if any
         members = validated_data.pop('members', [])
-        logger.info(f"Invited members: {[member.username for member in members]}")
-        # ✅ 3. Create the community
+        # Create the community
         community = Community.objects.create(
             creator=user,
             name=validated_data['name'],
@@ -121,8 +119,12 @@ class CommunitySerializer(serializers.ModelSerializer):
                 status='pending',
                 
             )
-
         return community
+    def get_chat_room_uuid(self, obj):
+        # return UUID only if chat room exists
+        if hasattr(obj, "chat_room"):
+            return obj.chat_room.uuid
+        return None
 
 class CommunityInviteSerializer(serializers.ModelSerializer):
     community_name = serializers.CharField(source="community.name", read_only=True)

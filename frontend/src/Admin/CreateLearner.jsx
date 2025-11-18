@@ -26,7 +26,6 @@ export const CreateLearner = () => {
         e.preventDefault();
         try {
         formData['profile'] = profile
-        console.log(formData)
         const res = await registerUser (formData);
         toast.success("Registered successfully");
         navigate('/listlearner')
@@ -46,7 +45,6 @@ export const CreateLearner = () => {
           const res = await imageUpload(
                 formData,
               );
-          console.log(res.data.url);
           setProfile(res.data.url);  
         } catch (err) {
           console.error("Image upload failed:", err);

@@ -35,9 +35,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        console.log("Attempting token refresh...");
         await refreshClient.post(REFRESH_URL, {}, { withCredentials: true });
-        console.log("Token refreshed successfully. Retrying request...");
         return apiClient(originalRequest);
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError.response?.data);
@@ -61,41 +59,15 @@ apiClient.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
+    if (error.response?.status === 500) {
+      window.location.href = "/server-error";   // your custom page
+      return; // stop further handling
+    }
 
     return Promise.reject(error);
   }
 );
 
-
-// export const refresh_token = async () => {
-//   try {
-//     console.log("Refreshing token...");
-//     const response = 
-//     await axios.post(
-//       REFRESH_URL,
-//       {},
-//       { withCredentials: true }
-//     );
-
-//     // optionally: return the token or a success flag
-//     return response.data.refreshed === true;
-//   } catch (error) {
-//     console.error("Token refresh failed", error);
-//     return false;
-//   }
-// };
-// const call_refresh=async (error, func ) =>{
-//   if (error.response && error.response.status === 401){
-//     console.log("Calling refresh")
-//     const tokenRefreshed = await refresh_token();
-//     console.log("Token refreshed:", tokenRefreshed)
-//     if (tokenRefreshed){
-//       const retryResponse = await func();
-//       return retryResponse.data
-//     }
-//   }
-//   return false
-// }
 
 export const login = async (email, password) => {
   try {
@@ -144,7 +116,6 @@ export const logout = async () => {
   try {
     // Use axios directly instead of apiClient to bypass interceptors
     await axios.post(LOGOUT_URL, {}, { withCredentials: true });
-    console.log("Logout successful");
     return true;
   } catch (error) {
     console.error("Logout failed, but proceeding with client-side logout:", error.response?.data || error.message);
@@ -156,7 +127,6 @@ export const logout = async () => {
 export const get_learners = async () => {
   try {
     const response = await apiClient.get(LEARNERS_URL, { withCredentials: true });
-    console.log("Learners fetched:", response.data);
     return response.data.learners;
   } catch (error) {
     console.error("Fetching learners failed:", error.response?.data || error.message);
@@ -189,7 +159,6 @@ export const toggleLike = async (postId) => {
 
 export const createComment = async (postId, content) => {
   try {
-    console.log(`Creating comment on post ${postId}:`, content);
     const response = await apiClient.post(
       `creator/posts/${postId}/comments/`,
       { content },
@@ -221,7 +190,6 @@ export const toggleCommentLike = async (postId, commentId) => {
 
 export const get_course = async (userId)=>{
   try{
-    console.log("Fetching courses for user from axios:", userId);
     const response = await axios.get(`http://localhost:8000/api/creator/creators/${userId}/courses/`,
     { withCredentials : true }
     )
@@ -287,7 +255,6 @@ export const fetchAllFollowers = async () => {
 
     while (nextUrl) {
       const res = await axios.get(nextUrl, { withCredentials: true });
-      console.log(res.data)
       allUsers = [...allUsers, ...res.data.results];
       nextUrl = res.data.next; // DRF pagination gives next page URL
     }
@@ -355,7 +322,6 @@ export const removeMember = async (communityId, identifier) => {
   };
     
 export const addMember = async (communityId, identifier) => {
-  console.log("Adding member in axios:", communityId, identifier);
   const res = await apiClient.post(`/creator/communities/${communityId}/members/`, 
     { action: "add", member: identifier }
   );
@@ -401,7 +367,6 @@ export const getCommunityMembers = async (communityId) => {
   try {
     
     const res = await apiClient.get(`/admin/communities/${communityId}/members/`);
-    console.log("Community members data:", res.data);
     return res.data;
 
   } catch (err) {
@@ -494,7 +459,6 @@ export const rejectCreator = async (creatorId) => {
 export const listCreators = async () => {
   try {
     const res = await apiClient.get('/admin/creators/');
-    console.log("Creators list response:", res.data);
     return { success: true, data: res.data || [] };
   } catch (err) {
     console.error("Error fetching creator posts:", err);
@@ -664,7 +628,6 @@ export const deletePost = async (postId) => {
 export const fetchInvites = async () => {
   try {
     const res = await apiClient.get("creator/invites/");
-    console.log("Fetched Invites:", res.data.results);
     return res.data.results;
   } catch (err) {
     console.error("Error fetching invites:", err);
@@ -677,21 +640,10 @@ export const respondToInvite = async (inviteId, action) => {
   return res.data;
 };
 
-// export const postReports = async (postId, reportData) => {
-//   try {
-//     const res = await axios.post(`/creator/post/${postId}/reports/`, reportData); 
-//     console.log("Report post response data from axios:", res.data);
-//     return { success: true};
-//   } catch (err) {
-//     console.error("Failed to report post:", err);
-//     return { success: false, error: err };
-//   }
-// };
+
 export const postReports = async (postId, reportData) => {
   try {
-    console.log("before api call")
     const res = await apiClient.post(`creator/post/${postId}/reports/`, reportData);
-    console.log("Report post response:", res.data);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to report post:", err.response?.data || err);
@@ -702,7 +654,6 @@ export const postReports = async (postId, reportData) => {
 export const postReportsView = async () => {
   try {
     const res = await apiClient.get('admin/post/reports');
-    console.log("Report post response:", res.data);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to report post:", err.response?.data || err);
@@ -712,9 +663,7 @@ export const postReportsView = async () => {
 
 export const postReviews = async (creatorId, reportData) => {
   try {
-    console.log("before api call")
     const res = await apiClient.post(`creator/post/${postId}/reports/`, reportData);
-    console.log("Report post response:", res.data);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to report post:", err.response?.data || err);
@@ -724,13 +673,11 @@ export const postReviews = async (creatorId, reportData) => {
 // ✅ Post a new review for a creator
 export const postReview = async (creatorId, reviewData) => {
   try {
-    console.log("Before posting review...");
     const res = await apiClient.post(
       `creator/creators/${creatorId}/reviews/`,
       reviewData,
       { withCredentials: true }
     );
-    console.log("Review post response:", res.data);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to post review:", err.response?.data || err);
@@ -740,12 +687,10 @@ export const postReview = async (creatorId, reviewData) => {
 
 export const fetchReviews = async (creatorId) => {
   try {
-    console.log("Before fetch review...");
     const res = await apiClient.get(
       `creator/creators/${creatorId}/reviews`,
       { withCredentials: true }
     );
-    console.log("Reviews:", res);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to fetch review:", err.response?.data || err);
@@ -766,7 +711,6 @@ export const sendContactReply = async (contactId, reply) => {
 export const listPayments = async () => {
   try {
     const res = await apiClient.get("/admin/payments/");
-    console.log("Payments list response:", res.data);
     return { success: true, data: res.data || [] };
   } catch (err) {
     console.error("Error fetching payments:", err);
@@ -779,12 +723,10 @@ export const listPayments = async () => {
 
 export const fetchFollowers = async (creatorId) => {
   try {
-    console.log("Fetching followers...");
     const res = await apiClient.get(
       `creator/creators/${creatorId}/followers/`,
       { withCredentials: true }
     );
-    console.log("Followers:", res);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to fetch followers:", err.response?.data || err);
@@ -794,12 +736,10 @@ export const fetchFollowers = async (creatorId) => {
 
 export const createMeetingRoom = async (communityId) => {
   try {
-    console.log("Creating meeting room...");
     const res = await apiClient.post(
       `chat/create/meet-room/`,
       { community_id: communityId }
     );
-    console.log("Meeting room created:", res);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to create meeting room:", err.response?.data || err);
@@ -809,12 +749,10 @@ export const createMeetingRoom = async (communityId) => {
 
 export const editMeetingRoom = async (meeting_id) => {
   try {
-    console.log("eidting the meeting room...");
     const res = await apiClient.patch(
       `chat/create/meet-room/`,
       { meeting_id: meeting_id }
     );
-    console.log("Meeting ended in backend", res);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Failed to update meeting room:", err.response?.data || err);
@@ -830,7 +768,6 @@ export const getActiveMeeting = async (communityId) => {
 
 export const createFeedback = async (communityId, creatorId, userId, feedbackText) => {
   try {
-    console.log("Sending feedback...");
 
     const res = await apiClient.post(
       `creator/feedback/${communityId}/`,
@@ -843,7 +780,6 @@ export const createFeedback = async (communityId, creatorId, userId, feedbackTex
       { withCredentials: true }
     );
 
-    console.log("✅ Feedback sent:", res.data);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("❌ Failed to send feedback:", err.response?.data || err);
@@ -879,7 +815,6 @@ export async function translateText(text, targetLang = "en") {
 export const getPostById = async (postId) => {
   try {
     const res = await apiClient.get(`/creator/post/${postId}/`);
-    console.log("Post fetched successfully:", res.data);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Error fetching post:", err);
@@ -888,7 +823,21 @@ export const getPostById = async (postId) => {
 };
 
 export const fetchUnreadCount = async (roomUuid) => {
-  const res = await apiClient.get(`chat/community/${roomUuid}/unread_count/`);
-  return res.data.unread_count;
+  try {
+  const res = await apiClient.get(`chat/community/${roomUuid}/unread_count`);
+  return { success: true, data: res.data.unread_count };
+  } catch (err) {
+    console.error("Error fetching unread count:", err);
+    return { success: false, error: err };
+  }
+};
+export const markAsRead = async (roomUuid) => {
+  try {
+  const res = await apiClient.post(`chat/community/${roomUuid}/mark_as_read/`);
+  return { success: true, data: res.data };
+  } catch (err) {
+    console.error("Error marked as  read:", err);
+    return { success: false, error: err };
+  }
 };
 

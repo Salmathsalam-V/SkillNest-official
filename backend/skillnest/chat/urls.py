@@ -1,6 +1,6 @@
 from django.urls import path
 from . views import CommunityChatRoomDetailView, CommunityMessagesView, send_community_message, CommunityChatMembersView, CreateMeetingRoomView,ActiveMeetingView     
-from .views import translate_text,unread_message_count
+from .views import translate_text,unread_message_count,mark_as_read
 app_name = "chat"
 
 urlpatterns = [
@@ -12,5 +12,6 @@ urlpatterns = [
     path("create/meet-room/", CreateMeetingRoomView.as_view(), name="create-room"),
     path("active-meeting/<int:community_id>/", ActiveMeetingView.as_view(), name="active-meeting"),
     path("translate/", translate_text,name="translate-text"), 
-    path("community/<int:community_id>/unread_count/", unread_message_count,name="unread-message-count"), 
+    path("community/<uuid:room_uuid>/unread_count", unread_message_count,name="unread-message-count"), 
+    path("community/<uuid:room_uuid>/mark_as_read/", mark_as_read,name="mark-as-read"), 
 ]

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { fetchMessages, sendMessage, fetchChatRoom, imageUpload, getMembers, getActiveMeeting,translateText } from "../endpoints/axios";
+import { fetchMessages, sendMessage, fetchChatRoom, imageUpload, getMembers, getActiveMeeting,translateText,markAsRead } from "../endpoints/axios";
 import LearnerLayout from "@/components/Layouts/LearnerLayout";
 import { toast } from "sonner";
 import chatService from "../services/chatService";
@@ -49,6 +49,7 @@ export const CommunityPageLearner = () => {
     try {
       const { data } = await fetchChatRoom(communityId);
       setCommunity(data);
+      markMessagesAsRead(data.uuid);
     } catch (error) {
       console.error("ChatRoom Error:", error);
     }
@@ -107,27 +108,27 @@ export const CommunityPageLearner = () => {
   };
 
   // --- WebSocket ---
-useEffect(() => {
-  if (!community?.uuid) return;
-  chatService.connect(community.uuid);
+// useEffect(() => {
+//   if (!community?.uuid) return;
+//   chatService.connect(community.uuid);
 
-  const handleMessage = (m) => setMessages(prev => [...prev, m]);
+//   const handleMessage = (m) => setMessages(prev => [...prev, m]);
 
-  const handleTranslation = ({ messageId, translated }) => {
-    setMessages(prev =>
-      prev.map(msg => (msg.id === messageId ? { ...msg, translated } : msg))
-    );
-  };
+//   const handleTranslation = ({ messageId, translated }) => {
+//     setMessages(prev =>
+//       prev.map(msg => (msg.id === messageId ? { ...msg, translated } : msg))
+//     );
+//   };
 
-  chatService.on("message", handleMessage);
-  chatService.on("translation_update", handleTranslation);
+//   chatService.on("message", handleMessage);
+//   chatService.on("translation_update", handleTranslation);
 
-  return () => {
-    chatService.off("message", handleMessage);
-    chatService.off("translation_update", handleTranslation);
-    chatService.disconnect();
-  };
-}, [community?.uuid]);
+//   return () => {
+//     chatService.off("message", handleMessage);
+//     chatService.off("translation_update", handleTranslation);
+//     chatService.disconnect();
+//   };
+// }, [community?.uuid]);
 
   // --- Auto-scroll ---
   const scrollToBottom = () => {
@@ -150,6 +151,9 @@ useEffect(() => {
     }
   };
 
+  const markMessagesAsRead = async(room_uuid)=> {
+        await markAsRead(room_uuid);
+    };
   // 🆕 Check for Active Meeting
   const checkActiveMeeting = async () => {
     try {
@@ -209,7 +213,6 @@ useEffect(() => {
   // Run when modal opens
   useEffect(() => {
     if (isMeetingOpen && meetingInfo) {
-      console.log("🔹 Learner joining meeting...");
       startZegoCall();
     }
   }, [isMeetingOpen, meetingInfo]);
@@ -225,8 +228,6 @@ useEffect(() => {
       const { user_id, username, is_typing } = data;
   
       if (user_id === userId) return; // ignore yourself
-      console.log("Typing data received:", data);
-      console.log("Current typingUsers before update:",username , is_typing);
       setTypingUsers((prev) => {
         if (is_typing) {
           // add user if not already in list
@@ -240,9 +241,7 @@ useEffect(() => {
     });
     chatService.on("userStatus", (data) => {
       if (data.is_typing !== undefined) {
-        // This is a typing event
-        console.log(`${data.username} is typing?`, data.is_typing);
-          
+        // This is a typing event          
           setTypingUsers(prev => {
             const newSet = new Set(prev);
             if (data.is_typing) newSet.add(data.username);
@@ -251,7 +250,6 @@ useEffect(() => {
           });
         } else if (data.status) {
       // This is online/offline
-      console.log(`${data.username} is ${data.status}`);
     }
       // optional: handle online/offline updates
     });

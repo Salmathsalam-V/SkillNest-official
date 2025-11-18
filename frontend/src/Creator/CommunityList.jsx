@@ -46,9 +46,7 @@ export const CommunityList = () => {
           setCommunities((prev) => [...prev, ...data.results]);
         }
         setNext(data.next);
-        // const userRes = await fetchUsers();
-        // console.log("Fetched users for members in community:", userRes);
-        // setUsers(userRes || []);
+
       } catch (err) {
         console.error("Error fetching communities:", err);
       } finally {
@@ -60,9 +58,7 @@ export const CommunityList = () => {
 useEffect(() => {
   const loadAllUsers = async () => {
     try {
-      console.log("before fetch followers")
       const userRes = await fetchAllFollowers(); // ✅ now fetches ALL pages
-      console.log("Fetched users for members in community:", userRes);
       setUsers(userRes || []);
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -158,10 +154,9 @@ const memberOf = communities.filter(
 useEffect(() => {
   const loadCounts = async () => {
     const counts = {};
-    console.log("Loading unread counts for communities", communities);
     for (const c of communities) {
-      console.log("Fetching unread count for community:", c.chat_room_uuid);
-      counts[c.chat_room_uuid] = await fetchUnreadCount(c.chat_room_uuid);
+      const obj = await fetchUnreadCount(c.chat_room_uuid);
+      counts[c.chat_room_uuid]=obj.data
     }
     setUnreadCounts(counts);
   };

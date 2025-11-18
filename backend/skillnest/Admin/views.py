@@ -124,7 +124,6 @@ class CommunityListView(generics.ListAPIView):
 
     def delete(self, request, pk=None):
         community_id = request.query_params.get("id") or pk
-        logger.info(f"Attempting to delete community with ID: {community_id}")
         try:
             community = Community.objects.get(id=community_id)
             community.delete()
@@ -157,7 +156,6 @@ class DashboardStatsView(APIView):
         creators = User.objects.filter(user_type='creator').count()
         learners = User.objects.filter(user_type='learner').count()
         communities = Community.objects.count()
-        logger.info(f"Total Users: {total_users}, Creators: {creators}, Learners: {learners}, Communities: {communities}")
         # 2️⃣ User growth (last 30 days)
         user_growth = (
             User.objects
@@ -184,8 +182,6 @@ class DashboardStatsView(APIView):
             .annotate(amount=Sum('amount'))
             .order_by('date')
         )
-        logger.info(f"User Growth Data: {user_growth}")
-        logger.info(f"Community Growth Data: {community_growth} , payment ;{payment_growth}")
         # Format data for frontend
         data = {
             "total_users": total_users,
