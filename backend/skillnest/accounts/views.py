@@ -50,11 +50,9 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserSerializer(data=request.data)
-        logger.info(f"Registration data received: {request.data}")
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        logger.debug(serializer.errors)  
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def get(self, request):
         return Response({'message': 'Register view'})
@@ -67,21 +65,18 @@ class LoginView(APIView):
         if serializer.is_valid():
             data = serializer.validated_data
             user = data['user']
-            logger.info(f"User {user} logged in successfully.")
             #  # Check user status & approval conditions
             if user['user_type'] == 'creator':
                 user_instance = User.objects.get(id=user['id'])
                 # Creator must be approved and active
                 creator_profile = Creator.objects.filter(user=user_instance).first() # Access related Creator profile, if not exists, None
                 if not creator_profile or creator_profile.approve != 'accept':
-                    logger.warning(f"Creator account for user {user['email']} is not approved.")
                     return Response(
                         {'success': False, 'error': 'Creator account is not approved yet.'},
                         status=status.HTTP_403_FORBIDDEN
                     )
 
                 if not user['status']:
-                    logger.warning(f"Creator account for user {user['email']} is not active.")
                     return Response(
                             {'success': False, 'error': 'Creator account is not active. Please verify your email.'},
                             status=status.HTTP_403_FORBIDDEN
@@ -157,13 +152,11 @@ class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        logger.debug("RefreshTokenView called")
         refresh_cookie_name = settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"]
         access_cookie_name = settings.SIMPLE_JWT["AUTH_COOKIE_ACCESS"]
 
         refresh_token = request.COOKIES.get(refresh_cookie_name)
         if not refresh_token:
-            logger.warning("No refresh token found in cookies")
             return Response(
                 {"detail": "Session expired. Please log in again."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -172,7 +165,6 @@ class RefreshTokenView(APIView):
         try:
             token = RefreshToken(refresh_token)
             new_access_token = str(token.access_token)
-            logger.info("New access token generated")
 
             response = Response(
                 {"message": "New access token established.", "access": new_access_token},
@@ -199,11 +191,9 @@ class RefreshTokenView(APIView):
                 **cookie_args,
             )
 
-            logger.info("Access token cookie overwritten successfully")
             return response
 
         except TokenError as e:
-            logger.warning(f"Token error: {e}")
             return Response(
                 {"detail": f"Session expired. Please log in again. Error: {str(e)}"},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -221,7 +211,6 @@ class GoogleLoginAPIView(APIView):
 
     def post(self, request):
         token = request.data.get("token")
-        logger.info(f"Received Google token: {token}")
         try:
             idinfo = id_token.verify_oauth2_token(
             token,
@@ -229,15 +218,12 @@ class GoogleLoginAPIView(APIView):
             "768158657502-ia2b2gh1gd3o69rm7ehh1rhtvfe2aapi.apps.googleusercontent.com"
             )
         except Exception as e:
-            logger.error(f"Google token verification failed: {e}")
             return Response({"error": "Invalid Google token"}, status=status.HTTP_400_BAD_REQUEST)
         
         # Extract Google profile info
         email = idinfo["email"]
         name = idinfo.get("name", "")
-        logger.info(f"Google ID info: email={email}, name={name}")
         User = get_user_model()
-        logger.info("Before User.objects.get_or_create",User)
 
         user, created = User.objects.get_or_create(
             email=email,
@@ -245,7 +231,6 @@ class GoogleLoginAPIView(APIView):
         )
          # ✅ If user exists but is blocked
         if not created and user.is_block:
-            logger.warning(f"Blocked user attempted Google login: {user.email}")
             return Response(
                 {"error": "Your account has been blocked. Please contact the admin."},
                 status=status.HTTP_403_FORBIDDEN
@@ -254,14 +239,9 @@ class GoogleLoginAPIView(APIView):
         if created:
             user.status = True
             user.save(update_fields=["status"])
-            logger.info(f"New Google user created: {user.email} as learner, type={user.user_type}")
-        else:
-            logger.info(f"Existing Google user logged in: {user.email}, type={user.user_type}")
 
         refresh = RefreshToken.for_user(user)
-        logger.info("After RefreshToken.for_user")
         access = refresh.access_token
-        logger.info("After access token generation, user authenticated",user.user_type)
         redirect_url = '/creatorhome' if user.user_type == 'creator' else '/learnerhome'
 
         response = JsonResponse({
@@ -279,7 +259,6 @@ class GoogleLoginAPIView(APIView):
         })
         access_token = str(access)
         refresh_token = str(refresh)
-        logger.info(f"Generated tokens for Google login: access_token={access_token}, refresh_token={refresh_token}")
         # Secure cookies for tokens
         response.set_cookie(
                 key='access_token',
@@ -297,7 +276,6 @@ class GoogleLoginAPIView(APIView):
             samesite=settings.AUTH_COOKIE_SAMESITE,
             path='/'
         )
-        logger.info(f"Google login cookies set successfully {response.cookies}")
         return response
     
 def generate_otp():
@@ -351,7 +329,6 @@ def reset_password_view(request):
         user = User.objects.get(email=email)
         user.set_password(new_password)
         user.save()
-        print(user)
         return Response({'message': f'{user.email} {user.user_type} password updated successfully'})
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=404)
@@ -388,19 +365,16 @@ def search_users(request):
 @parser_classes([MultiPartParser, FormParser])
 def upload_image(request):
     file = request.FILES.get('file')
-    logger.info(f"Received file: {file}")
     if not file:
         return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         result = cloudinary.uploader.upload(file, folder="skillnest")
-        logger.info(f"Cloudinary upload result: {result}")
         return Response({
             "url": result.get("secure_url"),
             "public_id": result.get("public_id")
         }, status=status.HTTP_200_OK)
     except Exception as e:
-        print("Cloudinary upload failed:", e)
         return Response({"error": "Upload failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
@@ -484,12 +458,10 @@ class VerifyPaymentView(APIView):
                     status="success",
                     amount=amount,
                 )
-                logger.info(f"Payment record created for user: {user.email if user else 'Guest'}, amount: {amount}")
                 # ✅ Upgrade user if learner → creator
                 if user and user.user_type == "learner":
                     user.user_type = "creator"
                     user.save()
-                    logger.info(user)
 
                     # Create Creator profile only if not exists
                     Creator.objects.get_or_create(user=user)
@@ -502,20 +474,16 @@ class VerifyPaymentView(APIView):
                     email_msg = f"Your payment of ₹{amount} has been received successfully. You have been registered as Creator. Please wait for admin approval before logging in."
                     send_admin_reply_email.delay(user.email, user.fullname, email_msg)
 
-                logger.info(message)
-                # Send admin reply email asynchronously
 
             return Response({"status": message}, status=status.HTTP_200_OK)
 
         except razorpay.errors.SignatureVerificationError:
-            logger.exception("Signature verification failed")
             return Response(
                 {"error": "Payment verification failed (invalid signature)"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         except Exception as e:
-            logger.exception("Unexpected error during payment verification")
             return Response(
                 {"error": f"Unexpected error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

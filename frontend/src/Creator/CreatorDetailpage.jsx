@@ -39,7 +39,6 @@ export function CreatorDetailpage() {
     const fetchCreator = async () => {
       try {
         const response = await creatorData(id);
-        console.log("Fetched creator: from cr view", response.data);
         if (response.data.success) {
           setCreator(response.data.creator);
         } else {
@@ -92,7 +91,6 @@ const handleLikeToggle = async (postId) => {
 };
 
 const handleCommentSubmit = async (postId) => {
-  console.log("Submitting comment for post id:", postId);
   const text = commentText[postId];
   if (!text?.trim()) {
     toast.error("Comment cannot be empty");
@@ -118,10 +116,8 @@ const handleCommentSubmit = async (postId) => {
 };
 
 const handleCommentLikeToggle = async (postId, commentId) => {
-  console.log("Toggling like for comment:", commentId, "on post:", postId);
   try {
     const data = await toggleCommentLike(postId, commentId);
-    console.log("Comment like toggle response:", data);
     if (data.success) {
       // Update state for that comment
       setPosts((prev) =>
@@ -152,7 +148,6 @@ const handleCommentLikeToggle = async (postId, commentId) => {
       }
     }
   } catch (err) {
-    console.log("Comment like toggle error:", err);
     toast.error("Failed to like comment");
   }
 };
@@ -225,7 +220,6 @@ const handleReportSubmit = async () => {
 
 const fetchCreatorReviews = async () => {
   try {
-    console.log("before fetch ",id)
     const res = await fetchReviews(id);
     setReviews(res.data.results || res.data); // depending on pagination
   } catch (err) {
@@ -239,9 +233,7 @@ const handleReviewSubmit = async () => {
     return;
   }
   try {
-    console.log("Before")
     const res = await postReview(creator.id,newReview);
-    console.log(res.success);
     if (res.success) {
       toast.success("Review submitted!");
       setNewReview({ rating: 0, comment: "" });
@@ -260,7 +252,6 @@ useEffect(() => {
 
   if (loading) return <p className="text-center py-10">Loading...</p>;
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
-  console.log("Rendering creator detail page for:", userType);
   const Layout = userType === "creator" ? CreatorLayout : LearnerLayout;
 
   return (

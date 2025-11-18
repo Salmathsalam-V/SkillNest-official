@@ -22,9 +22,7 @@ useEffect(() => {
   const loadCommunities = async () => {
     try {
       const data = await getCommunities();  
-      console.log("Fetched communities data:", data);
       setCommunities(Array.isArray(data) ? data : data.results || []);
-      console.log("Communities fetched:", data);
     } catch (error) {
       console.error("fetch communities admin:", error);
     } finally {
@@ -42,7 +40,6 @@ useEffect(() => {
           try {
             const data = await getCommunityMembers(communityId);      // no destructuring
             setSelectedMembers(data);
-            console.log("Communities members:", data);
           } catch (error) {
             console.error("fetch communities admin:", error);
           } finally {

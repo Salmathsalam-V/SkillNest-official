@@ -78,8 +78,6 @@ export const CommunityPage = () => {
     try {
       const { data } = await fetchChatRoom(communityId);
       setCommunity(data);
-      console.log("Fetched community chat room:", data);
-      console.log("Fetched community data:", data.uuid);
       markMessagesAsRead(data.uuid);
     } catch (error) {
       console.error("ChatRoom Error:", error);
@@ -92,8 +90,7 @@ export const CommunityPage = () => {
 const loadMessages = async () => {
   try {
     const { data } = await fetchMessages(communityId); // no cursor → first page
-    // console.log("Fetched community data:", community);
-    // markMessagesAsRead(community.uuid);
+
     setMessages(data.results.reverse());   // newest last
     setNextCursor(data.next);
     
@@ -146,7 +143,6 @@ const handleSend = async (mediaUrl = null) => {
       timestamp: new Date().toISOString(),
     };
 
-    console.log("tempMessage: ",tempMessage)
     setNewMessage("");
   } catch (error) {
     console.error("Send Error:", error);
@@ -166,7 +162,6 @@ const handleFileUpload = async (e) => {
   try {
     const res = await imageUpload( formData);
     const url = res.data.secure_url;
-    console.log("url1:",url)
     let messageType = "file";
     if (file.type.startsWith("image/")) messageType = "image";
     else if (file.type.startsWith("video/")) messageType = "video";
@@ -187,7 +182,6 @@ const loadMembers = async () => {
   try {
     const data = await getMembers(communityId); // pass it here
     setMembers(data.members || []);
-    console.log("Members loaded:", data);
   } catch (err) {
     console.error("Failed to load members:", err);
   }
@@ -196,7 +190,6 @@ const loadMembers = async () => {
 // Add member
 const handleAddMember = async (identifier) => {
   try {
-    console.log("Adding member:", identifier);
     const res = await addMember(communityId, identifier); // just string
     setMembers(res.members); // res.data is the CommunitySerializer output
     setNewMember("");
@@ -239,7 +232,6 @@ const handleRemoveMember = async (identifier) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   const markMessagesAsRead = async(room_uuid)=> {
-    console.log("Fetched chatroom uuid:", room_uuid);
       await markAsRead(room_uuid);
   };
   useEffect(() => {
@@ -252,24 +244,7 @@ const handleRemoveMember = async (identifier) => {
     scrollToBottom();
   }, [messages]);
   
-// useEffect(() => {
-//   console.log("Setting up WebSocket connection for community chat", communityId);
-//   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-//   console.log("WebSocket protocol:", protocol);
-//   const ws = new WebSocket(`${protocol}://${window.location.host}/ws/community/${communityId}/`);
-//   console.log("after creating WebSocket");
-//   console.log("WebSocket instance:", ws);
-//   ws.onmessage = (e) => {
-//     const data = JSON.parse(e.data);
-//     console.log("WebSocket message received:inside the useffect", data);
-//     if (data.type === "chat_message") {
-//       setMessages((prev) => [...prev, data.message]);
-//     }
-//   };
 
-//   ws.onclose = () => console.log("WS closed");
-//   return () => ws.close();
-// }, [communityId]);
   
 const handleSendPendingFile = async () => {
   if (!pendingFile) return;
@@ -282,13 +257,10 @@ const handleSendPendingFile = async () => {
     const res = await imageUpload(
       formData
     );
-    console.log("res data:",res)
     const url = res.data.url;
-    console.log("url:2",url)
     let msgType = "file";
     if (pendingFile.type.startsWith("image/")) msgType = "image";
     else if (pendingFile.type.startsWith("video/")) msgType = "video";
-    console.log("url2: ",msgType,url)
     // ✅ Send uploaded file via WebSocket
     chatService.sendMessage(community.uuid, "", msgType, url);
 
@@ -305,14 +277,11 @@ const handleSendPendingFile = async () => {
 
 
 useEffect(() => {
-  console.log("useEffect for chatService with communityId:", communityId, "and community:", community);
   if (!community?.uuid) return; // wait until community/room info is ready
-  console.log("Connecting to chat service for room:", community.uuid);
   chatService.connect(community.uuid);
 
   // listen for messages
   chatService.on("message", async (message) => {
-    console.log("📨 Received message:", message);
 
     // Only translate if it’s text content
     // if (message.message_type === "text" && message.content) {
@@ -333,8 +302,6 @@ useEffect(() => {
     const { user_id, username, is_typing } = data;
 
     if (user_id === userId) return; // ignore yourself
-    console.log("Typing data received:", data);
-    console.log("Current typingUsers before update:",username , is_typing);
     setTypingUsers((prev) => {
       if (is_typing) {
         // add user if not already in list
@@ -354,7 +321,6 @@ useEffect(() => {
   chatService.on("userStatus", (data) => {
     if (data.is_typing !== undefined) {
       // This is a typing event
-      console.log(`${data.username} is typing?`, data.is_typing);
        
         setTypingUsers(prev => {
           const newSet = new Set(prev);
@@ -364,13 +330,9 @@ useEffect(() => {
         });
       } else if (data.status) {
     // This is online/offline
-    console.log(`${data.username} is ${data.status}`);
   }
     // optional: handle online/offline updates
   });
-
-  chatService.on("connect", () => console.log("WS connected"));
-  chatService.on("disconnect", () => console.log("WS disconnected from chat service"));
 
 
   // cleanup when leaving page
@@ -388,36 +350,28 @@ useEffect(() => {
     `${protocol}://127.0.0.1:8000/ws/community/${communityId}/meeting/`
   );
     meetingSocketRef.current = ws;
-    console.log("ws",ws)
-  ws.onopen = () => {
-    console.log("✅ Meeting WebSocket connected!");
-  };
+  
 
    ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      console.log("📩 Meeting WebSocket message:", data);
       if (data.type === "meeting_started") {
-        console.log("data",data);
         
         toast.info(`📢 ${userId} started a video call`);
         setMeetingInfo(data.meeting);
       }
     } catch (err) {
-      console.error("Failed to parse meeting message:", err);
+      // console.error("Failed to parse meeting message:", err);
     }
   };
   ws.onerror = (error) => {
     console.error("Meeting WebSocket error:", error);
   };
-  ws.onclose = (event) => {
-    console.log("Meeting WebSocket closed:", event.code, event.reason);
-  };
+  
 
   // ✅ Cleanup function
   return () => {
     if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-      console.log("Closing meeting WebSocket...");
       ws.close();
     }
   };
@@ -449,9 +403,7 @@ const startVideoCall = async () => {
         type: "start_meeting",
         meeting: meetingData,
       });
-      console.log("payload",payload);
       socket.send(payload);
-      console.log("📤 Sent start_meeting event:", payload);
     } else {
       console.warn("⚠️ Meeting WebSocket not open yet.");
     }
@@ -469,11 +421,9 @@ const startZegoCall = async () => {
     let roomData;
     if (meetingInfo) {
       roomData = meetingInfo;
-      console.log("Using existing meeting info:", roomData);
     } else {
       const res = await createMeetingRoom(communityId);
       roomData = res.data;
-      console.log("Created new meeting room:", roomData);
     }
 
     const { roomName, appID } = roomData;
@@ -484,7 +434,6 @@ const startZegoCall = async () => {
       return;
     }
 
-    console.log("Joining room:", roomName, "with userID:", userId);
 
     // ✅ Generate Kit Token client-side
     const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
@@ -495,7 +444,6 @@ const startZegoCall = async () => {
       user?.username || "Guest User"
     );
 
-    console.log("Generated Kit Token:", kitToken.substring(0, 20) + "...");
 
     // ✅ Check if container exists
     const container = document.getElementById("zego-container");
@@ -521,21 +469,15 @@ const startZegoCall = async () => {
       showRemoveUserButton: true,
 
       onLeaveRoom: async () => {
-        console.log("User left the room");
         setIsMeetingOpen(false);
         setMeetingInfo(null);
 
-        // ✅ End meeting in backend if host
-        console.log("Before checking host:roomData",meetingInfo,meetingInfo?.meeting_id );
         const isHost =
           community?.created_by?.id === userId ||
           community?.community?.creator?.id === userId;
-        console.log("Is current user host?", isHost);
         if (isHost && meetingInfo?.meeting_id) {
           try {
-            console.log("Ending meeting in backend for room:before axios", meetingInfo.meeting_id);
             await editMeetingRoom(meetingInfo.meeting_id);
-            console.log("✅ Meeting ended successfully in backend");
           } catch (err) {
             console.error("❌ Failed to end meeting:", err);
           }
@@ -552,7 +494,6 @@ const startZegoCall = async () => {
 
 useEffect(() => {
   if (isMeetingOpen && meetingInfo) {
-    console.log("🔹 Joining ongoing meeting:", meetingInfo);
     startZegoCall(); // ✅ call function to join
   }
 }, [isMeetingOpen, meetingInfo]);
@@ -561,7 +502,6 @@ const checkActiveMeeting = async () => {
   try {
     const res = await getActiveMeeting(communityId);
     if (res.active_meeting && res.active_meeting.is_active) {
-      console.log("🟢 Active meeting found:", res.active_meeting);
       setMeetingInfo(res.active_meeting);
     }
   } catch (err) {

@@ -8,14 +8,9 @@ function emit(event, data) {
 
 export default {
   connect(roomUuid) {
-    console.log("chatService: connecting to room", roomUuid);
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const url=`${protocol}://127.0.0.1:8000/ws/community/${roomUuid}/`;
-    console.log("WebSocket URL:url:", url);
-    // const url = `${protocol}://${window.location.host}/ws/community/${roomUuid}/`;
-    // url = new WebSocket(`${protocol}://127.0.0.1:8000/ws/community/${roomUuid}/`);
     ws = new WebSocket(url);
-    console.log("WebSocket object from chat service:", ws);
     ws.onopen = () => emit("connect");
     ws.onclose = () => emit("disconnect");
     ws.onerror = (e) => emit("error", e);
@@ -42,7 +37,6 @@ export default {
           media_url,
         })
       );
-      console.log("Sending message via WebSocket: sendMessage", content,media_url);
     } else {
       console.warn("WebSocket not open. Cannot send message.");
     }

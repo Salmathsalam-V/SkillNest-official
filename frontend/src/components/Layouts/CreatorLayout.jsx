@@ -24,7 +24,6 @@ const CreatorLayout = ({ children }) => {
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
     const notifications = useNotifications();
-    console.log("Notifications in CreatorLayout:", notifications);
     const [history, setHistory] = useState([]);
     const [openModal, setOpenModal] = useState(false);
     const [selectedPost, setSelectedPost] = useState(null);
