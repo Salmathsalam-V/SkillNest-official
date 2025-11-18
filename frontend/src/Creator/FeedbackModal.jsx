@@ -17,11 +17,9 @@ export const FeedbackModal = ({ open, onOpenChange, communityId, members, creato
 
     try {
       setSending(true);
-      console.log("data from communityPage: ",communityId,creatorId,selectedUser.id,feedbackText)
       const res = await createFeedback(
         communityId,creatorId,selectedUser.id,feedbackText
       );
-      console.log(res)
       toast.success("Feedback sent!");
       setFeedbackText("");
       setSelectedUser(null);

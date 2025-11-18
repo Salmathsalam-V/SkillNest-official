@@ -20,7 +20,6 @@ export const CommunityListLearner = () => {
   useEffect(() => {
     const loadData = async () => {
       const res = await fetchLearnerCommunities(LIMIT, offset);
-      console.log("Fetched communities: learner:b", res.results);
       if (offset === 0) {
           setCommunities(res.results);
         } else {
@@ -52,21 +51,17 @@ export const CommunityListLearner = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [next]);
-  console.log("Communities state:", communities);
 
   useEffect(() => {
   const loadCounts = async () => {
     const counts = {};
-    console.log("Loading unread counts for learner communities", communities);
 
     for (const c of communities) {
-      console.log("Fetching unread count for:", c.chat_room_uuid);
       const obj = await fetchUnreadCount(c.chat_room_uuid);
       counts[c.chat_room_uuid] = obj.data; // store count
     }
 
     setUnreadCounts(counts);
-    console.log("Unread counts loaded:", counts);
   };
 
   if (communities.length > 0) {

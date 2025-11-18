@@ -13,7 +13,6 @@ const InviteModal = ({ open, setOpen }) => {
   const loadInvites = async () => {
     try {
         const res = await fetchInvites();
-        console.log("Invite fetch response:", res);
         setInvites(res);
         
     } catch (err) {

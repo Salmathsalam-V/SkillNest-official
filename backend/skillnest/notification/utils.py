@@ -13,7 +13,6 @@ def create_notification(sender, recipient, notif_type, post=None):
         post=post
     )
     channel_layer = get_channel_layer()
-    logger.warning(f"Channel layer: {channel_layer}, Recipient ID: {recipient.id}: {notification}")
     async_to_sync(channel_layer.group_send)(
         f'notifications_{recipient.id}',
         {

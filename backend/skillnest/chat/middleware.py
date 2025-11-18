@@ -18,10 +18,8 @@ def get_user_from_token(token: str):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         data=User.objects.get(id=payload["user_id"])
-        logger.debug(f"JWT decode/fetch id: {data.id}, email: {data.email}")
         return User.objects.get(id=payload["user_id"])
     except Exception as e:
-        logger.warning(f"JWT decode/fetch error: {e}")
         return None
 
 
@@ -36,24 +34,19 @@ class JWTAuthMiddleware(BaseMiddleware):
             # Headers arrive as a list of [key, value] byte pairs
             headers = dict(scope.get("headers", []))
             cookies = {}
-            logger.debug(f"WebSocket headers: {headers}")
             # Grab the Cookie header if present
             if b"cookie" in headers:
                 cookie_header = headers[b"cookie"].decode()
-                logger.debug(f"Raw Cookie header: {cookie_header}")
-
                 for pair in cookie_header.split(";"):
                     if "=" in pair:
                         name, value = pair.strip().split("=", 1)
                         cookies[name] = value
 
-            logger.debug(f"Parsed cookies: {cookies}")
 
             token = cookies.get("access_token")
             user = await get_user_from_token(token) if token else None
             scope["user"] = user or AnonymousUser()   # <-- always set a user
         except Exception as e:
-            logger.warning(f"JWTAuthMiddleware error: {e}")
             scope["user"] = AnonymousUser()
 
         return await super().__call__(scope, receive, send)

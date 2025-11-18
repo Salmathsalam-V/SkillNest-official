@@ -27,24 +27,15 @@ export const Home = () => {
 
   const fetchPosts = async (currentPage) => {
     try {
-      // NOTE: Using currentPage here is more accurate if you intend to use pagination later
       const res = await axios.get(`http://127.0.0.1:8000/api/admin/posts/latest?page=${currentPage}`, { withCredentials: true });
-      // console.log("Fetched posts:", res.data);
-      // For simple 'latest' fetch, you might not need pagination logic right now.
+
       setPosts(res.data);
     } catch (err) {
       console.error("Posts fetch error:", err);
-      // Optionally show an error toast
       toast.error("Failed to load posts.");
     }
   };
 
-  // loadMore function is commented out in original, keeping it for completeness if needed later
-  // const loadMore = () => {
-  //   const next = page + 1;
-  //   setPage(next);
-  //   fetchPosts(next);
-  // };
 
   const handleContactUs = async () => {
     if (!message.trim()) {
@@ -73,7 +64,7 @@ export const Home = () => {
 
   return (
     <LearnerLayout>
-    {/* 🌟 Elegant Banner Section (Updated - No Mask & Taller) */}
+    {/* Elegant Banner Section (Updated - No Mask & Taller) */}
     <div
       className="w-full h-80 md:h-96 rounded-2xl mb-10 overflow-hidden relative shadow-xl transform transition-transform duration-500 ease-in-out hover:scale-[1.01]"
     >

@@ -27,9 +27,7 @@ export function CreatorData() {
   useEffect(() => {
     const fetchCreator = async () => {
       try {
-        console.log("Fetching creator with id:", id);
         const response = await creatorData(id);
-        console.log("Fetched creator: from cr view", response.data);
         if (response.data.success) {
             setCreator(response.data.creator);
             setStatus(response.data.creator.approve);
@@ -53,14 +51,10 @@ export function CreatorData() {
   const fetchCreatorData = async () => {
     try {
       const resPosts = await getCreatorPosts(id);
-      console.log("Posts fetched:", resPosts.data);
       setPosts(resPosts.data || []);
-      console.log("creatoriid : ", id);
       try{
         const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
         setCourses(resCourses || []);
-        console.log("Courses fetched:", courses,resCourses[0]);
-
       }
       catch(err){
         console.error("Error fetching courses:", err);
@@ -116,7 +110,6 @@ const handleLikeToggle = async (postId) => {
 };
 
 const handleCommentSubmit = async (postId) => {
-  console.log("Submitting comment for post id:", postId);
   const text = commentText[postId];
   if (!text?.trim()) {
     toast.error("Comment cannot be empty");
@@ -142,10 +135,8 @@ const handleCommentSubmit = async (postId) => {
 };
 
 const handleCommentLikeToggle = async (postId, commentId) => {
-  console.log("Toggling like for comment:", commentId, "on post:", postId);
   try {
     const data = await toggleCommentLike(postId, commentId);
-    console.log("Comment like toggle response:", data);
     if (data.success) {
       // Update state for that comment
       setPosts((prev) =>
@@ -176,13 +167,11 @@ const handleCommentLikeToggle = async (postId, commentId) => {
       }
     }
   } catch (err) {
-    console.log("Comment like toggle error:", err);
     toast.error("Failed to like comment");
   }
 };
 const fetchCreatorReviews = async () => {
   try {
-    console.log("before fetch ",id)
     const res = await fetchReviews(id);
     setReviews(res.data.results || res.data); // depending on pagination
   } catch (err) {

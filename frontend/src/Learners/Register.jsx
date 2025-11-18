@@ -54,7 +54,6 @@ export const Register = () => {
 
   // ✅ handle backend errors
 const handleBackendErrors = (errorData) => {
-  console.log("Backend validation errors:", errorData);
 
   if (typeof errorData === "object" && errorData !== null) {
     Object.entries(errorData).forEach(([field, messages]) => {

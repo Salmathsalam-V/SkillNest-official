@@ -17,7 +17,6 @@ const useChat = (roomSlug) => {
   // API calls
   const fetchMessages = useCallback(async (page = 1) => {
     try {
-      console.log("inside the useChat fetchMessages");
       const response = await axios.get(`/api/chat/rooms/${roomSlug}/messages/`, {
         params: { page }
       });
@@ -58,7 +57,6 @@ const useChat = (roomSlug) => {
   }, []);
 
   const handleUserStatus = useCallback((statusUpdate) => {
-    console.log('User status update:', statusUpdate);
     // Refresh online users when someone joins/leaves
     fetchOnlineUsers();
   }, [fetchOnlineUsers]);
