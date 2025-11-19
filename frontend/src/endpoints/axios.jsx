@@ -52,7 +52,7 @@ apiClient.interceptors.response.use(
             document.cookie =
               "refresh_token=; Max-Age=0; path=/; sameSite=Lax;";
            setTimeout(() => {
-            window.location.href = "/login";
+            window.location.href = "/";
           }, 5000);
         }
 

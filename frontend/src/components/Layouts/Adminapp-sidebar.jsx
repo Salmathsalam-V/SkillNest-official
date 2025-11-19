@@ -26,7 +26,7 @@ export const AppSidebar = () => {
         // ... (handleLogout logic remains the same)
         const success = await logout();
         if (success) {
-            navigate('/login')
+            navigate('/')
         }
     }
 

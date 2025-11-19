@@ -37,7 +37,7 @@ export const AppSidebar = () => {
         { to: "/creatorhome", icon: LayoutDashboard, label: "Dashboard" },
         { to: "/learners-list", icon: Users, label: "Learners" },
         { to: "/creators-list", icon: UserCog, label: "Creators" },
-        { to: "/", icon: BookOpen, label: "Posts" },
+        { to: "/posts", icon: BookOpen, label: "Posts" },
         { to: `/creator/communities`, icon: PencilLine, label: "Communities" },
     ];
 

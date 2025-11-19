@@ -43,9 +43,9 @@ function App() {
         {/* <AuthProvider> */}
           {/* <Toaster richColors position="top-right" /> */}
           <Routes>
-            <Route path='/login' element={<Login/>} />
+            <Route path='/' element={<Login/>} />
             <Route path='/register' element={<Register/>}/>
-            <Route path='/' element={<Menu/>}/> 
+            <Route path='/posts' element={<Menu/>}/> 
             <Route path='/learnerhome' element={<Home/>}/>  
             <Route path='/adminhome' element={<AdminHome/>}/> 
             <Route path='/listlearner' element={<LearnerList/>}/>
