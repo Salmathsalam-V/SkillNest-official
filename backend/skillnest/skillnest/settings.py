@@ -85,12 +85,12 @@ INTERNAL_IPS = ['127.0.0.1']
 
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOWED_ORIGINS = [
-    "https://skill-nest-official-klzp.vercel.app",
-    "https://skill-nest-official-lwjs.vercel.app",
-    "https://api.skillnestco.xyz",   # if backend calls itself
-]
-
+# CORS_ALLOWED_ORIGINS = [
+#     "https://skill-nest-official-klzp.vercel.app",
+#     "https://skill-nest-official-lwjs.vercel.app",
+#     "https://api.skillnestco.xyz",   # if backend calls itself
+# ]
+CORS_ALLOW_ALL_ORIGIN=True
 CSRF_TRUSTED_ORIGINS = [
     "https://skill-nest-official-klzp.vercel.app",
     "https://skill-nest-official-lwjs.vercel.app",
