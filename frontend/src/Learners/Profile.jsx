@@ -78,6 +78,7 @@ const Profile = () => {
       const res = await axios.post("https://api.skillnestco.xyz/api/upload-image/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true,
+        
       });
 
       const url = res.data.url;
