@@ -5,7 +5,7 @@ import {AdminHome} from './Admin/AdminHome'
 import {Home} from '../src/Learners/Home'
 import {CreatorHome} from './Creator/CreatorHome'
 import Login from './Learners/Login';
-import Menu from './Learners/menu';
+import menu from './Learners/menu';
 import { CreateLearner } from './Admin/CreateLearner';
 import LearnerList from './Admin/LearnerList';
 import CreatorList from './Admin/CreatorList';
@@ -45,7 +45,7 @@ function App() {
           <Routes>
             <Route path='/login' element={<Login/>} />
             <Route path='/register' element={<Register/>}/>
-            <Route path='/' element={<Menu/>}/> 
+            <Route path='/' element={<menu/>}/> 
             <Route path='/learnerhome' element={<Home/>}/>  
             <Route path='/adminhome' element={<AdminHome/>}/> 
             <Route path='/listlearner' element={<LearnerList/>}/>
