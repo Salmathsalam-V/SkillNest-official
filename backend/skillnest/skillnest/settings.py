@@ -109,7 +109,7 @@ SESSION_COOKIE_SECURE = True  # ⚠️ True in production
 CSRF_COOKIE_SECURE = True     # ⚠️ True in production
 SESSION_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SAMESITE = "None"
-# SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 REST_FRAMEWORK = {
      'DEFAULT_AUTHENTICATION_CLASSES': (
         'accounts.authentication.JWTCookieAuthentication',
