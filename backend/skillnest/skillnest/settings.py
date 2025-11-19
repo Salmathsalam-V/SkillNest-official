@@ -87,11 +87,13 @@ CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "https://skill-nest-official-klzp.vercel.app",
+    "skill-nest-official-lwjs.vercel.app",
     "https://api.skillnestco.xyz",   # if backend calls itself
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://skill-nest-official-klzp.vercel.app",
+    "skill-nest-official-lwjs.vercel.app",
     "https://api.skillnestco.xyz",
 ]
 
