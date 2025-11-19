@@ -105,7 +105,7 @@ const onSubmit = async (data) => {
 
   if (res.success) {
     // Registration succeeded ✅
-    await axios.post("http://localhost:8000/api/send_otp/", { email: data.email });
+    await axios.post("https://api.skillnestco.xyz/api/send_otp/", { email: data.email });
     toast.success("OTP sent to your email successfully");
     navigate("/verify-otp", {
       state: { email: data.email, isForgotPassword: false },

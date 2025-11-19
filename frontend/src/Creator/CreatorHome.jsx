@@ -51,7 +51,7 @@ export const CreatorHome = () => {
     const fetchPosts = async (pageNumber) => {
         try {
             // Using pageNumber, although the current implementation doesn't use it yet
-            const res = await axios.get(`http://127.0.0.1:8000/api/admin/posts/latest?page=${pageNumber}`, { withCredentials: true });
+            const res = await axios.get(`https://api.skillnestco.xyz/api/admin/posts/latest?page=${pageNumber}`, { withCredentials: true });
             // For simple fetching, replace the entire array. For infinite scroll, append:
             setPosts((prevPosts) => pageNumber === 1 ? res.data : [...prevPosts, ...res.data]);
         } catch (err) {

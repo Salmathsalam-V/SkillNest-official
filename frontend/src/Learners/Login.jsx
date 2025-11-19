@@ -77,7 +77,7 @@ const handleGoogleLogin = async (credentialResponse) => {
       const token = credentialResponse.credential;
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/google-login/",
+        "https://api.skillnestco.xyz/api/google-login/",
         { token },
         { withCredentials: true }  // ✅ so cookies (access & refresh tokens) are saved
       );

@@ -8,8 +8,9 @@ function emit(event, data) {
 
 export default {
   connect(roomUuid) {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const url=`${protocol}://127.0.0.1:8000/ws/community/${roomUuid}/`;
+    const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsHost = "api.skillnestco.xyz";
+    const url=`${wsProtocol}://${wsHost}/ws/community/${roomUuid}/`;
     ws = new WebSocket(url);
     ws.onopen = () => emit("connect");
     ws.onclose = () => emit("disconnect");

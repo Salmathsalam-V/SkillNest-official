@@ -27,7 +27,7 @@ export const Home = () => {
 
   const fetchPosts = async (currentPage) => {
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/api/admin/posts/latest?page=${currentPage}`, { withCredentials: true });
+      const res = await axios.get(`https://api.skillnestco.xyz/api/admin/posts/latest?page=${currentPage}`, { withCredentials: true });
 
       setPosts(res.data);
     } catch (err) {

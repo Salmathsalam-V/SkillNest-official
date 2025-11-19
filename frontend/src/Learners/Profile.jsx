@@ -38,7 +38,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchLearner = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/api/admin/learners/${user.id}/`);
+        const res = await axios.get(`https://api.skillnestco.xyz/api/admin/learners/${user.id}/`);
         setLearner(res.data);
       } catch (error) {
         console.error("Failed to fetch learner data", error);
@@ -75,7 +75,7 @@ const Profile = () => {
 
     try {
       setUploading(true);
-      const res = await axios.post("http://localhost:8000/api/upload-image/", formData, {
+      const res = await axios.post("https://api.skillnestco.xyz/api/upload-image/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true,
       });
