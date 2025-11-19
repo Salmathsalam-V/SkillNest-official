@@ -10,7 +10,7 @@ import { CreateLearner } from './Admin/CreateLearner';
 import LearnerList from './Admin/LearnerList';
 import CreatorList from './Admin/CreatorList';
 import { CreateCreator } from './Admin/CreateCreator';
-import GoogleCallback from './Learners/GoogleCallBack';
+import GoogleCallback from './Learners/GoogleCallback';
 import SendOTPForm from './Learners/sendOTPForm';
 import Profile from './Learners/Profile';
 import CreatorProfile from './Creator/CreatorProfile';
