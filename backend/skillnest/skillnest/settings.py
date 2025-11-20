@@ -94,6 +94,11 @@ REST_FRAMEWORK = {
 
 INTERNAL_IPS = ['127.0.0.1']
 
+if os.getenv('DEBUG') == True:
+    CORS_ALLOW_ALL_ORIGINS = True
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+
 
 CORS_ALLOWED_ORIGINS = [
     "https://skill-nest-official-lwjs.vercel.app",
