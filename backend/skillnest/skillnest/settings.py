@@ -81,6 +81,17 @@ MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
+REST_FRAMEWORK = {
+     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'accounts.authentication.JWTCookieAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 6,  # fallback default
+}
+
 INTERNAL_IPS = ['127.0.0.1']
 
 CORS_ALLOW_CREDENTIALS = True
@@ -98,7 +109,7 @@ CORS_ALLOW_HEADERS = [
     "Origin",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CSRF_TRUSTED_ORIGINS = [
     "https://skill-nest-official-klzp.vercel.app",
     "https://skill-nest-official-lwjs.vercel.app",
@@ -110,16 +121,7 @@ CSRF_COOKIE_SECURE = True     # ⚠️ True in production
 SESSION_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SAMESITE = "None"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
-REST_FRAMEWORK = {
-     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'accounts.authentication.JWTCookieAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
-    "PAGE_SIZE": 6,  # fallback default
-}
+
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=20),
