@@ -98,7 +98,7 @@ CORS_ALLOW_HEADERS = [
     "Origin",
 ]
 
-CORS_ALLOW_ALL_ORIGIN=True
+CORS_ALLOW_ALL_ORIGINS = True
 CSRF_TRUSTED_ORIGINS = [
     "https://skill-nest-official-klzp.vercel.app",
     "https://skill-nest-official-lwjs.vercel.app",
