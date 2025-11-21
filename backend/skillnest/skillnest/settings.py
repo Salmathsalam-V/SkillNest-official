@@ -273,10 +273,11 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": ["redis://default:r44Nihhwq3fCO6xuxJlpkEcPBvzrUHTM@redis-18872.crce182.ap-south-1-1.ec2.redns.redis-cloud.com:18872/0"],
+            "hosts": [("127.0.0.1", 6379)],
         },
     },
 }
+
 
 WEBSOCKET_ACCEPT_ALL = False  
 # Redis Configuration for other uses
