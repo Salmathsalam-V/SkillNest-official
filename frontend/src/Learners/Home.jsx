@@ -77,12 +77,12 @@ export const Home = () => {
 
       {/* Center Text (no dark overlay now) */}
       <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-3">
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-[0_3px_6px_rgba(0,0,0,0.6)]">
+        {/* <h1 className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-[0_3px_6px_rgba(0,0,0,0.6)]">
           "Learn and upgrade your level"
         </h1>
         <p className="text-lg text-gray-100 font-medium italic drop-shadow-md">
           — Here is your skill-sharpening Nest.
-        </p>
+        </p> */}
        
       </div>
     </div>
