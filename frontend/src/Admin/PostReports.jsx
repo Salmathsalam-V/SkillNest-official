@@ -27,19 +27,17 @@ export const ReportsPage = () => {
     fetchReports();
   }, []);
 
-  if (loading)
+   if (!loading && reports.length === 0) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
-      </div>
+      <AdminLayout>
+        <ScrollArea className="h-[calc(100vh-4rem)] p-6 bg-gray-50">
+          <div className="flex justify-center items-center h-full text-gray-600 text-lg">
+            No reports found.
+          </div>
+        </ScrollArea>
+      </AdminLayout>
     );
-
-  if (reports.length === 0)
-    return (
-      <div className="flex justify-center items-center h-screen text-gray-600">
-        No reports found.
-      </div>
-    );
+  }
 
   return (
     <AdminLayout>
