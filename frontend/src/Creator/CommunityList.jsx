@@ -144,12 +144,14 @@ const confirmDelete = async () => {
   }
 };
 const createdByMe = communities.filter(
-  (c) => c.creator?.id === user.id
+  (c) => c.creator === user.username
 );
 
+
 const memberOf = communities.filter(
-  (c) => c.creator?.id !== user.id && c.members?.some((m) => m.id === user.id)
+  (c) => c.creator !== user.username && c.members.includes(user.id)
 );
+
 
 useEffect(() => {
   const loadCounts = async () => {
