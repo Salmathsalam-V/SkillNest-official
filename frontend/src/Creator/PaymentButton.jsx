@@ -8,7 +8,7 @@ const PaymentButton = ({ amount,email }) => {
     const navigate = useNavigate();
   const handlePayment = async () => {
     try {
-      const res = await axios.post("https://api.skillnestco.xyz/api/payment/create-order/", //can give the user id 
+      const res = await axios.post("https://api.skillnestco.xyz/api/payment/create-order/", 
         { amount },
       );
 
@@ -25,7 +25,7 @@ const PaymentButton = ({ amount,email }) => {
           // Step 6: Send verification data to backend
           await axios.post("https://api.skillnestco.xyz/api/payment/verify/", {...response,email,amount});
           toast.success("Payment successful!  You can log in after admin accept");
-          navigate('/login')
+          navigate('/')
         },
         prefill: {
           name: "John Doe",
