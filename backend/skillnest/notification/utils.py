@@ -27,3 +27,4 @@ def create_notification(sender, recipient, notif_type, post=None):
         }
     )
 
+

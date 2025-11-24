@@ -81,28 +81,6 @@ MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
-INTERNAL_IPS = ['127.0.0.1']
-
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:8000",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:8000",
-    "http://localhost:5173",
-     "http://localhost:3000",
-     "http://127.0.0.1:3000",
-]
-SESSION_COOKIE_SECURE = False  # ⚠️ True in production
-CSRF_COOKIE_SECURE = False     # ⚠️ True in production
-SESSION_COOKIE_SAMESITE = "None"
-CSRF_COOKIE_SAMESITE = "None"
-# SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 REST_FRAMEWORK = {
      'DEFAULT_AUTHENTICATION_CLASSES': (
         'accounts.authentication.JWTCookieAuthentication',
@@ -113,6 +91,41 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 6,  # fallback default
 }
+
+INTERNAL_IPS = ['127.0.0.1']
+
+if os.getenv('DEBUG') == "True":
+    CORS_ALLOW_ALL_ORIGINS = True
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+
+
+CORS_ALLOWED_ORIGINS = [
+    "https://skill-nest-official-lwjs.vercel.app",
+    "https://api.skillnestco.xyz",   # if backend calls itself
+]
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+]
+
+CORS_ALLOW_ALL_ORIGINS = False
+CSRF_TRUSTED_ORIGINS = [
+    "https://skill-nest-official-lwjs.vercel.app",
+    "https://api.skillnestco.xyz",
+]
+
+SESSION_COOKIE_SECURE = True  # ⚠️ True in production
+CSRF_COOKIE_SECURE = True     # ⚠️ True in production
+SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "None"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=20),
@@ -260,10 +273,11 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": ["redis://default:r44Nihhwq3fCO6xuxJlpkEcPBvzrUHTM@redis-18872.crce182.ap-south-1-1.ec2.redns.redis-cloud.com:18872/0"],
+            "hosts": [("127.0.0.1", 6379)],
         },
     },
 }
+
 
 WEBSOCKET_ACCEPT_ALL = False  
 # Redis Configuration for other uses

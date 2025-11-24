@@ -24,7 +24,7 @@ export const PostsPage = () => {
   const fetchPosts = async (url = null) => {
     try {
       setLoading(true);
-      const apiUrl = url || `http://localhost:8000/api/creator/posts/?limit=${LIMIT}`;
+      const apiUrl = url || `https://api.skillnestco.xyz/api/creator/posts/?limit=${LIMIT}`;
       const res = await axios.get(apiUrl, { withCredentials: true });
       const data = res.data;
 

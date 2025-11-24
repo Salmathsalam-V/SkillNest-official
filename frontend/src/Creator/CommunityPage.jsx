@@ -345,9 +345,10 @@ useEffect(() => {
 useEffect(() => {
   if (!communityId) return;
 
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const wsHost = "api.skillnestco.xyz";
   const ws = new WebSocket(
-    `${protocol}://127.0.0.1:8000/ws/community/${communityId}/meeting/`
+    `${wsProtocol}://${wsHost}/ws/community/${communityId}/meeting/`
   );
     meetingSocketRef.current = ws;
   
@@ -357,11 +358,11 @@ useEffect(() => {
       const data = JSON.parse(event.data);
       if (data.type === "meeting_started") {
         
-        toast.info(`📢 ${userId} started a video call`);
+        toast.info(`📢 Community started a video call`);
         setMeetingInfo(data.meeting);
       }
     } catch (err) {
-      console.error("Failed to parse meeting message:", err);
+      // console.error("Failed to parse meeting message:", err);
     }
   };
   ws.onerror = (error) => {

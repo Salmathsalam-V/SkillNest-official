@@ -27,7 +27,7 @@ const ResetPasswordForm = () => {
     setError('');
 
     try {
-      await axios.post('http://localhost:8000/api/reset_password/', {
+      await axios.post('https://api.skillnestco.xyz/api/reset_password/', {
         email,
         new_password: password,
       });

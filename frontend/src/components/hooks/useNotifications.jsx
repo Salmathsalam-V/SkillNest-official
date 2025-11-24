@@ -7,7 +7,8 @@ export const useNotifications=()=> {
   const [notifications, setNotifications] = useState([]);
   useEffect(() => {
     const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${wsProtocol}://127.0.0.1:8000/ws/notifications/`);
+    const wsHost = "api.skillnestco.xyz";
+    const ws = new WebSocket(`${wsProtocol}://${wsHost}/ws/notifications/`);
 
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
