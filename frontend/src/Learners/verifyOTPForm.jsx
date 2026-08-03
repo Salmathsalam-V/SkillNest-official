@@ -48,7 +48,7 @@ const VerifyOTPForm = () => {
             if (user_type === 'creator') {
               navigate('/ceate-extradata', { state: { email } });
             } else {
-              navigate('/login');
+              navigate('/');
             }
           }
         }, 1000);
