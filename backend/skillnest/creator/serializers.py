@@ -89,8 +89,8 @@ class CommunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Community
-        fields = ['id', 'creator', 'name', 'description', 'members', 'created_at','chat_room_uuid']
-        read_only_fields = ['id', 'creator', 'created_at','chat_room_uuid']
+        fields = ['id', 'creator','creator_id', 'creator_username', 'name', 'description', 'members', 'created_at','chat_room_uuid']
+        read_only_fields = ['id', 'creator', 'created_at','chat_room_uuid','creator_username','creator_id']
 
     def create(self, validated_data):
         request = self.context['request']
