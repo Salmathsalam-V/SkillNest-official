@@ -439,7 +439,7 @@ const startZegoCall = async () => {
     // ✅ Generate Kit Token client-side
     const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
       Number(appID),
-      "b5760c71682586e629b772f8fa71570f",
+      "e3245658e3b3f7eda241a6a742ffa194",
       roomName,
       String(userId),
       user?.username || "Guest User"
