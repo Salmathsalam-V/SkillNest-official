@@ -180,20 +180,14 @@ export const CommunityPageLearner = () => {
       return;
     }
 
-    const { roomName, appID } = meetingInfo;
+    const { roomName, appID, token } = meetingInfo;
     if (!roomName || !appID) {
       toast.error("Invalid meeting info");
       return;
     }
 
     // Generate token
-    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-      Number(appID),
-      "b5760c71682586e629b772f8fa71570f", // your serverSecret/test key
-      roomName,
-      String(userId),
-      user?.username || "Guest"
-    );
+   
 
     const container = document.getElementById("zego-container");
     if (!container) {
@@ -201,7 +195,7 @@ export const CommunityPageLearner = () => {
       return;
     }
 
-    const zp = ZegoUIKitPrebuilt.create(kitToken);
+    const zp = ZegoUIKitPrebuilt.create(token);
     zp.joinRoom({
       container,
       scenario: {
