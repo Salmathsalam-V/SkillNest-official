@@ -427,9 +427,9 @@ const startZegoCall = async () => {
       roomData = res.data;
     }
 
-    const { roomName, appID } = roomData;
+    const { roomName, appID, token } = roomData;
 
-    if (!roomName || !appID) {
+    if (!roomName || !appID || !token) {
       console.error("Missing required fields:", roomData);
       toast.error("Failed to initialize video call");
       return;
@@ -437,13 +437,7 @@ const startZegoCall = async () => {
 
 
     // ✅ Generate Kit Token client-side
-    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-      Number(appID),
-      "e3245658e3b3f7eda241a6a742ffa194",
-      roomName,
-      String(userId),
-      user?.username || "Guest User"
-    );
+
 
 
     // ✅ Check if container exists
@@ -455,7 +449,7 @@ const startZegoCall = async () => {
     }
 
     // ✅ Create ZegoUIKitPrebuilt instance
-    const zp = ZegoUIKitPrebuilt.create(kitToken);
+    const zp = ZegoUIKitPrebuilt.create(token);
     
     // ✅ Join the room
     zp.joinRoom({
