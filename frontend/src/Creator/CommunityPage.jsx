@@ -22,7 +22,6 @@ import { X } from "lucide-react";
 import chatService from "../services/chatService";
 import { text } from "@fortawesome/fontawesome-svg-core";
 import { Loader }  from '@/components/Layouts/Loader';
-import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
 import { Textarea } from "@/components/ui/textarea";
 import {FeedbackModal} from '../Creator/FeedbackModal'
 import { FeedbackListModal } from "../Creator/FeedbackListModal";
@@ -380,16 +379,6 @@ useEffect(() => {
 }, [communityId]); // ✅ Only re-run when communityId changes
 
 
-// ✅ Remove the duplicate useEffect that was causing issues
-// Delete this:
-// useEffect(() => {
-//   if (isMeetingOpen && meetingInfo) {
-//     startZegoCall(meetingInfo);
-//   }
-// }, [isMeetingOpen, meetingInfo]);
-
-
-// ✅ Update startVideoCall to call startZegoCall directly
 const startVideoCall = async () => {
   try {
     const res = await createMeetingRoom(communityId);
@@ -411,84 +400,6 @@ const startVideoCall = async () => {
     toast.error("Failed to start meeting");
   }
 };
-
-// ✅ Update startZegoCall to not create another meeting room
-const startZegoCall = async () => {
-  try {
-    // ✅ Use existing meetingInfo if available, otherwise create new room
-    let roomData;
-    if (meetingInfo) {
-      roomData = meetingInfo;
-    } else {
-      const res = await createMeetingRoom(communityId);
-      roomData = res.data;
-    }
-
-    const { roomName, appID, token } = roomData;
-
-    if (!roomName || !appID || !token) {
-      console.error("Missing required fields:", roomData);
-      toast.error("Failed to initialize video call");
-      return;
-    }
-
-
-    // ✅ Generate Kit Token client-side
-
-
-
-    // ✅ Check if container exists
-    const container = document.getElementById("zego-container");
-    if (!container) {
-      console.error("Zego container not found!");
-      // toast.error("Video container not ready");
-      return;
-    }
-
-    // ✅ Create ZegoUIKitPrebuilt instance
-    const zp = ZegoUIKitPrebuilt.create(token);
-    
-    // ✅ Join the room
-    zp.joinRoom({
-      container: container,
-      scenario: {
-        mode: ZegoUIKitPrebuilt.VideoConference,
-      },
-      showPreJoinView: true,
-      showScreenSharingButton: true,
-      showTurnOffRemoteCameraButton: true,
-      showTurnOffRemoteMicrophoneButton: true,
-      showRemoveUserButton: true,
-
-      onLeaveRoom: async () => {
-        setIsMeetingOpen(false);
-        setMeetingInfo(null);
-
-        const isHost =
-          community?.created_by?.id === userId ||
-          community?.community?.creator?.id === userId;
-        if (isHost && meetingInfo?.meeting_id) {
-          try {
-            await editMeetingRoom(meetingInfo.meeting_id);
-          } catch (err) {
-            console.error("❌ Failed to end meeting:", err);
-          }
-        }
-      },
-    });
-
-    
-  } catch (err) {
-    console.error("Error starting Zego call:", err);
-    toast.error("Failed to start/end video call");
-  }
-};
-
-useEffect(() => {
-  if (isMeetingOpen && meetingInfo) {
-    startZegoCall(); // ✅ call function to join
-  }
-}, [isMeetingOpen, meetingInfo]);
 
 const checkActiveMeeting = async () => {
   try {
@@ -549,31 +460,6 @@ const handleTyping = (e) => {
                 🎥 Start Video Call
               </Button>
             )}
-            {/* Show join button for participants when a meeting is active */}
-              {isMeetingOpen && meetingInfo?.token && (
-                <ZegoMeet
-                  token={meetingInfo.token}
-                  roomName={meetingInfo.roomName}
-                  onLeave={async () => {
-                    setIsMeetingOpen(false);
-              
-                    const meetingId = meetingInfo?.meeting_id;
-              
-                    if (meetingId) {
-                      try {
-                        await editMeetingRoom(meetingId);
-                      } catch (err) {
-                        console.error(
-                          "Failed to end meeting:",
-                          err
-                        );
-                      }
-                    }
-              
-                    setMeetingInfo(null);
-                  }}
-                />
-              )}
 
 
 
@@ -870,7 +756,32 @@ const handleTyping = (e) => {
           <DialogHeader>
             <DialogTitle>Community Video Call</DialogTitle>
           </DialogHeader>
-          <div id="zego-container" className="w-full h-full rounded-lg overflow-hidden"></div>
+          {meetingInfo?.token && (
+            <div className="w-full h-full rounded-lg overflow-hidden">
+              <ZegoMeet
+                token={meetingInfo.token}
+                roomName={meetingInfo.roomName}
+                onLeave={async () => {
+                  setIsMeetingOpen(false);
+
+                  const isHost =
+                    community?.created_by?.id === userId ||
+                    community?.community?.creator?.id === userId;
+                  const meetingId = meetingInfo?.meeting_id;
+
+                  if (isHost && meetingId) {
+                    try {
+                      await editMeetingRoom(meetingId);
+                    } catch (err) {
+                      console.error("Failed to end meeting:", err);
+                    }
+                  }
+
+                  setMeetingInfo(null);
+                }}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
