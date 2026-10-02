@@ -393,27 +393,23 @@ const startVideoCall = async () => {
   try {
     const res = await createMeetingRoom(communityId);
     const meetingData = res.data;
+
     setMeetingInfo(meetingData);
     setIsMeetingOpen(true);
-    
-    // ✅ Start Zego call immediately after opening dialog
-    setTimeout(() => startZegoCall(), 100); // Small delay to ensure DOM is ready
+
     const socket = meetingSocketRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      const payload = JSON.stringify({
+
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
         type: "start_meeting",
         meeting: meetingData,
-      });
-      socket.send(payload);
-    } else {
-      console.warn("⚠️ Meeting WebSocket not open yet.");
+      }));
     }
   } catch (err) {
     console.error("Failed to start meeting:", err);
     toast.error("Failed to start meeting");
   }
 };
-
 
 // ✅ Update startZegoCall to not create another meeting room
 const startZegoCall = async () => {
@@ -553,19 +549,30 @@ const handleTyping = (e) => {
               </Button>
             )}
             {/* Show join button for participants when a meeting is active */}
-              {meetingInfo && !isMeetingOpen &&
-                    (community?.created_by?.id !== userId &&
-                    community?.community?.creator?.id !== userId) && (
-                      <Button
-                        onClick={() => {
-                          setIsMeetingOpen(true);
-                          setTimeout(() => startZegoCall(), 300);
-                        }}
-                        className="ml-auto bg-green-600 hover:bg-green-700"
-                      >
-                        🚀 Join Ongoing Call
-                      </Button>
-                  )}
+              {isMeetingOpen && meetingInfo?.token && (
+                <ZegoMeet
+                  token={meetingInfo.token}
+                  roomName={meetingInfo.roomName}
+                  onLeave={async () => {
+                    setIsMeetingOpen(false);
+              
+                    const meetingId = meetingInfo?.meeting_id;
+              
+                    if (meetingId) {
+                      try {
+                        await editMeetingRoom(meetingId);
+                      } catch (err) {
+                        console.error(
+                          "Failed to end meeting:",
+                          err
+                        );
+                      }
+                    }
+              
+                    setMeetingInfo(null);
+                  }}
+                />
+              )}
 
 
 
