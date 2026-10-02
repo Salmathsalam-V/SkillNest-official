@@ -155,13 +155,13 @@ const handleCommentLikeToggle = async (postId, commentId) => {
 const fetchCreatorData = async (offset = 0) => {
   try {
     const res = await axios.get(
-      `http://localhost:8000/api/creator/creators/${id}/posts/?limit=${pageSize}&offset=${offset}`,
+      `https://api.skillnestco.xyz/api/creator/creators/${id}/posts/?limit=${pageSize}&offset=${offset}`,
       { withCredentials: true }
     );
     setPosts(offset === 0 ? res.data.results : (prev) => [...prev, ...res.data.results]);
     setNextPage(offset + pageSize);
     setHasMore(!!res.data.next); // DRF gives `next` link if more pages exist
-    const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
+    const resCourses = await axios.get(`https://api.skillnestco.xyz/api/creator/creators/${id}/courses/`);
     setCourses(resCourses.data.results || []);
     setLoading(false);
   } catch (err) {

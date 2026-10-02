@@ -33,7 +33,7 @@ const VerifyOTPForm = () => {
   const handleVerify = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:8000/api/verify_otp/', {
+      const response = await axios.post('https://api.skillnestco.xyz/api/verify_otp/', {
         email,
         otp,
       });
@@ -48,7 +48,7 @@ const VerifyOTPForm = () => {
             if (user_type === 'creator') {
               navigate('/ceate-extradata', { state: { email } });
             } else {
-              navigate('/login');
+              navigate('/');
             }
           }
         }, 1000);

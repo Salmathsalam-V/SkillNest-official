@@ -105,7 +105,7 @@ const onSubmit = async (data) => {
 
   if (res.success) {
     // Registration succeeded ✅
-    await axios.post("http://localhost:8000/api/send_otp/", { email: data.email });
+    await axios.post("https://api.skillnestco.xyz/api/send_otp/", { email: data.email });
     toast.success("OTP sent to your email successfully");
     navigate("/verify-otp", {
       state: { email: data.email, isForgotPassword: false },
@@ -222,7 +222,7 @@ const onSubmit = async (data) => {
 
               <div className="text-center text-sm">
                 Already have an account?{" "}
-                <a href="/login" className="underline underline-offset-4">
+                <a href="/" className="underline underline-offset-4">
                   Login
                 </a>
               </div>

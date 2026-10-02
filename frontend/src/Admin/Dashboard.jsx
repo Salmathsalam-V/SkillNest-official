@@ -76,7 +76,7 @@ export default function Dashboard() {
 
     const fetchStats = async () => {
         try {
-            const res = await axios.get("http://127.0.0.1:8000/api/admin/dashboard/stats/", { withCredentials: true });
+            const res = await axios.get("https://api.skillnestco.xyz/api/admin/dashboard/stats/", { withCredentials: true });
             setStats(res.data);
             setLoading(false);
         } catch (err) {
@@ -87,7 +87,7 @@ export default function Dashboard() {
 
     const fetchPosts = async () => {
         try {
-            const res = await axios.get(`http://127.0.0.1:8000/api/admin/posts/latest`, { withCredentials: true });
+            const res = await axios.get(`https://api.skillnestco.xyz/api/admin/posts/latest`, { withCredentials: true });
             setPosts(res.data);
         } catch (err) {
             console.error("Posts fetch error:", err);

@@ -53,7 +53,7 @@ export function CreatorData() {
       const resPosts = await getCreatorPosts(id);
       setPosts(resPosts.data || []);
       try{
-        const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
+        const resCourses = await axios.get(`https://api.skillnestco.xyz/api/creator/creators/${id}/courses/`);
         setCourses(resCourses || []);
       }
       catch(err){

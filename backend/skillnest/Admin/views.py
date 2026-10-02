@@ -63,6 +63,7 @@ class CreatorListView(ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response({
             'success': True,
+            
             'creators': serializer.data
         })
 

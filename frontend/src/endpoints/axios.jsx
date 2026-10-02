@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { store } from '@/Redux/store';
 import { logoutUser } from '@/Redux/userSlice';
 
-const BASE_URL = 'http://127.0.0.1:8000/api/';
+const BASE_URL = 'https://api.skillnestco.xyz/api/';
 const LOGIN_URL = `${BASE_URL}login/`;
 const REFRESH_URL  = `${BASE_URL}token/refresh/`;
 const POST_URL = `${BASE_URL}post/`;
@@ -52,7 +52,7 @@ apiClient.interceptors.response.use(
             document.cookie =
               "refresh_token=; Max-Age=0; path=/; sameSite=Lax;";
            setTimeout(() => {
-            window.location.href = "/login";
+            window.location.href = "/";
           }, 5000);
         }
 
@@ -137,7 +137,7 @@ export const get_learners = async () => {
 
 export const get_user = async () => {
   try {
-    const response = await axios.get("http://localhost:8000/api/dj-rest-auth/user/", {
+    const response = await axios.get("https://api.skillnestco.xyz/api/dj-rest-auth/user/", {
       withCredentials: true
     });
     return { success: true, data: response.data };
@@ -190,7 +190,7 @@ export const toggleCommentLike = async (postId, commentId) => {
 
 export const get_course = async (userId)=>{
   try{
-    const response = await axios.get(`http://localhost:8000/api/creator/creators/${userId}/courses/`,
+    const response = await axios.get(`https://api.skillnestco.xyz/api/creator/creators/${userId}/courses/`,
     { withCredentials : true }
     )
   return response.data
@@ -387,7 +387,7 @@ export const registerUser = async (formData) => {
 
 export const imageUpload = async (formData) => {
   try {
-    const res = await axios.post("http://127.0.0.1:8000/api/upload-image/",   
+    const res = await axios.post("https://api.skillnestco.xyz/api/upload-image/",   
       formData,
       {
         headers: { "Content-Type": "multipart/form-data" },

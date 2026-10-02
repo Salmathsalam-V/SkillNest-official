@@ -135,7 +135,7 @@ const handleViewFollowers = async () => {
   useEffect(() => {
     const fetchCreator = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/api/admin/creators-view/${id}/`);
+        const response = await axios.get(`https://api.skillnestco.xyz/api/admin/creators-view/${id}/`);
         if (response.data.success) {
           setCreator(response.data.creator);
           
@@ -197,7 +197,7 @@ const handleSaveChanges = async () => {
     try {
       setUploading(true);
       const res = await axios.post(
-        'http://localhost:8000/api/upload-image/',
+        'https://api.skillnestco.xyz/api/upload-image/',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -217,13 +217,13 @@ const handleSaveChanges = async () => {
 const fetchPosts = async (offset = 0) => {
   try {
     const res = await axios.get(
-      `http://localhost:8000/api/creator/creators/${id}/posts/?limit=${pageSize}&offset=${offset}`,
+      `https://api.skillnestco.xyz/api/creator/creators/${id}/posts/?limit=${pageSize}&offset=${offset}`,
       { withCredentials: true }
     );
     setPosts(offset === 0 ? res.data.results : (prev) => [...prev, ...res.data.results]);
     setNextPage(offset + pageSize);
     setHasMore(!!res.data.next); // DRF gives `next` link if more pages exist
-    const resCourses = await axios.get(`http://localhost:8000/api/creator/creators/${id}/courses/`);
+    const resCourses = await axios.get(`https://api.skillnestco.xyz/api/creator/creators/${id}/courses/`);
     setCourses(resCourses.data.results || []);
     setLoading(false);
   } catch (err) {
@@ -255,7 +255,7 @@ const handleDeletePost = async (postId) => {
 const handleUpdatePost = async (post) => {
   try {
     const res = await axios.patch(
-      `http://localhost:8000/api/creator/creators/posts/${post.id}/`,
+      `https://api.skillnestco.xyz/api/creator/creators/posts/${post.id}/`,
       { caption: post.caption, image: post.image },
       { withCredentials: true }
     );
@@ -290,7 +290,7 @@ const handleUpdatePost = async (post) => {
 const handleCreatePost = async () => {
   try {
     const res = await axios.post(
-      `http://localhost:8000/api/creator/creators/${id}/posts/`,
+      `https://api.skillnestco.xyz/api/creator/creators/${id}/posts/`,
       {
         ...newPost,
         image, 
@@ -342,7 +342,7 @@ const handleProfileUpload = async (e) => {
   try {
     setUploading(true);
     const res = await axios.post(
-      'http://localhost:8000/api/upload-image/',
+      'https://api.skillnestco.xyz/api/upload-image/',
       formData,
       {
         headers: { 'Content-Type': 'multipart/form-data' },

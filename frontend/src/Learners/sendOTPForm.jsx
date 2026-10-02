@@ -61,7 +61,7 @@ const SendOTPForm = () => {
     setIsLoading(true);
     
     try {
-      await axios.post('http://localhost:8000/api/send_otp/', { 
+      await axios.post('https://api.skillnestco.xyz/api/send_otp/', { 
         email: email.trim().toLowerCase() 
       });
       

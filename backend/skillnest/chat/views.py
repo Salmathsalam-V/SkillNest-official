@@ -123,7 +123,6 @@ def send_community_message(request, community_id):
     message_type = request.data.get("message_type", "text")
 
     if not content and not media_url:
-        print("DEBUG SEND MESSAGE DATA:", request.data)
         return Response(
             {"error": "Message cannot be empty"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -380,5 +379,4 @@ async def translate_text(request):
         return JsonResponse({"translated": result.get("translatedText", text)})
 
     except Exception as e:
-        print("❌ Translation error:", e)
         return JsonResponse({"error": str(e)}, status=500)

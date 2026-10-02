@@ -5,12 +5,12 @@ import {AdminHome} from './Admin/AdminHome'
 import {Home} from '../src/Learners/Home'
 import {CreatorHome} from './Creator/CreatorHome'
 import Login from './Learners/Login';
-import Menu from './Learners/menu';
+import Menu from './Learners/Menu';
 import { CreateLearner } from './Admin/CreateLearner';
 import LearnerList from './Admin/LearnerList';
 import CreatorList from './Admin/CreatorList';
 import { CreateCreator } from './Admin/CreateCreator';
-import GoogleCallback from './Learners/GoogleCallBack';
+import GoogleCallback from './Learners/GoogleCallback';
 import SendOTPForm from './Learners/sendOTPForm';
 import Profile from './Learners/Profile';
 import CreatorProfile from './Creator/CreatorProfile';
@@ -43,9 +43,9 @@ function App() {
         {/* <AuthProvider> */}
           {/* <Toaster richColors position="top-right" /> */}
           <Routes>
-            <Route path='/login' element={<Login/>} />
+            <Route path='/' element={<Login/>} />
             <Route path='/register' element={<Register/>}/>
-            <Route path='/' element={<Menu/>}/> 
+            <Route path='/posts' element={<Menu/>}/> 
             <Route path='/learnerhome' element={<Home/>}/>  
             <Route path='/adminhome' element={<AdminHome/>}/> 
             <Route path='/listlearner' element={<LearnerList/>}/>
