@@ -26,6 +26,7 @@ import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
 import { Textarea } from "@/components/ui/textarea";
 import {FeedbackModal} from '../Creator/FeedbackModal'
 import { FeedbackListModal } from "../Creator/FeedbackListModal";
+import {ZegoMeet} from '../Chats/zegoCloud'
 
 
 export const CommunityPage = () => {
